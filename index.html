@@ -4472,18 +4472,39 @@ function _shpFeatureCentroid(feature) {
    utama, supaya bisa ditampilkan/sembunyikan & diatur ukuran fontnya tanpa membangun ulang SHP. */
 function _shpBuildLabelLayer(layerObj) {
   var group = L.layerGroup();
-  if (!layerObj.labelField) return group;
-  var fontSize = layerObj.labelFontSize || 11;
-  var color = layerObj.labelColor || '#1a1a1a';
+
+  // Multi-kolom: gunakan labelFields[] jika ada, fallback ke labelField (legacy single)
+  var colDefs = layerObj.labelFields && layerObj.labelFields.length
+    ? layerObj.labelFields  // [{col, size, color, bold, on}, ...]
+    : (layerObj.labelField ? [{ col: layerObj.labelField, size: layerObj.labelFontSize||11, color: layerObj.labelColor||'#1a1a1a', bold: true, on: true }] : []);
+
+  var activeDefs = colDefs.filter(function(d){ return d.on !== false; });
+  if (!activeDefs.length) return group;
+
+  var hiddenFids = layerObj._hiddenFids || {};
   (layerObj.features || []).forEach(function(f) {
-    var val = (f.properties || {})[layerObj.labelField];
-    if (val === undefined || val === null || val === '') return;
+    var fid = f._fid !== undefined ? f._fid : null;
+    if (fid !== null && hiddenFids[fid]) return; // label disembunyikan user
+    var props = f.properties || {};
     var center = _shpFeatureCentroid(f);
     if (!center) return;
+
+    // Buat satu div per kolom, di-stack vertikal
+    var divs = activeDefs.map(function(d) {
+      var val = props[d.col];
+      if (val === undefined || val === null || val === '') return '';
+      var fw = d.bold !== false ? '700' : '400';
+      var shadow = d.color === '#1a1a1a' || d.color === '#000000'
+        ? '-1px -1px 0 rgba(255,255,255,.9),1px -1px 0 rgba(255,255,255,.9),-1px 1px 0 rgba(255,255,255,.9),1px 1px 0 rgba(255,255,255,.9)'
+        : '-1px -1px 0 rgba(0,0,0,.85),1px -1px 0 rgba(0,0,0,.85),-1px 1px 0 rgba(0,0,0,.85),1px 1px 0 rgba(0,0,0,.85)';
+      return '<div style="font-family:Arial,sans-serif;font-size:'+(d.size||11)+'px;font-weight:'+fw+';color:'+(d.color||'#1a1a1a')+';text-shadow:'+shadow+';white-space:nowrap;pointer-events:none;line-height:1.35;text-align:center">'+_e(String(val))+'</div>';
+    }).filter(Boolean).join('');
+
+    if (!divs) return;
     L.marker(center, {
       icon: L.divIcon({
         className: '',
-        html: '<div style="font-family:\'Arial\',sans-serif;font-size:'+fontSize+'px;font-weight:700;color:'+color+';text-shadow:-1px -1px 0 #fff,1px -1px 0 #fff,-1px 1px 0 #fff,1px 1px 0 #fff,0 0 3px #fff;white-space:nowrap;pointer-events:none;transform:translate(-50%,-50%)">'+_e(String(val))+'</div>',
+        html: '<div style="transform:translate(-50%,-50%);display:inline-flex;flex-direction:column;align-items:center">'+divs+'</div>',
         iconSize: [1,1], iconAnchor: [0,0]
       }),
       interactive: false
@@ -4496,7 +4517,8 @@ function _shpBuildLabelLayer(layerObj) {
 function shpRebuildLabelLayer(layerObj) {
   if (layerObj.labelLayer && _map && _map.hasLayer(layerObj.labelLayer)) _map.removeLayer(layerObj.labelLayer);
   layerObj.labelLayer = _shpBuildLabelLayer(layerObj);
-  if (_map && layerObj.labelField && layerObj.labelVisible !== false) layerObj.labelLayer.addTo(_map);
+  var hasLabel = (layerObj.labelFields && layerObj.labelFields.some(function(d){return d.on;})) || layerObj.labelField;
+  if (_map && hasLabel && layerObj.labelVisible !== false) layerObj.labelLayer.addTo(_map);
 }
 function shpSetLabelField(id, field) {
   var l = _shpLayers.find(function(x){ return x.id===id; });
@@ -6039,25 +6061,6 @@ function shpUpdateLayerList() {
           '<span style="font-family:Arial,sans-serif;font-size:8px;color:var(--txt2);width:28px;text-align:right">'+fillOpacity+'%</span>' +
         '</div>' +
         '<div style="margin-top:10px;border-top:1px solid var(--brd2);padding-top:8px" id="shp-attrcolor-'+l.id+'"></div>' +
-        '<div style="margin-top:10px;border-top:1px solid var(--brd2);padding-top:8px">' +
-          '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px">' +
-            '<span style="font-family:Arial,sans-serif;font-size:8.5px;color:var(--mute)">🏷️ Label Atribut di Peta</span>' +
-            '<button onclick="shpToggleLabelVisible(\''+l.id+'\')" title="'+(labelVisible?'Sembunyikan label':'Tampilkan label')+'" style="background:none;border:none;color:'+(labelVisible&&labelField?'var(--accent)':'var(--mute)')+';cursor:pointer;font-size:13px;padding:0">'+(labelVisible&&labelField?'👁':'🚫')+'</button>' +
-          '</div>' +
-          '<select onchange="shpSetLabelField(\''+l.id+'\',this.value)" style="width:100%;padding:6px 8px;background:var(--inp);border:1px solid var(--brd);border-radius:3px;color:var(--txt);font-family:\'Arial\',sans-serif;font-size:11px;outline:none;margin-bottom:6px">' +
-            '<option value="">— Tidak ada label —</option>' +
-            attrFields.map(function(f){ return '<option value="'+_e(f)+'"'+(f===labelField?' selected':'')+'>'+_e(f)+'</option>'; }).join('') +
-          '</select>' +
-          '<div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">' +
-            '<span style="font-family:Arial,sans-serif;font-size:8px;color:var(--mute);flex-shrink:0;width:58px">Ukuran font</span>' +
-            '<input type="range" min="7" max="24" step="1" value="'+labelFontSize+'" oninput="shpSetLabelFontSize(\''+l.id+'\',parseInt(this.value));this.nextElementSibling.textContent=this.value+\'px\'" style="flex:1">' +
-            '<span style="font-family:Arial,sans-serif;font-size:8px;color:var(--txt2);width:28px;text-align:right">'+labelFontSize+'px</span>' +
-          '</div>' +
-          '<div style="display:flex;align-items:center;gap:6px">' +
-            '<span style="font-family:Arial,sans-serif;font-size:8px;color:var(--mute);flex-shrink:0;width:58px">Warna teks</span>' +
-            '<input type="color" value="'+labelColor+'" oninput="shpSetLabelColor(\''+l.id+'\',this.value)" style="width:22px;height:20px;flex-shrink:0;padding:0;border:1px solid rgba(255,255,255,0.25);border-radius:3px;cursor:pointer;background:'+labelColor+'">' +
-          '</div>' +
-        '</div>' +
       '</div>' +
     '</div>';
   }).join('');
@@ -13172,6 +13175,8 @@ function shpOpenAttr(id) {
   }
   _attrLayerId  = id;
   _attrFeatures = lObj.features;
+  // Assign _fid permanen ke setiap fitur agar bisa tracking hide/show
+  _attrFeatures.forEach(function(f, i){ if (f._fid === undefined) f._fid = i; });
   _attrSortCol  = null;
   if (_attrHighlightLayer) _attrHighlightLayer.clearLayers();
 
@@ -13253,5 +13258,284 @@ window.addEventListener('load', function() {
   });
 });
 </script>
+<!-- ═══ MODAL TABEL ATRIBUT SHP ═══ -->
+<div id="shp-attr-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9000" onclick="shpAttrClose()"></div>
+<div id="shp-attr-modal" style="display:none;flex-direction:column">
+  <div id="shp-attr-header">
+    <span id="shp-attr-title">⊞ Tabel Atribut</span>
+    <div id="shp-attr-search-wrap">
+      <input id="shp-attr-search" type="text" placeholder="🔍 Cari nilai…" oninput="shpAttrSearch(this.value)">
+      <span id="shp-attr-count"></span>
+    </div>
+    <button id="shp-attr-close" onclick="shpAttrClose()" title="Tutup">✕</button>
+  </div>
+  <!-- Tab: Tabel | Label -->
+  <div style="display:flex;gap:0;border-bottom:1px solid var(--brd,rgba(255,255,255,0.08));flex-shrink:0">
+    <button id="shp-tab-table" onclick="shpAttrTab('table')"
+      style="font-family:Arial,sans-serif;font-size:10px;font-weight:600;padding:8px 18px;border:none;border-bottom:2px solid #3a9efd;background:transparent;color:#3a9efd;cursor:pointer">⊞ Tabel</button>
+    <button id="shp-tab-label" onclick="shpAttrTab('label')"
+      style="font-family:Arial,sans-serif;font-size:10px;font-weight:600;padding:8px 18px;border:none;border-bottom:2px solid transparent;background:transparent;color:var(--mute,#64748b);cursor:pointer">🏷 Label di Peta</button>
+  </div>
+  <!-- Panel Tabel -->
+  <div id="shp-panel-table" style="display:flex;flex-direction:column;flex:1;overflow:hidden;min-height:0">
+    <div id="shp-attr-table-wrap">
+      <table id="shp-attr-table"><thead id="shp-attr-thead"></thead><tbody id="shp-attr-tbody"></tbody></table>
+    </div>
+  </div>
+  <!-- Panel Label: per-kolom dengan style masing-masing -->
+  <div id="shp-panel-label" style="display:none;flex-direction:column;flex:1;overflow-y:auto;min-height:0">
+    <div style="padding:12px 16px 6px;font-family:Arial,sans-serif;font-size:9px;color:var(--mute,#64748b);line-height:1.6;flex-shrink:0">
+      Centang kolom yang ingin muncul sebagai label di peta. Setiap kolom bisa diatur ukuran, warna, dan ketebalannya secara terpisah.
+    </div>
+    <div id="shp-label-cols" style="display:flex;flex-direction:column;gap:0;flex:1;overflow-y:auto;padding:0 16px 16px"></div>
+  </div>
+  <div id="shp-attr-footer">
+    <span id="shp-attr-footer-info"></span>
+    <div style="display:flex;gap:8px">
+      <button onclick="shpAttrExportCSV()" style="padding:4px 12px;font-family:Arial,sans-serif;font-size:9.5px;font-weight:600;background:rgba(58,158,253,0.1);border:1px solid rgba(58,158,253,0.25);border-radius:5px;color:#3a9efd;cursor:pointer">⬇ Export CSV</button>
+      <button onclick="shpAttrClose()" style="padding:4px 12px;font-family:Arial,sans-serif;font-size:9.5px;background:transparent;border:1px solid var(--brd,rgba(255,255,255,0.08));border-radius:5px;color:var(--mute,#64748b);cursor:pointer">Tutup</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ══════════════════════════════════════════
+   TABEL ATRIBUT SHP + LABEL DI PETA
+   ══════════════════════════════════════════ */
+
+var _attrCurrentTab = 'table';
+var _shpLabelLayers = {};
+
+function _shpAttrRenderHead() {
+  var thead = document.getElementById('shp-attr-thead');
+  if (!thead) return;
+  var html = '<tr><th style="width:36px">#</th>';
+  _attrColumns.forEach(function(col) {
+    var cls = _attrSortCol === col+'_asc' ? 'sort-asc' : (_attrSortCol === col+'_desc' ? 'sort-desc' : '');
+    html += '<th class="'+cls+'" onclick="shpAttrSort(\''+col.replace(/\\/g,'\\\\').replace(/'/g,"\\'")+'\')">' + col + '</th>';
+  });
+  html += '</tr>';
+  thead.innerHTML = html;
+}
+
+function _shpAttrRenderBody() {
+  var tbody  = document.getElementById('shp-attr-tbody');
+  var count  = document.getElementById('shp-attr-count');
+  var footer = document.getElementById('shp-attr-footer-info');
+  if (!tbody) return;
+  var lObj = _shpLayers.find(function(l){ return l.id===_attrLayerId; });
+  var hasLabel = lObj && ((lObj.labelFields && lObj.labelFields.some(function(d){return d.on;})) || lObj.labelField);
+  var hiddenFids = (lObj && lObj._hiddenFids) ? lObj._hiddenFids : {};
+  var html = '';
+  _attrFiltered.forEach(function(f, i) {
+    var props = f.properties || {};
+    var fid = f._fid !== undefined ? f._fid : i;
+    var hidden = !!hiddenFids[fid];
+    html += '<tr onclick="shpAttrRowClick('+i+')" style="opacity:'+(hidden?'0.4':'1')+'">';
+    if (hasLabel) {
+      html += '<td onclick="event.stopPropagation()" style="text-align:center;padding:4px">'
+        +'<input type="checkbox"'+(hidden?'':' checked')
+        +' onchange="shpAttrToggleLabel('+fid+',this.checked)"'
+        +' style="accent-color:#3a9efd;cursor:pointer;width:13px;height:13px">'
+        +'</td>';
+    }
+    html += '<td>'+(i+1)+'</td>';
+    _attrColumns.forEach(function(col) {
+      var v = props[col];
+      html += '<td title="'+(v==null?'':String(v).replace(/"/g,'&quot;'))+'">'+(v==null?'<span style="color:#475569">—</span>':String(v))+'</td>';
+    });
+    html += '</tr>';
+  });
+  var colspan = _attrColumns.length + (hasLabel ? 2 : 1);
+  tbody.innerHTML = html || '<tr><td colspan="'+colspan+'" style="text-align:center;padding:20px;color:var(--mute)">Tidak ada data</td></tr>';
+  var info = _attrFiltered.length+' dari '+_attrFeatures.length+' fitur';
+  if (count) count.textContent = info;
+  if (footer) footer.textContent = info;
+}
+
+function shpAttrSearch(q) {
+  q = (q||'').toLowerCase().trim();
+  if (!q) { _attrFiltered = _attrFeatures.slice(); }
+  else {
+    _attrFiltered = _attrFeatures.filter(function(f) {
+      var p = f.properties||{};
+      return _attrColumns.some(function(c){ var v=p[c]; return v!=null && String(v).toLowerCase().indexOf(q)>=0; });
+    });
+  }
+  _shpAttrRenderBody();
+}
+
+function shpAttrSort(col) {
+  var key = _attrSortCol===col+'_asc' ? col+'_desc' : col+'_asc';
+  _attrSortCol = key;
+  var asc = key.endsWith('_asc');
+  _attrFiltered.sort(function(a,b) {
+    var va=(a.properties||{})[col], vb=(b.properties||{})[col];
+    if (va==null) return 1; if (vb==null) return -1;
+    var na=parseFloat(va), nb=parseFloat(vb);
+    if (!isNaN(na)&&!isNaN(nb)) return asc?na-nb:nb-na;
+    return asc?String(va).localeCompare(String(vb)):String(vb).localeCompare(String(va));
+  });
+  _shpAttrRenderHead();
+  _shpAttrRenderBody();
+}
+
+function shpAttrRowClick(idx) {
+  var f = _attrFiltered[idx];
+  if (!f||!f.geometry) return;
+  document.querySelectorAll('#shp-attr-tbody tr').forEach(function(r,i){ r.classList.toggle('shp-row-active',i===idx); });
+  try {
+    if (!_attrHighlightLayer) _attrHighlightLayer = L.layerGroup().addTo(_map);
+    _attrHighlightLayer.clearLayers();
+    var fl = L.geoJSON(f,{
+      style:{color:'#ffeb3b',weight:3,fillColor:'#ffeb3b',fillOpacity:0.25},
+      pointToLayer:function(ft,ll){ return L.circleMarker(ll,{radius:10,color:'#ffeb3b',weight:3,fillColor:'#ffeb3b',fillOpacity:0.5}); }
+    }).addTo(_attrHighlightLayer);
+    var b=fl.getBounds();
+    if(b&&b.isValid&&b.isValid()) _map.fitBounds(b,{maxZoom:17,padding:[40,40]});
+  } catch(e) {}
+}
+
+function shpAttrTab(tab) {
+  _attrCurrentTab = tab;
+  document.getElementById('shp-panel-table').style.display = tab==='table'?'flex':'none';
+  document.getElementById('shp-panel-label').style.display = tab==='label'?'flex':'none';
+  ['table','label'].forEach(function(t){
+    var btn = document.getElementById('shp-tab-'+t);
+    if(!btn) return;
+    btn.style.borderBottomColor = t===tab?'#3a9efd':'transparent';
+    btn.style.color = t===tab?'#3a9efd':'var(--mute,#64748b)';
+  });
+  if (tab==='label') shpLabelRenderCols();
+}
+
+/* Render daftar kolom di tab Label — setiap kolom punya style sendiri */
+function shpLabelRenderCols() {
+  var lObj = _shpLayers.find(function(l){ return l.id===_attrLayerId; });
+  if (!lObj) return;
+  if (!lObj.labelFields) {
+    lObj.labelFields = _attrColumns.map(function(col) {
+      return { col:col, on:false, size:11, color:'#1a1a1a', bold:true };
+    });
+  } else {
+    _attrColumns.forEach(function(col) {
+      if (!lObj.labelFields.find(function(d){ return d.col===col; })) {
+        lObj.labelFields.push({ col:col, on:false, size:11, color:'#1a1a1a', bold:true });
+      }
+    });
+  }
+  var c = document.getElementById('shp-label-cols');
+  if (!c) return;
+  c.innerHTML = lObj.labelFields.map(function(def, idx) {
+    var sample = _labelSampleVal(def.col);
+    return '<div style="border-bottom:1px solid var(--brd,rgba(255,255,255,0.07));padding:10px 0">'
+      +'<label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-bottom:'+(def.on?'8px':'0')+'">' 
+        +'<input type="checkbox"'+(def.on?' checked':'')
+        +' onchange="shpLabelColToggle('+idx+',this.checked)"'
+        +' style="accent-color:#3a9efd;width:14px;height:14px;cursor:pointer;flex-shrink:0">'
+        +'<span style="font-family:Arial,sans-serif;font-size:10.5px;font-weight:600;color:var(--txt,#e2e8f0);flex:1">'+def.col+'</span>'
+        +'<span style="font-family:Arial,sans-serif;font-size:9px;color:var(--mute,#64748b);max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+sample+'">'+sample+'</span>'
+      +'</label>'
+      +(def.on
+        ? '<div style="display:flex;gap:10px;align-items:center;padding-left:22px;flex-wrap:wrap">'
+            +'<div style="display:flex;gap:5px;align-items:center">'
+              +'<span style="font-family:Arial,sans-serif;font-size:8.5px;color:var(--mute,#64748b)">Ukuran</span>'
+              +'<input type="number" value="'+def.size+'" min="7" max="30" step="1"'
+              +' style="width:46px;padding:3px 5px;font-family:Arial,sans-serif;font-size:9.5px;background:var(--bg,#0d1421);border:1px solid var(--brd2,rgba(255,255,255,0.12));border-radius:4px;color:var(--txt,#e2e8f0);outline:none"'
+              +' oninput="shpLabelColStyle('+idx+',\'size\',parseInt(this.value)||11)">'
+              +'<span style="font-family:Arial,sans-serif;font-size:8px;color:var(--mute,#64748b)">px</span>'
+            +'</div>'
+            +'<div style="display:flex;gap:5px;align-items:center">'
+              +'<span style="font-family:Arial,sans-serif;font-size:8.5px;color:var(--mute,#64748b)">Warna</span>'
+              +'<input type="color" value="'+def.color+'"'
+              +' style="width:30px;height:22px;border:1px solid var(--brd2,rgba(255,255,255,0.12));border-radius:3px;cursor:pointer;padding:1px"'
+              +' oninput="shpLabelColStyle('+idx+',\'color\',this.value)">'
+            +'</div>'
+            +'<div style="display:flex;gap:5px;align-items:center">'
+              +'<span style="font-family:Arial,sans-serif;font-size:8.5px;color:var(--mute,#64748b)">Tebal</span>'
+              +'<input type="checkbox"'+(def.bold!==false?' checked':'')
+              +' style="accent-color:#3a9efd;width:13px;height:13px;cursor:pointer"'
+              +' onchange="shpLabelColStyle('+idx+',\'bold\',this.checked)">'
+            +'</div>'
+          +'</div>'
+        : '')
+      +'</div>';
+  }).join('') || '<div style="font-family:Arial,sans-serif;font-size:10px;color:var(--mute);padding:12px 0">Tidak ada kolom atribut</div>';
+}
+
+function _labelSampleVal(col) {
+  for(var i=0;i<Math.min(_attrFeatures.length,5);i++){
+    var v=(_attrFeatures[i].properties||{})[col];
+    if(v!=null&&String(v).trim()) return String(v).substring(0,22);
+  }
+  return '—';
+}
+
+function shpLabelColToggle(idx, on) {
+  var lObj = _shpLayers.find(function(l){ return l.id===_attrLayerId; });
+  if (!lObj || !lObj.labelFields || !lObj.labelFields[idx]) return;
+  lObj.labelFields[idx].on = on;
+  var first = lObj.labelFields.find(function(d){ return d.on; });
+  lObj.labelField = first ? first.col : null;
+  lObj.labelVisible = true;
+  shpRebuildLabelLayer(lObj);
+  shpLabelRenderCols();
+  _persist();
+}
+
+function shpLabelColStyle(idx, prop, val) {
+  var lObj = _shpLayers.find(function(l){ return l.id===_attrLayerId; });
+  if (!lObj || !lObj.labelFields || !lObj.labelFields[idx]) return;
+  lObj.labelFields[idx][prop] = val;
+  shpRebuildLabelLayer(lObj);
+  _persist();
+}
+
+function shpLabelToggleCol(col, on) {}
+function shpLabelApply() {}
+
+function shpAttrExportCSV() {
+  if (!_attrColumns.length||!_attrFiltered.length){ toast('Tidak ada data','err'); return; }
+  var rows=[_attrColumns.join(',')];
+  _attrFiltered.forEach(function(f){
+    var p=f.properties||{};
+    rows.push(_attrColumns.map(function(c){ var v=p[c]==null?'':String(p[c]); return '"'+v.replace(/"/g,'""')+'"'; }).join(','));
+  });
+  var blob=new Blob([rows.join('\r\n')],{type:'text/csv;charset=utf-8;'});
+  var a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='atribut_shp.csv'; a.click();
+}
+
+function shpAttrClose() {
+  document.getElementById('shp-attr-overlay').style.display='none';
+  document.getElementById('shp-attr-modal').style.display='none';
+  if (_attrHighlightLayer) _attrHighlightLayer.clearLayers();
+}
+
+/* Toggle label satu fitur (via checkbox per baris) */
+function shpAttrToggleLabel(fid, show) {
+  var lObj = _shpLayers.find(function(l){ return l.id===_attrLayerId; });
+  if (!lObj) return;
+  if (!lObj._hiddenFids) lObj._hiddenFids = {};
+  if (show) { delete lObj._hiddenFids[fid]; }
+  else { lObj._hiddenFids[fid] = true; }
+  shpRebuildLabelLayer(lObj);
+  _shpAttrRenderBody(); // update opacity baris
+}
+
+/* Toggle semua label (checkbox header) */
+function shpAttrToggleAllLabels(show) {
+  var lObj = _shpLayers.find(function(l){ return l.id===_attrLayerId; });
+  if (!lObj) return;
+  if (show) {
+    lObj._hiddenFids = {};
+  } else {
+    lObj._hiddenFids = {};
+    _attrFeatures.forEach(function(f){ lObj._hiddenFids[f._fid] = true; });
+  }
+  shpRebuildLabelLayer(lObj);
+  _shpAttrRenderBody();
+}
+</script>
+
 </body>
 </html>
