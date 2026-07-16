@@ -10968,7 +10968,9 @@ function _load(){
    ukurannya bisa sangat besar — pengguna diberi tahu agar upload
    ulang file .tif setelah membuka project.
    ══════════════════════════════════════════════════════════════════ */
-var SANDGIS_FILE_VERSION = 1;
+var SANDGIS_FILE_VERSION = 2;
+/* v1 -> v2: tambah genState (kop peta), symState (label titik),
+             legendHidden per item, legendName di shpLayers */
 
 /* Bersihkan satu shp/kmz/dxf layerObj dari referensi objek Leaflet
    (layer, labelLayer) yang tidak bisa & tidak perlu diserialisasi ke JSON */
@@ -10981,7 +10983,9 @@ function _shpStripForSave(l) {
     lineStyle: l.lineStyle, weight: l.weight, opacity: l.opacity,
     outlineColorMode: l.outlineColorMode, outlineColorField: l.outlineColorField, outlineStyleMap: l.outlineStyleMap,
     fillColorMode: l.fillColorMode, fillColorField: l.fillColorField, fillStyleMap: l.fillStyleMap,
-    labelField: l.labelField, labelFontSize: l.labelFontSize, labelColor: l.labelColor, labelVisible: l.labelVisible
+    labelField: l.labelField, labelFontSize: l.labelFontSize, labelColor: l.labelColor, labelVisible: l.labelVisible,
+    legendName: l.legendName,
+    legendHidden: l.legendHidden
   };
 }
 
@@ -10990,7 +10994,7 @@ function _lineStripForSave(l) {
   return {
     id: l.id, name: l.name, color: l.color, points: l.points,
     lineStyle: l.lineStyle, weight: l.weight, opacity: l.opacity,
-    legendName: l.legendName,
+    legendName: l.legendName, legendHidden: l.legendHidden,
     showLabel: l.showLabel, labelSize: l.labelSize, labelColor: l.labelColor,
     labelOffsetLat: l.labelOffsetLat, labelOffsetLng: l.labelOffsetLng
   };
@@ -11002,10 +11006,15 @@ function _polyStripForSave(p) {
     outlineColor: p.outlineColor, outlineWeight: p.outlineWeight,
     shapeKind: p.shapeKind, circleCenter: p.circleCenter, circleRadius: p.circleRadius,
     circleRadiusX: p.circleRadiusX, circleRadiusY: p.circleRadiusY, circleRotation: p.circleRotation,
-    legendName: p.legendName,
+    legendName: p.legendName, legendHidden: p.legendHidden,
     showLabel: p.showLabel, labelSize: p.labelSize, labelColor: p.labelColor,
     labelOffsetLat: p.labelOffsetLat, labelOffsetLng: p.labelOffsetLng
   };
+}
+
+/* Salin _genState tanpa referensi DOM; logoDataUrl ikut karena bagian dari project */
+function _genStateForSave() {
+  try { return JSON.parse(JSON.stringify(_genState)); } catch(e) { return {}; }
 }
 
 /* Kumpulkan seluruh state project menjadi satu objek siap-JSON */
@@ -11028,7 +11037,9 @@ function _collectProjectState() {
     polygons: (_polygons || []).map(_polyStripForSave),
     shpLayers: (typeof _shpLayers !== 'undefined' ? _shpLayers : []).map(_shpStripForSave),
     layerOrder: (typeof _layerOrder !== 'undefined' ? _layerOrder : []).filter(function(it){ return it.type !== 'tif'; }),
-    hasTifLayers: (typeof _tifLayers !== 'undefined' && _tifLayers.length > 0)
+    hasTifLayers: (typeof _tifLayers !== 'undefined' && _tifLayers.length > 0),
+    genState: _genStateForSave(),
+    symState: (typeof symState !== 'undefined') ? JSON.parse(JSON.stringify(symState)) : {}
   };
 }
 
@@ -11190,6 +11201,23 @@ function _applyProjectState(data) {
     // 10) Kembalikan posisi & zoom peta terakhir
     if (_map && data.view && data.view.center) {
       try { _map.setView(data.view.center, data.view.zoom || 5, { animate:false }); } catch(e) {}
+    }
+
+    // 11) Restore _genState (kop peta, legenda, simbologi keterangan) — v2+
+    if (data.genState && typeof data.genState === 'object') {
+      // Merge ke _genState yang sudah ada (jaga default fallback untuk field baru)
+      Object.assign(_genState, data.genState);
+      // Terapkan ke UI panel Generate Peta kalau sudah terbuka
+      if (typeof genInit === 'function') {
+        try { genInit(); } catch(e) {}
+      }
+    }
+
+    // 12) Restore symState (label nama titik, offset drag, font, dll) — v2+
+    if (data.symState && typeof data.symState === 'object' && typeof symState !== 'undefined') {
+      Object.assign(symState, data.symState);
+      if (typeof symSyncUi === 'function') try { symSyncUi(); } catch(e) {}
+      if (typeof symApply === 'function') try { symApply(); } catch(e) {}
     }
 
     _persist();
