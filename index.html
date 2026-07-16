@@ -8535,6 +8535,48 @@ function tifRenderLayer(georaster, fileName, colorScheme) {
     color: '#60aef0' // dipakai oleh tampilan urutan layer (z-order)
   };
   _tifLayers.push(layerObj);
+
+  // Terapkan pengaturan tersimpan (_pendingTifMeta) jika ada untuk file ini
+  if (window._pendingTifMeta) {
+    var _meta = window._pendingTifMeta[layerObj.name];
+    if (_meta) {
+      // colorScheme & opacity
+      if (_meta.colorScheme && _meta.colorScheme !== layerObj.colorScheme) {
+        layerObj.colorScheme = _meta.colorScheme;
+        if (typeof tifChangeColorScheme === 'function') tifChangeColorScheme(layerObj.id, _meta.colorScheme);
+      }
+      if (_meta.opacity != null) {
+        layerObj.opacity = _meta.opacity;
+        if (layerObj.layer && layerObj.layer.setOpacity) layerObj.layer.setOpacity(_meta.opacity / 100);
+      }
+      // Visibility
+      if (_meta.layerVisible === false && _map && layerObj.layer && _map.hasLayer(layerObj.layer)) {
+        _map.removeLayer(layerObj.layer);
+      }
+      // Copy semua pengaturan kontur & hillshade ke layerObj
+      ['contourOn','contourInterval','contourMajor','contourColor','contourLabelColor',
+       'contourLabelSize','contourLabelDensity','contourWeightMinor','contourWeightMajor',
+       'contourOpacity','contourLabelPlacement','contourLabelOffsetX','contourLabelOffsetY',
+       'hillshadeOn','hillshadeAzim','hillshadeAlt','hillshadeZ','hillshadeOpacity'
+      ].forEach(function(k){ if (_meta[k] != null) layerObj[k] = _meta[k]; });
+      // Bangun kontur jika sebelumnya aktif
+      if (_meta.contourOn && typeof tifContourRebuild === 'function') {
+        setTimeout(function(){ tifContourRebuild(layerObj); }, 100);
+      }
+      // Bangun hillshade jika sebelumnya aktif
+      if (_meta.hillshadeOn && typeof tifHillshadeRebuild === 'function') {
+        setTimeout(function(){ tifHillshadeRebuild(layerObj); }, 200);
+      }
+      delete window._pendingTifMeta[layerObj.name];
+      // Hapus notifikasi jika semua TIF sudah di-upload ulang
+      if (Object.keys(window._pendingTifMeta).length === 0) {
+        var note = document.getElementById('tif-restore-note');
+        if (note) note.remove();
+        window._pendingTifMeta = null;
+      }
+    }
+  }
+
   if (typeof _layerOrderSync === 'function') _layerOrderSync();
   tifUpdateLayerList();
 
@@ -8717,11 +8759,61 @@ function tifUpdateLayerList() {
               'style="width:34px;height:22px;border:1px solid var(--brd);border-radius:4px;cursor:pointer;padding:1px;background:var(--inp)">' +
           '</div>' +
           '<div style="display:flex;gap:6px;margin-top:6px;align-items:center">' +
+            '<span style="font-family:Arial,sans-serif;font-size:8px;color:var(--mute);flex-shrink:0;min-width:70px">Tebal garis</span>' +
+            '<span style="font-family:Arial,sans-serif;font-size:7.5px;color:var(--mute);flex-shrink:0">Minor</span>' +
+            '<input type="number" value="'+(l.contourWeightMinor!=null?l.contourWeightMinor:0.8)+'" min="0.2" max="8" step="0.1" ' +
+              'onchange="tifContourSetWeight(\''+l.id+'\',\'minor\',this.value)" ' +
+              'style="font-size:9.5px;padding:3px 4px;width:46px;background:var(--inp);border:1px solid var(--brd);border-radius:4px;color:var(--txt)">' +
+            '<span style="font-family:Arial,sans-serif;font-size:7.5px;color:var(--mute);flex-shrink:0">Mayor</span>' +
+            '<input type="number" value="'+(l.contourWeightMajor!=null?l.contourWeightMajor:2.0)+'" min="0.2" max="8" step="0.1" ' +
+              'onchange="tifContourSetWeight(\''+l.id+'\',\'major\',this.value)" ' +
+              'style="font-size:9.5px;padding:3px 4px;width:46px;background:var(--inp);border:1px solid var(--brd);border-radius:4px;color:var(--txt)">' +
+          '</div>' +
+          '<div style="display:flex;gap:6px;margin-top:6px;align-items:center">' +
+            '<span style="font-family:Arial,sans-serif;font-size:8px;color:var(--mute);flex-shrink:0;min-width:70px">Transparansi</span>' +
+            '<input type="range" min="0" max="100" step="1" value="'+(l.contourOpacity!=null?l.contourOpacity:70)+'" ' +
+              'oninput="tifContourSetOpacity(\''+l.id+'\',this.value,this.nextElementSibling)" ' +
+              'style="flex:1;accent-color:#e0a020">' +
+            '<span style="font-family:Arial,sans-serif;font-size:9px;color:var(--txt);min-width:28px;text-align:right">'+(l.contourOpacity!=null?l.contourOpacity:70)+'%</span>' +
+          '</div>' +
+          '<div style="display:flex;gap:6px;margin-top:6px;align-items:center">' +
             '<span style="font-family:Arial,sans-serif;font-size:8px;color:var(--mute);flex-shrink:0;min-width:70px">Warna label</span>' +
             '<input type="color" id="tif-contour-label-color-'+l.id+'" value="'+(l.contourLabelColor||l.contourColor||'#e0a020')+'" ' +
               'oninput="tifContourSetLabelColor(\''+l.id+'\',this.value)" ' +
               'style="width:34px;height:22px;border:1px solid var(--brd);border-radius:4px;cursor:pointer;padding:1px;background:var(--inp)">' +
           '</div>' +
+          (function(_ox,_oy,_fill,_rot,_hide,_lid){
+            var _id = "'" + _lid + "'";
+            return '<div style="margin-top:7px;display:flex;flex-direction:column;gap:5px">' +
+              '<div style="display:flex;align-items:center;gap:6px">' +
+                '<span style="font-family:Arial,sans-serif;font-size:8px;color:var(--mute);flex-shrink:0;min-width:70px">Posisi ↔</span>' +
+                '<input type="range" min="-120" max="120" step="2" value="'+_ox+'" ' +
+                  'oninput="tifContourSetOffset('+_id+',\'x\',this.value,this.nextElementSibling)" ' +
+                  'style="flex:1;accent-color:#e0a020">' +
+                '<span style="font-family:Arial,sans-serif;font-size:9px;color:var(--txt);min-width:32px;text-align:right">'+_ox+'</span>' +
+              '</div>' +
+              '<div style="display:flex;align-items:center;gap:6px">' +
+                '<span style="font-family:Arial,sans-serif;font-size:8px;color:var(--mute);flex-shrink:0;min-width:70px">Geser ↕</span>' +
+                '<input type="range" min="-40" max="40" step="1" value="'+_oy+'" ' +
+                  'oninput="tifContourSetOffset('+_id+',\'y\',this.value,this.nextElementSibling)" ' +
+                  'style="flex:1;accent-color:#e0a020">' +
+                '<span style="font-family:Arial,sans-serif;font-size:9px;color:var(--txt);min-width:32px;text-align:right">'+_oy+'px</span>' +
+              '</div>' +
+              '<div style="font-family:Arial,sans-serif;font-size:7.5px;color:var(--mute)">Posisi ↔: geser label ke kiri/kanan sepanjang garis kontur &nbsp;·&nbsp; Geser ↕: naik/turun dari garis</div>' +
+              '<label style="display:flex;align-items:center;gap:6px;cursor:pointer">' +
+                '<input type="checkbox" '+(_rot?'checked':'')+' onchange="tifContourSetAlong('+_id+',this.checked)" style="accent-color:#e0a020;width:12px;height:12px;cursor:pointer">' +
+                '<span style="font-family:Arial,sans-serif;font-size:8px;color:var(--txt2)">&#8599; Ikuti arah garis kontur</span>' +
+              '</label>' +
+              '<label style="display:flex;align-items:center;gap:6px;cursor:pointer">' +
+                '<input type="checkbox" '+(_hide?'checked':'')+' onchange="tifContourSetAutoHide('+_id+',this.checked)" style="accent-color:#e0a020;width:12px;height:12px;cursor:pointer">' +
+                '<span style="font-family:Arial,sans-serif;font-size:8px;color:var(--txt2)">&#128683; Sembunyikan di bawah polygon SHP</span>' +
+              '</label>' +
+              '<label style="display:flex;align-items:center;gap:6px;cursor:pointer">' +
+                '<input type="checkbox" '+(_fill?'checked':'')+' onchange="tifContourSetLabelFill('+_id+',this.checked)" style="accent-color:#e0a020;width:12px;height:12px;cursor:pointer">' +
+                '<span style="font-family:Arial,sans-serif;font-size:8px;color:var(--txt2)">Latar belakang putih label</span>' +
+              '</label>' +
+            '</div>';
+          })(l.contourLabelOffsetX||0, l.contourLabelOffsetY||0, l.contourLabelFill!==false, !!l.contourLabelAlong, !!l.contourLabelAutoHide, l.id) +
           (l.contourBuilding ? '<div style="font-family:Arial,sans-serif;font-size:8px;color:#e0a020;margin-top:5px">⏳ Menghitung kontur…</div>' : '') +
           (l.contourCount!=null && !l.contourBuilding ? '<div style="font-family:Arial,sans-serif;font-size:8px;color:var(--mute);margin-top:5px">'+l.contourCount+' garis kontur</div>' : '')
         ) : '') +
@@ -8979,7 +9071,8 @@ function tifContourSetLabelDensity(id, val) {
   var l = _tifLayers.find(function(x){ return x.id === id; });
   if (!l) return;
   l.contourLabelDensity = Math.max(0, Math.round(parseFloat(val)));
-  tifContourRebuild(l);
+  // Refresh label saja — tidak perlu rebuild ulang seluruh garis kontur
+  tifContourLabelRefresh(l);
   _persist();
 }
 
@@ -9004,18 +9097,101 @@ function tifContourSetLabelColor(id, val) {
   var l = _tifLayers.find(function(x){ return x.id === id; });
   if (!l) return;
   l.contourLabelColor = val;
-  // Update warna label langsung
-  if (l.contourLayerGroup) {
-    l.contourLayerGroup.eachLayer(function(pl) {
-      if (pl.getTooltip && pl.getTooltip()) {
-        var el = pl.getTooltip().getElement();
-        if (el) el.style.color = val;
-      }
-    });
-  }
-  // Update swatch input warna di UI langsung (tanpa re-render seluruh panel)
+  // Re-render label dengan warna baru
+  tifContourLabelRefresh(l);
   var swatch = document.getElementById('tif-contour-label-color-' + id);
   if (swatch) swatch.style.background = val;
+  _persist();
+}
+
+function tifContourSetWeight(id, kind, val) {
+  var l = _tifLayers.find(function(x){ return x.id === id; });
+  if (!l) return;
+  var v = parseFloat(val);
+  if (!isFinite(v) || v < 0.1) return;
+  if (kind === 'minor') l.contourWeightMinor = v;
+  else                  l.contourWeightMajor = v;
+  // Update langsung tanpa rebuild — eachLayer tahu apakah major dari options._isMajor
+  // Karena tidak ada flag per-layer, kita harus rebuild (ringan, hanya style)
+  var _wMinor = l.contourWeightMinor != null ? l.contourWeightMinor : 0.8;
+  var _wMajor = l.contourWeightMajor != null ? l.contourWeightMajor : 2.0;
+  var _opBase = l.contourOpacity     != null ? l.contourOpacity / 100 : 0.70;
+  var majorEvery = l.contourMajor || 5;
+  if (l.contourLayerGroup) {
+    var idx = 0;
+    l.contourLayerGroup.eachLayer(function(pl) {
+      if (!pl.setStyle) return;
+      var isMaj = pl.options._isMajor;
+      pl.setStyle({
+        weight:  isMaj ? _wMajor : _wMinor,
+        opacity: isMaj ? Math.min(1, _opBase * 1.25) : _opBase
+      });
+    });
+  }
+  _persist();
+}
+
+function tifContourSetOpacity(id, val, spanEl) {
+  var l = _tifLayers.find(function(x){ return x.id === id; });
+  if (!l) return;
+  var v = Math.max(0, Math.min(100, parseInt(val, 10)));
+  l.contourOpacity = v;
+  if (spanEl) spanEl.textContent = v + '%';
+  var _wMinor = l.contourWeightMinor != null ? l.contourWeightMinor : 0.8;
+  var _wMajor = l.contourWeightMajor != null ? l.contourWeightMajor : 2.0;
+  var _opBase = v / 100;
+  if (l.contourLayerGroup) {
+    l.contourLayerGroup.eachLayer(function(pl) {
+      if (!pl.setStyle) return;
+      var isMaj = pl.options._isMajor;
+      pl.setStyle({ opacity: isMaj ? Math.min(1, _opBase * 1.25) : _opBase });
+    });
+  }
+  _persist();
+}
+
+/* ─── Label Placement: set mode grid / along / offset ─── */
+function tifContourSetPlacement(id, mode) {
+  var l = _tifLayers.find(function(x){ return x.id === id; });
+  if (!l) return;
+  l.contourLabelPlacement = mode;
+  tifContourLabelRefresh(l);
+  tifUpdateLayerList(); // re-render panel agar tombol aktif ikut update
+  _persist();
+}
+
+function tifContourSetOffset(id, axis, val, spanEl) {
+  var l = _tifLayers.find(function(x){ return x.id === id; });
+  if (!l) return;
+  var v = parseInt(val, 10);
+  if (axis === 'x') l.contourLabelOffsetX = v;
+  else              l.contourLabelOffsetY = v;
+  if (spanEl) spanEl.textContent = v + 'px';
+  tifContourLabelRefresh(l);
+  _persist();
+}
+
+function tifContourSetAlong(id, on) {
+  var l = _tifLayers.find(function(x){ return x.id === id; });
+  if (!l) return;
+  l.contourLabelAlong = !!on;
+  tifContourLabelRefresh(l);
+  _persist();
+}
+
+function tifContourSetLabelFill(id, on) {
+  var l = _tifLayers.find(function(x){ return x.id === id; });
+  if (!l) return;
+  l.contourLabelFill = !!on;
+  tifContourLabelRefresh(l);
+  _persist();
+}
+
+function tifContourSetAutoHide(id, on) {
+  var l = _tifLayers.find(function(x){ return x.id === id; });
+  if (!l) return;
+  l.contourLabelAutoHide = !!on;
+  tifContourLabelRefresh(l);
   _persist();
 }
 
@@ -9071,23 +9247,339 @@ function tifContourSetLabelSize(id, val) {
   if (!isFinite(v) || v < 5) return;
   if (v > 24) v = 24;
   l.contourLabelSize = v;
-  // update label yang sudah ada langsung tanpa rebuild ulang garis
-  if (l.contourLayerGroup) {
-    l.contourLayerGroup.eachLayer(function(pl) {
-      if (pl.getTooltip && pl.getTooltip()) {
-        var tt = pl.getTooltip().getElement();
-        if (tt) tt.style.fontSize = v + 'px';
+  // Re-render label dengan ukuran baru (pakai sistem dynamic)
+  tifContourLabelRefresh(l);
+  _persist();
+}
+
+/* ══════════════════════════════════════════════════════════════
+   DYNAMIC CONTOUR LABEL SYSTEM
+   Label kontur di-render ulang setiap moveend/zoomend sehingga
+   selalu muncul di viewport yang sedang dilihat. Setiap garis
+   kontur major dicari titik perpotongannya dengan garis-garis
+   vertikal/horizontal yang membagi viewport, lalu label
+   ditempatkan di titik tersebut — bukan di titik tengah polyline.
+   Slider "Jml label" mengatur seberapa rapat grid perpotongan
+   (nilai 0 = label off, 8 = sangat rapat/banyak).
+   ══════════════════════════════════════════════════════════════ */
+
+/* Temukan titik di sepanjang polyline [lat,lng] yg paling dekat ke latlng target */
+function _contourNearestPoint(line, targetLat, targetLng) {
+  var best = null, bestD = Infinity;
+  for (var i = 0; i < line.length - 1; i++) {
+    var a = line[i], b = line[i+1];
+    // Interpolasi linear — cari t parameter untuk proyeksi target ke segmen
+    var dLat = b[0]-a[0], dLng = b[1]-a[1];
+    var len2 = dLat*dLat + dLng*dLng;
+    if (len2 === 0) continue;
+    var t = Math.max(0,Math.min(1,(
+      (targetLat-a[0])*dLat + (targetLng-a[1])*dLng
+    ) / len2));
+    var pLat = a[0]+t*dLat, pLng = a[1]+t*dLng;
+    var d = (pLat-targetLat)*(pLat-targetLat) + (pLng-targetLng)*(pLng-targetLng);
+    if (d < bestD) { bestD = d; best = [pLat, pLng]; }
+  }
+  return best;
+}
+
+/* Cek apakah sebuah garis (array [lat,lng]) melintas dalam atau melalui bounding box */
+function _contourLineInBounds(line, s, w, n, e) {
+  // Expand bbox sedikit agar garis yang hampir menyentuh tepi juga kena
+  var dLat = (n-s)*0.05, dLng = (e-w)*0.05;
+  var S=s-dLat, N=n+dLat, W=w-dLng, E=e+dLng;
+  for (var i = 0; i < line.length; i++) {
+    var p = line[i];
+    if (p[0] >= S && p[0] <= N && p[1] >= W && p[1] <= E) return true;
+  }
+  // Cek juga apakah garis melintas bbox (titik A di luar, titik B di luar, tapi garis lewat dalam)
+  for (var j = 0; j < line.length-1; j++) {
+    var a = line[j], b = line[j+1];
+    var aIn = (a[0]>=S&&a[0]<=N&&a[1]>=W&&a[1]<=E);
+    var bIn = (b[0]>=S&&b[0]<=N&&b[1]>=W&&b[1]<=E);
+    if (aIn || bIn) return true;
+    // Cek perpotongan segmen dengan tepi bbox (Cohen-Sutherland lite)
+    if ((a[0]<S&&b[0]>N)||(a[0]>N&&b[0]<S)) return true; // lintas N-S
+    if ((a[1]<W&&b[1]>E)||(a[1]>E&&b[1]<W)) return true; // lintas W-E
+  }
+  return false;
+}
+
+/* ─── Helper: hitung sudut garis di titik tertentu (untuk mode 'along') ─── */
+function _contourAngleAtPoint(line, lat, lng) {
+  // Cari segmen terdekat dengan titik (lat,lng) dan kembalikan sudutnya
+  var bestD = Infinity, bestAngle = 0;
+  for (var i = 0; i < line.length - 1; i++) {
+    var a = line[i], b = line[i+1];
+    var mLat = (a[0]+b[0])/2, mLng = (a[1]+b[1])/2;
+    var d = (mLat-lat)*(mLat-lat) + (mLng-lng)*(mLng-lng);
+    if (d < bestD) {
+      bestD = d;
+      // Sudut dalam derajat — konversi dari lat/lng ke pixel perlu aspek rasio
+      // Gunakan cos(lat) untuk koreksi longitude
+      var dLat = b[0] - a[0];
+      var dLng = (b[1] - a[1]) * Math.cos(lat * Math.PI/180);
+      bestAngle = Math.atan2(dLng, dLat) * 180 / Math.PI;
+    }
+  }
+  // Pastikan sudut dalam rentang -90..90 agar teks tidak terbalik
+  if (bestAngle > 90)  bestAngle -= 180;
+  if (bestAngle < -90) bestAngle += 180;
+  return bestAngle;
+}
+
+/* Render ulang label kontur berdasarkan viewport + mode penempatan */
+/* ── Ray-casting: cek apakah titik [lat,lng] berada di dalam ring polygon GeoJSON ── */
+function _pointInRing(lat, lng, ring) {
+  var inside = false;
+  for (var i = 0, j = ring.length-1; i < ring.length; j = i++) {
+    var xi = ring[i][0], yi = ring[i][1]; // GeoJSON: [lng,lat]
+    var xj = ring[j][0], yj = ring[j][1];
+    if (((yi > lng) !== (yj > lng)) && (lat < (xj-xi)*(lng-yi)/(yj-yi)+xi)) {
+      inside = !inside;
+    }
+  }
+  return inside;
+}
+
+/* Cek apakah titik [lat,lng] tertutup layer polygon SHP yang berada DI ATAS TIF
+   dalam urutan _layerOrder. Auto-hide aktif hanya jika l.contourLabelAutoHide = true */
+function _contourLabelCovered(lat, lng, tifId) {
+  if (!_layerOrder || !_layerOrder.length) return false;
+  // Cari posisi TIF dalam urutan layer (index 0 = paling atas)
+  var tifIdx = _layerOrder.findIndex(function(it){ return it.type==='tif' && it.id===tifId; });
+  if (tifIdx < 0) return false;
+
+  // Cek semua layer SHP polygon yang posisinya DI ATAS TIF (index lebih kecil)
+  for (var i = 0; i < tifIdx; i++) {
+    var it = _layerOrder[i];
+    if (it.type !== 'shp') continue;
+    var shpL = _shpLayers.find(function(x){ return x.id === it.id; });
+    if (!shpL || !shpL.features || !shpL.features.length) continue;
+    // Hanya polygon yang punya fill (bukan outline-only)
+    if (_shpGeomType(shpL) !== 'polygon') continue;
+    // Pastikan layer ini sedang aktif/visible di peta
+    if (_map && shpL.layer && !_map.hasLayer(shpL.layer)) continue;
+
+    // Cek setiap fitur polygon
+    for (var fi = 0; fi < shpL.features.length; fi++) {
+      var feat = shpL.features[fi];
+      if (!feat.geometry) continue;
+      var gt = feat.geometry.type;
+      var coords = feat.geometry.coordinates;
+      // Polygon: [[ring]] — MultiPolygon: [[[ring]]]
+      var polys = (gt === 'Polygon') ? [coords] : (gt === 'MultiPolygon') ? coords : [];
+      for (var pi = 0; pi < polys.length; pi++) {
+        var rings = polys[pi];
+        if (!rings || !rings.length) continue;
+        // Ring luar GeoJSON: [lng, lat] — kita perlu swap untuk _pointInRing
+        var outer = rings[0].map(function(c){ return [c[1], c[0]]; }); // swap ke [lat,lng]
+        if (_pointInRing(lng, lat, outer.map(function(c){ return [c[1],c[0]]; }))) {
+          // Titik di dalam outer ring — cek apakah di luar hole
+          var inHole = false;
+          for (var hi = 1; hi < rings.length; hi++) {
+            var hole = rings[hi].map(function(c){ return [c[1], c[0]]; });
+            if (_pointInRing(lng, lat, hole.map(function(c){ return [c[1],c[0]]; }))) { inHole = true; break; }
+          }
+          if (!inHole) return true; // tertutup polygon ini
+        }
       }
+    }
+  }
+  return false;
+}
+
+/* ── Ambil titik di sepanjang polyline berdasarkan fraksi panjang (0–1) ── */
+function _pointAlongLine(line, frac) {
+  if (!line || line.length < 2) return line ? line[0] : null;
+  // Hitung total panjang kasar (dalam derajat — cukup untuk interpolasi)
+  var segs = [];
+  var total = 0;
+  for (var i = 0; i < line.length-1; i++) {
+    var dLat = line[i+1][0]-line[i][0], dLng = line[i+1][1]-line[i][1];
+    var len = Math.sqrt(dLat*dLat + dLng*dLng);
+    segs.push(len);
+    total += len;
+  }
+  if (total === 0) return line[0];
+  var target = total * Math.max(0, Math.min(1, frac));
+  var cum = 0;
+  for (var j = 0; j < segs.length; j++) {
+    if (cum + segs[j] >= target) {
+      var t = segs[j] > 0 ? (target - cum) / segs[j] : 0;
+      return [
+        line[j][0] + t*(line[j+1][0]-line[j][0]),
+        line[j][1] + t*(line[j+1][1]-line[j][1])
+      ];
+    }
+    cum += segs[j];
+  }
+  return line[line.length-1];
+}
+
+function tifContourLabelRefresh(l) {
+  if (!l || !l.contourOn || !l._contourLinesData || !_map) return;
+
+  if (l._contourLabelLayer) {
+    try { _map.removeLayer(l._contourLabelLayer); } catch(e) {}
+    l._contourLabelLayer = null;
+  }
+
+  var density = l.contourLabelDensity !== undefined ? l.contourLabelDensity : 2;
+  if (density === 0) return;
+
+  if (!_map.getPane('tifContourLabelPane')) {
+    var lp = _map.createPane('tifContourLabelPane');
+    lp.style.zIndex = 490;
+    lp.style.pointerEvents = 'none';
+  }
+
+  var along     = !!l.contourLabelAlong;
+  // offX = fraksi posisi sepanjang garis (0..100 → 0%..100% panjang garis)
+  // offY = geser vertikal dari garis (px, via iconAnchor)
+  var offAlongPct = l.contourLabelOffsetX || 0;  // slider X = posisi sepanjang garis
+  var offCross    = l.contourLabelOffsetY || 0;   // slider Y = geser tegak lurus garis (px)
+  var autoHide    = !!l.contourLabelAutoHide;
+  var hasFill     = l.contourLabelFill !== false;
+  var fs          = l.contourLabelSize   || 9;
+  var col         = l.contourLabelColor  || l.contourColor || '#e0a020';
+
+  var bounds  = _map.getBounds();
+  var s = bounds.getSouth(), n = bounds.getNorth();
+  var w = bounds.getWest(),  e = bounds.getEast();
+  var latSpan = n - s, lngSpan = e - w;
+
+  var gridN     = Math.max(2, density * 2);
+  var minSepLat = latSpan / (gridN * 2.5);
+  var minSepLng = lngSpan / (gridN * 2.5);
+  var labelLayer = L.layerGroup();
+  var placed     = [];
+
+  function tooClose(lat, lng) {
+    for (var k = 0; k < placed.length; k++) {
+      if (Math.abs(placed[k].lat-lat) < minSepLat &&
+          Math.abs(placed[k].lng-lng) < minSepLng) return true;
+    }
+    return false;
+  }
+
+  function makeLabel(lat, lng, text, angleDeg) {
+    var estW = text.length * fs * 0.62 + 8;
+    var estH = fs * 1.8;
+    // offCross menggeser label tegak lurus garis (positif = ke satu sisi, negatif = sisi lain)
+    // Jika mode along, tegak lurus = rotasi 90° dari sudut garis
+    var perpAngle = (along ? angleDeg + 90 : -90) * Math.PI / 180;
+    var shiftPx = offCross; // px geser tegak lurus
+    // Terapkan via iconAnchor offset
+    var ancX = estW/2 - shiftPx * Math.cos(perpAngle) * 0;  // X tidak digeser (along garis)
+    var ancY = estH/2 - shiftPx; // Y geser naik/turun
+
+    var rotate = along ? 'rotate('+angleDeg.toFixed(1)+'deg)' : 'none';
+    var bgStyle = hasFill
+      ? 'background:rgba(255,255,255,0.85);padding:1px 4px;border-radius:3px;box-shadow:0 1px 3px rgba(0,0,0,0.15);'
+      : 'background:none;padding:0 2px;text-shadow:0 0 3px rgba(255,255,255,0.95),0 0 4px rgba(255,255,255,0.95);';
+    var html =
+      '<span style="display:inline-block;transform:'+rotate+';transform-origin:center center;'+
+      'font-size:'+fs+'px;color:'+col+';font-family:Arial,sans-serif;font-weight:700;'+
+      'white-space:nowrap;line-height:1.4;'+bgStyle+'">'+text+'</span>';
+    return L.marker([lat, lng], {
+      icon: L.divIcon({ className:'', html:html, iconAnchor:[estW/2, ancY], iconSize:[estW, estH] }),
+      pane: 'tifContourLabelPane',
+      interactive: false,
+      keyboard: false
     });
   }
-  _persist();
+
+  // Grid perpotongan viewport
+  var gridLats = [], gridLngs = [];
+  for (var gi = 1; gi < gridN; gi++) {
+    gridLats.push(s + latSpan * gi / gridN);
+    gridLngs.push(w + lngSpan * gi / gridN);
+  }
+
+  // Fraksi posisi sepanjang garis dari slider X (−120..120 → 0.1..0.9 panjang garis)
+  // 0 = gunakan grid perpotongan biasa; nonzero = geser posisi label di garis
+  var useFracMode = (offAlongPct !== 0);
+  var lineFrac    = 0.5 + offAlongPct / 240; // −120→0.0, 0→0.5, +120→1.0
+
+  l._contourLinesData.forEach(function(cd) {
+    var labelText = Math.round(cd.level) + ' m';
+    var sorted = cd.lines.slice().sort(function(a,b){ return b.length - a.length; });
+
+    sorted.forEach(function(line) {
+      if (!_contourLineInBounds(line, s, w, n, e)) return;
+
+      var candidates = [];
+
+      if (useFracMode) {
+        // Mode geser: letakkan label di titik fraksi dari panjang garis
+        var pt = _pointAlongLine(line, lineFrac);
+        if (pt && pt[0] >= s && pt[0] <= n && pt[1] >= w && pt[1] <= e) {
+          candidates.push([pt[0], pt[1]]);
+        }
+      } else {
+        // Mode grid: titik potong garis kontur dengan grid viewport
+        gridLats.forEach(function(gLat) {
+          for (var si = 0; si < line.length-1; si++) {
+            var a = line[si], b = line[si+1];
+            if ((a[0]-gLat)*(b[0]-gLat) <= 0 && a[0] !== b[0]) {
+              var t = (gLat-a[0])/(b[0]-a[0]);
+              var lngP = a[1] + t*(b[1]-a[1]);
+              if (lngP >= w && lngP <= e) candidates.push([gLat, lngP]);
+            }
+          }
+        });
+        gridLngs.forEach(function(gLng) {
+          for (var si = 0; si < line.length-1; si++) {
+            var a = line[si], b = line[si+1];
+            if ((a[1]-gLng)*(b[1]-gLng) <= 0 && a[1] !== b[1]) {
+              var t = (gLng-a[1])/(b[1]-a[1]);
+              var latP = a[0] + t*(b[0]-a[0]);
+              if (latP >= s && latP <= n) candidates.push([latP, gLng]);
+            }
+          }
+        });
+      }
+
+      candidates.forEach(function(pt) {
+        var lat = pt[0], lng = pt[1];
+        if (tooClose(lat, lng)) return;
+        // Auto-hide: skip jika titik tertutup polygon SHP di atas TIF
+        if (autoHide && _contourLabelCovered(lat, lng, l.id)) return;
+        placed.push({lat:lat, lng:lng});
+        var angle = along ? _contourAngleAtPoint(line, lat, lng) : 0;
+        labelLayer.addLayer(makeLabel(lat, lng, labelText, angle));
+      });
+    });
+  });
+
+  l._contourLabelLayer = labelLayer;
+  labelLayer.addTo(_map);
+}
+
+/* Pasang listener moveend/zoomend untuk semua TIF layer yang punya kontur aktif */
+var _tifContourMapListenerOn = false;
+function _tifContourEnsureMapListener() {
+  if (_tifContourMapListenerOn || !_map) return;
+  _tifContourMapListenerOn = true;
+  _map.on('moveend zoomend', function() {
+    (_tifLayers || []).forEach(function(l) {
+      if (l.contourOn && l._contourLinesData) {
+        tifContourLabelRefresh(l);
+      }
+    });
+  });
 }
 
 function tifContourClearLayer(l) {
   if (l.contourLayerGroup && _map && _map.hasLayer(l.contourLayerGroup)) {
     _map.removeLayer(l.contourLayerGroup);
   }
+  if (l._contourLabelLayer && _map) {
+    try { _map.removeLayer(l._contourLabelLayer); } catch(e) {}
+  }
   l.contourLayerGroup = null;
+  l._contourLabelLayer = null;
+  l._contourLinesData = null;
   l.contourCount = null;
   l.contourBuilding = false;
 }
@@ -9222,8 +9714,10 @@ function tifContourRebuild(l) {
         cp.style.zIndex = 480;
       }
       var group = L.layerGroup({pane: 'tifContourPane'});
-      // Kepadatan label: berapa label maks per level kontur (1=sedikit, 5=banyak)
-      var labelDensity = l.contourLabelDensity !== undefined ? l.contourLabelDensity : 2;
+
+      // Simpan semua data garis major beserta koordinatnya untuk dynamic labeling
+      // _contourLines: [{level, lines:[[lat,lng],...], isMajor}]
+      var contourLinesData = [];
 
       levels.forEach(function(level, i) {
         var isMajor = (i % majorEvery) === 0;
@@ -9231,44 +9725,39 @@ function tifContourRebuild(l) {
         if (!segs.length) return;
         var lines = _tifContourChainSegments(segs);
 
-        // Urutkan lines dari terpanjang ke terpendek
-        var sortedLines = lines.slice().sort(function(a,b){ return b.length - a.length; });
-        // Hanya beri label pada N polyline terpanjang per level
-        var maxLabels = Math.max(1, Math.round(labelDensity));
-        var labelCount = 0;
-
-        sortedLines.forEach(function(line) {
+        var majorLines = [];
+        lines.forEach(function(line) {
           if (line.length < 2) return;
+          var _wMinor = l.contourWeightMinor != null ? l.contourWeightMinor : 0.8;
+          var _wMajor = l.contourWeightMajor != null ? l.contourWeightMajor : 2.0;
+          var _opBase = l.contourOpacity    != null ? l.contourOpacity / 100 : 0.70;
           var pl = L.polyline(line, {
             color: l.contourColor || '#e0a020',
-            weight: isMajor ? 2.0 : 0.8,
-            opacity: isMajor ? 0.90 : 0.55,
-            pane: 'tifContourPane'
+            weight:  isMajor ? _wMajor : _wMinor,
+            opacity: isMajor ? Math.min(1, _opBase * 1.25) : _opBase,
+            pane: 'tifContourPane',
+            _isMajor: isMajor
           });
-          if (isMajor && labelCount < maxLabels && line.length >= 4) {
-            var labelText = Math.round(level) + ' m';
-            pl.bindTooltip(labelText, {
-              permanent: true, direction: 'center', className: 'tif-contour-label',
-              opacity: 1.0, pane: 'tooltipPane'
-            });
-            pl.on('tooltipopen', function(ev) {
-              var el = ev.tooltip.getElement();
-              if (el) {
-                el.style.fontSize = (l.contourLabelSize || 9) + 'px';
-                el.style.color = l.contourLabelColor || l.contourColor || '#e0a020';
-              }
-            });
-            labelCount++;
-          }
           group.addLayer(pl);
+          if (isMajor) majorLines.push(line);
         });
+
+        if (isMajor && majorLines.length) {
+          contourLinesData.push({ level: level, lines: majorLines });
+        }
       });
 
       l.contourLayerGroup = group;
+      l._contourLinesData = contourLinesData; // data untuk dynamic labeling
       l.contourCount = levels.length;
       l.contourBuilding = false;
       if (_map && l.layer && _map.hasLayer(l.layer)) group.addTo(_map);
-      else if (_map) group.addTo(_map); // tampilkan kontur meski raster warna disembunyikan
+      else if (_map) group.addTo(_map);
+
+      // Pasang / refresh dynamic label overlay — sedikit delay agar peta siap
+      _tifContourEnsureMapListener();
+      setTimeout(function(){ tifContourLabelRefresh(l); }, 80);
+
       tifUpdateLayerList();
       _persist();
     } catch (err) {
@@ -10968,7 +11457,7 @@ function _load(){
    ukurannya bisa sangat besar — pengguna diberi tahu agar upload
    ulang file .tif setelah membuka project.
    ══════════════════════════════════════════════════════════════════ */
-var SANDGIS_FILE_VERSION = 2;
+var SANDGIS_FILE_VERSION = 3;
 /* v1 -> v2: tambah genState (kop peta), symState (label titik),
              legendHidden per item, legendName di shpLayers */
 
@@ -10979,13 +11468,25 @@ function _shpStripForSave(l) {
     id: l.id, name: l.name, color: l.color, count: l.count,
     features: l.features || [],
     geomType: l.geomType, sourceType: l.sourceType, hasElevation: l.hasElevation,
-    fillStyle: l.fillStyle, fillOpacity: l.fillOpacity, fillBaseColor: l.fillBaseColor,
+    // ── Gaya outline / garis ──
     lineStyle: l.lineStyle, weight: l.weight, opacity: l.opacity,
-    outlineColorMode: l.outlineColorMode, outlineColorField: l.outlineColorField, outlineStyleMap: l.outlineStyleMap,
+    // ── Gaya fill / isian area ──
+    fillStyle: l.fillStyle, fillOpacity: l.fillOpacity, fillBaseColor: l.fillBaseColor,
     fillColorMode: l.fillColorMode, fillColorField: l.fillColorField, fillStyleMap: l.fillStyleMap,
-    labelField: l.labelField, labelFontSize: l.labelFontSize, labelColor: l.labelColor, labelVisible: l.labelVisible,
+    // ── Gaya outline per-atribut ──
+    outlineColorMode: l.outlineColorMode, outlineColorField: l.outlineColorField, outlineStyleMap: l.outlineStyleMap,
+    // ── Label di Peta (single-field legacy + multi-field baru) ──
+    labelField: l.labelField,
+    labelFontSize: l.labelFontSize,
+    labelColor: l.labelColor,
+    labelVisible: l.labelVisible,
+    labelFields: l.labelFields ? JSON.parse(JSON.stringify(l.labelFields)) : [],
+    // ── Keterangan (legenda) ──
     legendName: l.legendName,
-    legendHidden: l.legendHidden
+    legendHidden: l.legendHidden,
+    // ── Visibilitas layer & per-fitur ──
+    layerVisible: !(_map && l.layer && !_map.hasLayer(l.layer)),
+    _hiddenFids: l._hiddenFids || {}
   };
 }
 
@@ -11024,6 +11525,37 @@ function _collectProjectState() {
     if (_map) view = { center: [_map.getCenter().lat, _map.getCenter().lng], zoom: _map.getZoom() };
   } catch(e) {}
 
+  // Deteksi basemap aktif dari nama di _mapBaseLayers
+  var activeBasemap = 'OSM Standard';
+  try {
+    if (_map && window._mapBaseLayers) {
+      for (var _bk in window._mapBaseLayers) {
+        if (window._mapBaseLayers.hasOwnProperty(_bk) && _map.hasLayer(window._mapBaseLayers[_bk])) {
+          activeBasemap = _bk; break;
+        }
+      }
+    }
+  } catch(e) {}
+
+  // Simpan metadata TIF (tanpa data georaster — terlalu besar; user perlu upload ulang)
+  // Yang disimpan: nama, colorScheme, opacity, serta semua pengaturan kontur & hillshade
+  var tifMeta = (typeof _tifLayers !== 'undefined' ? _tifLayers : []).map(function(l) {
+    return {
+      id: l.id, name: l.name, colorScheme: l.colorScheme, opacity: l.opacity,
+      min: l.min, max: l.max,
+      contourOn: l.contourOn, contourInterval: l.contourInterval, contourMajor: l.contourMajor,
+      contourColor: l.contourColor, contourLabelColor: l.contourLabelColor,
+      contourLabelSize: l.contourLabelSize, contourLabelDensity: l.contourLabelDensity,
+      contourWeightMinor: l.contourWeightMinor, contourWeightMajor: l.contourWeightMajor,
+      contourOpacity: l.contourOpacity,
+      contourLabelPlacement: l.contourLabelPlacement,
+      contourLabelOffsetX: l.contourLabelOffsetX, contourLabelOffsetY: l.contourLabelOffsetY,
+      hillshadeOn: l.hillshadeOn, hillshadeAzim: l.hillshadeAzim,
+      hillshadeAlt: l.hillshadeAlt, hillshadeZ: l.hillshadeZ, hillshadeOpacity: l.hillshadeOpacity,
+      layerVisible: !(_map && l.layer && !_map.hasLayer(l.layer))
+    };
+  });
+
   return {
     app: 'SandGIS',
     fileVersion: SANDGIS_FILE_VERSION,
@@ -11031,6 +11563,7 @@ function _collectProjectState() {
     projectName: (document.getElementById('sg-project-name') && document.getElementById('sg-project-name').value) || '',
     uid: _uid,
     view: view,
+    activeBasemap: activeBasemap,
     markers: _markers || [],
     rivers: _rivers || [],
     lines: (_lines || []).map(_lineStripForSave),
@@ -11038,6 +11571,7 @@ function _collectProjectState() {
     shpLayers: (typeof _shpLayers !== 'undefined' ? _shpLayers : []).map(_shpStripForSave),
     layerOrder: (typeof _layerOrder !== 'undefined' ? _layerOrder : []).filter(function(it){ return it.type !== 'tif'; }),
     hasTifLayers: (typeof _tifLayers !== 'undefined' && _tifLayers.length > 0),
+    tifMeta: tifMeta,
     genState: _genStateForSave(),
     symState: (typeof symState !== 'undefined') ? JSON.parse(JSON.stringify(symState)) : {}
   };
@@ -11120,6 +11654,26 @@ function _applyProjectState(data) {
     // 2) Pastikan peta sudah siap
     if (!_map && typeof petaInit === 'function') petaInit();
 
+    // 2b) Restore basemap
+    if (data.activeBasemap && _map && window._mapBaseLayers) {
+      try {
+        // Hapus semua basemap yang sedang aktif dulu
+        for (var _bk2 in window._mapBaseLayers) {
+          if (window._mapBaseLayers.hasOwnProperty(_bk2) && _map.hasLayer(window._mapBaseLayers[_bk2])) {
+            _map.removeLayer(window._mapBaseLayers[_bk2]);
+          }
+        }
+        // Pasang basemap yang tersimpan
+        if (window._mapBaseLayers[data.activeBasemap]) {
+          window._mapBaseLayers[data.activeBasemap].addTo(_map);
+        } else {
+          // Fallback ke OSM Standard jika nama basemap tidak dikenali
+          var _firstBase = Object.keys(window._mapBaseLayers)[0];
+          if (_firstBase) window._mapBaseLayers[_firstBase].addTo(_map);
+        }
+      } catch(e) { console.warn('[SandGIS] Gagal restore basemap:', e); }
+    }
+
     // 3) Muat data dasar
     _uid = data.uid || 1;
     _markers = data.markers || [];
@@ -11168,8 +11722,19 @@ function _applyProjectState(data) {
         if (!_map || !l.features || !l.features.length) return;
         var fc = { type:'FeatureCollection', features: l.features };
         l.layer = _shpBuildLeafletLayer(fc, l, l.name);
-        l.layer.addTo(_map);
-        if (l.labelField && typeof shpRebuildLabelLayer === 'function') shpRebuildLabelLayer(l);
+        // Restore visibilitas — kalau layerVisible false, jangan pasang ke peta
+        if (l.layerVisible !== false) {
+          l.layer.addTo(_map);
+        }
+        // Restore _hiddenFids (per-fitur yang disembunyikan via atribut panel)
+        if (l._hiddenFids && typeof l._hiddenFids === 'object') {
+          // _hiddenFids sudah tersimpan di l, langsung dipakai saat layer di-render
+        }
+        // Restore label: labelFields (multi-kolom) ATAU labelField (single, legacy)
+        if (typeof shpRebuildLabelLayer === 'function') {
+          var hasLabel = (l.labelFields && l.labelFields.some(function(d){return d.on;})) || l.labelField;
+          if (hasLabel) shpRebuildLabelLayer(l);
+        }
         _shpLayers.push(l);
         if (l.sourceType === 'dxf' && typeof _dxfLayers !== 'undefined') _dxfLayers.push(l);
         if (l.id && String(l.id).indexOf('kmz_') === 0 && typeof _kmzLayers !== 'undefined') _kmzLayers.push(l);
@@ -11218,6 +11783,29 @@ function _applyProjectState(data) {
       Object.assign(symState, data.symState);
       if (typeof symSyncUi === 'function') try { symSyncUi(); } catch(e) {}
       if (typeof symApply === 'function') try { symApply(); } catch(e) {}
+    }
+
+    // 13) Restore TIF metadata (colorScheme, opacity, kontur, hillshade) — v3+
+    // Data georaster tidak disimpan (terlalu besar), tapi pengaturan gaya disimpan
+    // dan akan diterapkan otomatis saat user upload ulang file TIF yang sama.
+    // Kita simpan ke _pendingTifMeta agar tifRenderLayer bisa mengambilnya.
+    if (data.tifMeta && data.tifMeta.length) {
+      window._pendingTifMeta = {};
+      data.tifMeta.forEach(function(m) {
+        // Key berdasarkan nama file (tanpa ekstensi) agar cocok saat upload ulang
+        window._pendingTifMeta[m.name] = m;
+      });
+      // Tampilkan info di UI bahwa ada pengaturan TIF tersimpan
+      var tifNote = document.getElementById('tif-restore-note');
+      if (!tifNote) {
+        var tifPanel = document.querySelector('.tif-panel, [id^="tif-"]');
+        tifNote = document.createElement('div');
+        tifNote.id = 'tif-restore-note';
+        tifNote.style.cssText = 'font-family:Arial,sans-serif;font-size:8px;color:#f5a623;margin:6px 0 0;padding:5px 8px;background:rgba(245,166,35,0.1);border-radius:4px;border:1px solid rgba(245,166,35,0.25)';
+        tifNote.innerHTML = '⚠ Project ini memiliki ' + data.tifMeta.length + ' layer TIF — upload ulang file .tif untuk memulihkan layer elevasi. Pengaturan warna, kontur & hillshade akan diterapkan otomatis.';
+        var tifDrop = document.getElementById('tif-drop-zone') || document.querySelector('[id*="tif"]');
+        if (tifDrop && tifDrop.parentNode) tifDrop.parentNode.insertBefore(tifNote, tifDrop.nextSibling);
+      }
     }
 
     _persist();
@@ -12135,10 +12723,12 @@ function genInit() {
             return L.circleMarker(latlng, { radius:4, fillColor:l.color, color:'#fff', weight:1, opacity:1, fillOpacity:0.9 });
           }
         });
-    leafletLayer.addTo(_genMap);
+    // Hormati visibilitas dari peta utama
+    var shpVisibleInMain = l.layerVisible !== false && !(_map && l.layer && !_map.hasLayer(l.layer));
+    if (shpVisibleInMain) leafletLayer.addTo(_genMap);
     _genShpLayers[l.id] = leafletLayer;
     // Label atribut SHP — ikut tampil di peta Generate sesuai pengaturan dari Lihat Peta
-    if (l.labelField && l.labelVisible !== false && typeof _shpBuildLabelLayer === 'function') {
+    if (shpVisibleInMain && l.labelField && l.labelVisible !== false && typeof _shpBuildLabelLayer === 'function') {
       var genLabelLayer = _shpBuildLabelLayer(l);
       genLabelLayer.addTo(_genMap);
       _genShpLabelLayers[l.id] = genLabelLayer;
@@ -12224,10 +12814,54 @@ function genInit() {
     } catch(e) { console.warn('[GenPeta] Gagal mirror mozaik TIF:', e); }
   }
 
-  if (fitTargets.length) {
+  // ── Mirror kontur TIF di Generate Peta ──
+  // (dilakukan setelah _genTifLayers terisi)
+  _tifLayers.forEach(function(l) {
+    if (!l.contourOn || !l._contourLinesData) return;
+    var isVisibleInMain = !!(_map && l.layer && _map.hasLayer(l.layer));
+    if (!isVisibleInMain) return;
+
+    // Buat pane kontur di genMap
+    if (!_genMap.getPane('genContourPane')) {
+      var gcp = _genMap.createPane('genContourPane');
+      gcp.style.zIndex = 480;
+    }
+    var genContourGroup = L.layerGroup({pane:'genContourPane'});
+    var _wMinor = l.contourWeightMinor != null ? l.contourWeightMinor : 0.8;
+    var _wMajor = l.contourWeightMajor != null ? l.contourWeightMajor : 2.0;
+    var _opBase = l.contourOpacity    != null ? l.contourOpacity / 100 : 0.70;
+    var majorEvery = l.contourMajor || 5;
+
+    // Rebuild polyline dari _contourLinesData (sudah tersimpan per level)
+    // Plus ambil data garis dari contourLayerGroup yang sudah ada di main map
+    if (l.contourLayerGroup) {
+      l.contourLayerGroup.eachLayer(function(pl) {
+        if (!pl.getLatLngs) return;
+        var isMaj = !!pl.options._isMajor;
+        L.polyline(pl.getLatLngs(), {
+          color: l.contourColor || '#e0a020',
+          weight:  isMaj ? _wMajor : _wMinor,
+          opacity: isMaj ? Math.min(1, _opBase*1.25) : _opBase,
+          pane: 'genContourPane'
+        }).addTo(genContourGroup);
+      });
+    }
+    genContourGroup.addTo(_genMap);
+    _genTifLayers[l.id + '_contour'] = genContourGroup;
+  });
+
+  // ── Sinkronkan posisi & zoom persis dari peta utama ──
+  // Prioritas: view peta utama (_map) > fitBounds ke semua objek
+  if (_map) {
+    try {
+      _genMap.setView(_map.getCenter(), _map.getZoom(), {animate:false});
+    } catch(e) {
+      if (fitTargets.length) {
+        try { _genMap.fitBounds(L.latLngBounds(fitTargets), { padding:[24,24] }); } catch(e2) {}
+      }
+    }
+  } else if (fitTargets.length) {
     try { _genMap.fitBounds(L.latLngBounds(fitTargets), { padding:[24,24] }); } catch(e) {}
-  } else if (_map) {
-    _genMap.setView(_map.getCenter(), _map.getZoom());
   }
 
   _genMap.on('zoomend moveend', genUpdateScale);
@@ -12236,6 +12870,14 @@ function genInit() {
   _genMap.on('move', symOnMapMove);
   _genMap.on('moveend zoomend', function(){ setTimeout(symRebuildOverlay, 50); });
   setTimeout(function(){ genUpdateScale(); genRenderGraticule(); }, 200);
+
+  // ── Sinkronisasi posisi: peta utama → Generate Peta (saat panel Generate terbuka) ──
+  if (_map) {
+    _map.on('moveend zoomend', function _genSyncFromMain() {
+      if (!_genMap) { _map.off('moveend zoomend', _genSyncFromMain); return; }
+      try { _genMap.setView(_map.getCenter(), _map.getZoom(), {animate:false}); } catch(e) {}
+    });
+  }
 
   genRenderShpToggleList();
   genRenderLegend();
