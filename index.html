@@ -879,7 +879,7 @@ tr:hover td { background: rgba(26,176,166,0.02); }
   #print-root #peta-print-sheet {
     margin: 0 !important; border: none !important; box-shadow: none !important;
     transform: none !important;
-    overflow: hidden !important;
+    overflow: visible !important;
     page-break-inside: avoid;
   }
   .gen-print-snapshot { display: block !important; }
@@ -1282,7 +1282,8 @@ input.inp-sm::placeholder {
   100% { transform:scale(0.4); opacity:0; }
 }
 
-/* ── Panel Profil Elevasi (docked SEBAGAI KOLOM di samping peta — tidak menutupi peta) ── */
+/* ── Panel Profil Elevasi (docked SEBAGAI BAR MEMANJANG DI BAWAH peta, gaya
+   Google Earth Pro — peta menyusut secara vertikal, bukan horizontal) ── */
 #peta-map-wrap {
   position: relative;
   flex: 1;
@@ -1291,25 +1292,25 @@ input.inp-sm::placeholder {
   height: 100%;
   overflow: hidden;
 }
-#peta-map-wrap.elev-open { display:flex !important;flex-direction:row;gap:10px; }
-#peta-map-wrap.elev-open #peta-map { flex:1;min-width:0; }
+#peta-map-wrap.elev-open { display:flex !important;flex-direction:column;gap:8px; }
+#peta-map-wrap.elev-open #peta-map { flex:1;min-height:0; }
 #elev-overlay {
   display:none;
 }
 #elev-modal {
   position:relative;top:auto;right:auto;bottom:auto;flex-shrink:0;
-  width:min(90vw,320px);max-width:320px;height:100%;max-height:none;
+  width:100%;max-width:none;height:min(46vh,380px);max-height:none;
   background:var(--bg2,#111827);border:1px solid var(--brd,rgba(255,255,255,0.08));
-  border-radius:10px;z-index:901;display:flex;flex-direction:column;
-  box-shadow:0 12px 34px rgba(0,0,0,0.45);overflow:hidden;pointer-events:auto;
+  border-radius:10px;z-index:901;display:flex;flex-direction:row;
+  box-shadow:0 -8px 28px rgba(0,0,0,0.35);overflow:hidden;pointer-events:auto;
   margin:0;
 }
 @media (max-width: 720px) {
   #peta-map-wrap.elev-open { display:block !important; }
   #elev-overlay { display:block;position:absolute;inset:0;background:rgba(0,0,0,0.35);z-index:900;pointer-events:auto; }
   #elev-modal {
-    position:absolute;top:10px;right:10px;bottom:10px;height:auto;
-    width:min(88vw,340px);max-height:calc(100% - 20px);
+    position:absolute;left:10px;right:10px;bottom:10px;top:auto;height:auto;
+    width:auto;max-height:calc(100% - 20px);flex-direction:column;
   }
 }
 #elev-header {
@@ -1486,6 +1487,104 @@ body{
 #peta-mode-name-wrap{display:none!important}
 #peta-mode-name-wrap[style*="flex"]{display:flex!important}
 .sg-pw{padding:0 8px;display:flex;flex-direction:column;gap:8px;margin-top:2px}
+/* ── Custom layer panes — prevent CSS scale during zoom animation ──
+   Leaflet zoom-animation menggunakan CSS transform:scale pada .leaflet-zoom-animated
+   yang menyebabkan garis, panah, dan font ikut membesar saat zoom.
+   Override: set transform-origin dan pastikan pane kita tidak di-scale. */
+[class^="sgPane_"] {
+  /* Custom pane kita tidak perlu zoom animation — layer langsung di-reproject */
+  will-change: auto !important;
+}
+[class^="sgPane_"] svg {
+  /* SVG dalam custom pane: matikan transform yang diset Leaflet saat zoom anim */
+  transition: none !important;
+}
+/* vector-effect removed — handled via JS zoom scaling */
+
+/* ── Zoom slider ── */
+#sg-zoom-wrap {
+  position:absolute; left:10px; bottom:88px; z-index:900;
+  display:flex; flex-direction:column; align-items:center; gap:4px;
+  background:rgba(30,32,38,.92); border:1px solid rgba(255,255,255,.08);
+  border-radius:8px; padding:6px 8px; box-shadow:0 2px 6px rgba(0,0,0,.25);
+  user-select:none;
+}
+#sg-zoom-wrap .sg-zoom-lbl {
+  font-family:Arial,sans-serif; font-size:10px; font-weight:700;
+  color:#c9ccd3; letter-spacing:.3px; white-space:nowrap;
+}
+#sg-zoom-wrap .sg-zoom-val {
+  font-family:Arial,sans-serif; font-size:10px; color:var(--cyan,#4de4c8);
+  font-weight:700; min-width:32px; text-align:center;
+}
+#sg-zoom-slider {
+  writing-mode: vertical-lr; direction: rtl;
+  height: 90px; width: 4px;
+  accent-color: #4de4c8;
+  cursor: pointer;
+}
+#sg-zoom-wrap .sg-zoom-btn {
+  background:rgba(255,255,255,.07); border:1px solid rgba(255,255,255,.12);
+  color:#c9ccd3; border-radius:4px; width:22px; height:22px;
+  font-size:14px; font-weight:700; cursor:pointer; line-height:1;
+  display:flex; align-items:center; justify-content:center;
+  transition:background .1s;
+}
+#sg-zoom-wrap .sg-zoom-btn:hover { background:rgba(255,255,255,.15); color:#fff; }
+
+/* ── Preview scale control (di atas peta generate) ── */
+#gen-preview-ctrl {
+  display:flex; align-items:center; gap:6px;
+  padding:4px 8px;
+  background:rgba(30,32,38,.88);
+  border:1px solid rgba(255,255,255,.08);
+  border-radius:6px;
+  margin-bottom:6px;
+  font-family:Arial,sans-serif;
+  font-size:10px; color:#c9ccd3;
+  user-select:none;
+}
+#gen-preview-ctrl label { white-space:nowrap; font-weight:700; }
+#gen-preview-scale-slider {
+  flex:1; accent-color:var(--cyan,#4de4c8);
+  min-width:80px; max-width:180px;
+  cursor:pointer;
+}
+#gen-preview-scale-val { min-width:34px; text-align:right; color:var(--cyan,#4de4c8); font-weight:700; }
+#gen-preview-fit-btn {
+  background:rgba(255,255,255,.07);
+  border:1px solid rgba(255,255,255,.14);
+  color:#c9ccd3; border-radius:4px;
+  padding:2px 7px; font-size:10px;
+  cursor:pointer; white-space:nowrap;
+}
+#gen-preview-fit-btn:hover { background:rgba(255,255,255,.15); color:#fff; }
+
+/* ── SNAP toggle ── */
+#sg-snap-btn{
+  position:absolute; left:10px; bottom:46px; z-index:900;
+  display:flex; align-items:center; gap:6px;
+  padding:6px 10px; border-radius:6px;
+  background:rgba(30,32,38,.92); color:#c9ccd3;
+  border:1px solid rgba(255,255,255,.08);
+  font-family:Arial,sans-serif; font-size:11px; font-weight:600;
+  letter-spacing:.3px; cursor:pointer; user-select:none;
+  box-shadow:0 2px 6px rgba(0,0,0,.25);
+  transition:background .15s,color .15s;
+}
+#sg-snap-btn:hover{background:rgba(45,48,56,.95)}
+#sg-snap-btn.sg-snap-on{background:#16a34a; color:#fff; border-color:#16a34a}
+#sg-snap-btn .sg-snap-tip{
+  display:none; position:absolute; left:0; bottom:calc(100% + 8px);
+  min-width:220px; padding:9px 12px; border-radius:6px;
+  background:#fff; color:#1b1d22;
+  font-family:Arial,sans-serif; font-weight:400; font-size:11.5px; line-height:1.5;
+  box-shadow:0 4px 16px rgba(0,0,0,.25); white-space:nowrap;
+}
+#sg-snap-btn:hover .sg-snap-tip{display:block}
+#sg-snap-btn .sg-snap-tip b{font-weight:700}
+#sg-snap-btn .sg-snap-tip .sg-snap-tip-key{color:#8a8f99; font-size:10.5px}
+
 /* ── ORTHO toggle (gaya status bar AutoCAD) ── */
 #sg-ortho-btn{
   position:absolute; left:10px; bottom:10px; z-index:900;
@@ -2103,38 +2202,44 @@ body{
       <div id="peta-coord-bar"></div>
   <!-- ═══ MODAL PROFIL ELEVASI ═══ -->
   <div id="elev-overlay" style="display:none;position:absolute;inset:0;background:rgba(0,0,0,0.35);z-index:900;pointer-events:auto"></div>
-  <div id="elev-modal" style="display:none;position:absolute;top:10px;right:10px;bottom:10px;width:min(88vw,340px);z-index:901;flex-direction:column;background:var(--card);border:1px solid var(--brd);border-radius:10px;box-shadow:0 12px 34px rgba(0,0,0,0.45);overflow:hidden;pointer-events:auto">
-    <div id="elev-header" style="display:flex;align-items:center;gap:10px;padding:13px 16px;border-bottom:1px solid var(--brd);flex-shrink:0">
-      <span id="elev-title" style="font-family:Arial,sans-serif;font-size:11px;font-weight:700;color:#60aef0;text-transform:uppercase;letter-spacing:.7px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">📈 Profil Elevasi</span>
-      <button id="elev-close" onclick="elevCloseModal()" style="background:none;border:none;color:var(--mute);cursor:pointer;font-size:18px;line-height:1;padding:0 2px">✕</button>
-    </div>
-    <div id="elev-select-wrap" style="padding:12px 16px 0">
-      <div style="font-family:Arial,sans-serif;font-size:8.5px;color:var(--mute);text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px">Sumber Elevasi — centang untuk gabungkan (mozaik), urutan = prioritas</div>
-      <div id="elev-source-list" style="display:flex;flex-direction:column;gap:4px;max-height:140px;overflow-y:auto;padding:2px"></div>
-      <div style="font-family:Arial,sans-serif;font-size:8px;color:var(--mute);line-height:1.5;margin-top:5px">Jika beberapa sumber dicentang &amp; area-nya tumpang tindih, sumber dengan prioritas tertinggi (nomor 1) dipakai duluan; sumber di bawahnya jadi fallback untuk area yang tidak tercakup.</div>
-      <div style="margin-top:8px;display:flex;gap:8px;align-items:center">
-        <div style="flex:1">
-          <div style="font-family:Arial,sans-serif;font-size:8px;color:var(--mute);margin-bottom:3px">Jumlah sampel</div>
-          <input id="elev-samples" type="number" value="200" min="20" max="1000" step="10"
-            style="width:100%;padding:4px 7px;font-family:Arial,sans-serif;font-size:10px;background:var(--inp);border:1px solid var(--brd);border-radius:6px;color:var(--txt);outline:none">
+  <div id="elev-modal" style="display:none;position:absolute;left:0;right:0;bottom:0;height:min(46vh,380px);z-index:901;flex-direction:row;background:var(--card);border:1px solid var(--brd);border-radius:10px;box-shadow:0 -8px 28px rgba(0,0,0,0.35);overflow:hidden;pointer-events:auto">
+    <!-- Kolom kiri: judul + pemilihan sumber elevasi (sempit, scroll sendiri) -->
+    <div id="elev-side" style="width:min(30vw,260px);flex-shrink:0;display:flex;flex-direction:column;border-right:1px solid var(--brd);overflow-y:auto">
+      <div id="elev-header" style="display:flex;align-items:center;gap:10px;padding:13px 16px;border-bottom:1px solid var(--brd);flex-shrink:0">
+        <span id="elev-title" style="font-family:Arial,sans-serif;font-size:11px;font-weight:700;color:#60aef0;text-transform:uppercase;letter-spacing:.7px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">📈 Profil Elevasi</span>
+        <button id="elev-close" onclick="elevCloseModal()" style="background:none;border:none;color:var(--mute);cursor:pointer;font-size:18px;line-height:1;padding:0 2px">✕</button>
+      </div>
+      <div id="elev-select-wrap" style="padding:12px 16px">
+        <div style="font-family:Arial,sans-serif;font-size:8.5px;color:var(--mute);text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px">Sumber Elevasi — centang untuk gabungkan (mozaik), urutan = prioritas</div>
+        <div id="elev-source-list" style="display:flex;flex-direction:column;gap:4px;max-height:140px;overflow-y:auto;padding:2px"></div>
+        <div style="font-family:Arial,sans-serif;font-size:8px;color:var(--mute);line-height:1.5;margin-top:5px">Jika beberapa sumber dicentang &amp; area-nya tumpang tindih, sumber dengan prioritas tertinggi (nomor 1) dipakai duluan; sumber di bawahnya jadi fallback untuk area yang tidak tercakup.</div>
+        <div style="margin-top:8px;display:flex;gap:8px;align-items:center">
+          <div style="flex:1">
+            <div style="font-family:Arial,sans-serif;font-size:8px;color:var(--mute);margin-bottom:3px">Jumlah sampel</div>
+            <input id="elev-samples" type="number" value="200" min="20" max="1000" step="10"
+              style="width:100%;padding:4px 7px;font-family:Arial,sans-serif;font-size:10px;background:var(--inp);border:1px solid var(--brd);border-radius:6px;color:var(--txt);outline:none">
+          </div>
+          <button onclick="elevRecompute()" style="margin-top:14px;padding:5px 12px;font-family:Arial,sans-serif;font-size:10px;font-weight:700;background:rgba(96,174,240,0.12);border:1px solid rgba(96,174,240,0.3);border-radius:6px;color:#60aef0;cursor:pointer">⟳ Hitung</button>
         </div>
-        <button onclick="elevRecompute()" style="margin-top:14px;padding:5px 12px;font-family:Arial,sans-serif;font-size:10px;font-weight:700;background:rgba(96,174,240,0.12);border:1px solid rgba(96,174,240,0.3);border-radius:6px;color:#60aef0;cursor:pointer">⟳ Hitung</button>
       </div>
     </div>
-    <div id="elev-body" style="overflow-y:auto;flex:1;padding:14px 16px">
-      <!-- Pesan kosong / error -->
-      <div id="elev-empty-msg" style="display:none;font-family:Arial,sans-serif;font-size:10px;color:var(--mute);line-height:1.6;margin-bottom:12px;padding:10px;background:var(--card2);border-radius:6px;border:1px solid var(--brd2)"></div>
-      <!-- Statistik: diisi JS via innerHTML -->
-      <div id="elev-stat-grid" class="elev-stat-grid" style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:14px"></div>
-      <!-- Grafik Chart.js -->
-      <div id="elev-chart-wrap" style="position:relative;height:220px;margin-bottom:6px;display:none">
-        <canvas id="elev-chart"></canvas>
+    <!-- Kolom kanan: statistik ringkas + grafik memanjang penuh (gaya Google Earth Pro) -->
+    <div id="elev-main" style="flex:1;min-width:0;display:flex;flex-direction:column">
+      <div id="elev-body" style="overflow-y:auto;flex:1;padding:12px 16px;display:flex;flex-direction:column;min-height:0">
+        <!-- Pesan kosong / error -->
+        <div id="elev-empty-msg" style="display:none;font-family:Arial,sans-serif;font-size:10px;color:var(--mute);line-height:1.6;margin-bottom:10px;padding:10px;background:var(--card2);border-radius:6px;border:1px solid var(--brd2)"></div>
+        <!-- Statistik: diisi JS via innerHTML — baris tunggal ringkas di atas grafik -->
+        <div id="elev-stat-grid" class="elev-stat-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:8px;margin-bottom:10px;flex-shrink:0"></div>
+        <!-- Grafik Chart.js — memanjang penuh mengisi sisa ruang, gaya profil GEP -->
+        <div id="elev-chart-wrap" style="position:relative;flex:1;min-height:120px;margin-bottom:4px;display:none">
+          <canvas id="elev-chart"></canvas>
+        </div>
+        <div id="elev-hover-info" style="font-family:Arial,sans-serif;font-size:9px;color:var(--mute);text-align:center;min-height:16px;flex-shrink:0"></div>
       </div>
-      <div id="elev-hover-info" style="font-family:Arial,sans-serif;font-size:9px;color:var(--mute);text-align:center;min-height:16px"></div>
-    </div>
-    <div id="elev-footer" style="padding:8px 16px;border-top:1px solid var(--brd);font-family:Arial,sans-serif;font-size:9px;color:var(--mute);flex-shrink:0;display:flex;align-items:center;justify-content:space-between;gap:10px">
-      <span id="elev-footer-info">Gerakkan kursor di atas grafik untuk melihat detail</span>
-      <button onclick="elevExportCSV()" style="padding:4px 10px;font-family:Arial,sans-serif;font-size:9px;font-weight:600;background:rgba(96,174,240,0.1);border:1px solid rgba(96,174,240,0.25);border-radius:5px;color:#60aef0;cursor:pointer;white-space:nowrap">⬇ CSV</button>
+      <div id="elev-footer" style="padding:8px 16px;border-top:1px solid var(--brd);font-family:Arial,sans-serif;font-size:9px;color:var(--mute);flex-shrink:0;display:flex;align-items:center;justify-content:space-between;gap:10px">
+        <span id="elev-footer-info">Gerakkan kursor di atas grafik untuk melihat detail</span>
+        <button onclick="elevExportCSV()" style="padding:4px 10px;font-family:Arial,sans-serif;font-size:9px;font-weight:600;background:rgba(96,174,240,0.1);border:1px solid rgba(96,174,240,0.25);border-radius:5px;color:#60aef0;cursor:pointer;white-space:nowrap">⬇ CSV</button>
+      </div>
     </div>
   </div>
     </div>
@@ -2146,13 +2251,21 @@ body{
 
       <!-- KIRI: Lembar peta (preview cetak) -->
       <div>
-        <div id="peta-print-stage" style="overflow:visible;border-radius:var(--rs);border:1px solid var(--brd2)">
-          <div id="peta-print-sheet" style="background:#ffffff;display:grid;grid-template-columns:1fr 240px;transform-origin:top left;width:1122px;height:794px;overflow:visible">
+        <!-- Preview scale control -->
+        <div id="gen-preview-ctrl">
+          <label>🔍 Pratinjau:</label>
+          <input id="gen-preview-scale-slider" type="range" min="20" max="150" step="5" value="100"
+            title="Geser untuk zoom in/out pratinjau" oninput="genPreviewScaleChange(this.value)">
+          <span id="gen-preview-scale-val">100%</span>
+          <button id="gen-preview-fit-btn" onclick="genPreviewFit()" title="Auto-fit ke layar">⊡ Fit</button>
+        </div>
+        <div id="peta-print-stage" style="overflow:visible;border-radius:var(--rs);position:relative">
+          <div id="peta-print-sheet" style="background:#ffffff;display:grid;grid-template-columns:1fr 240px;transform-origin:top left;width:1122px;height:794px;overflow:visible;box-sizing:border-box">
 
           <!-- Area peta -->
           <div style="position:relative;height:100%;border-right:1px solid #1a1a1a;background:#ffffff;overflow:visible">
-            <!-- Peta utama: margin 32px atas/bawah, 28px kiri/kanan sesuai GEN_GRID_MARGIN -->
-            <div id="peta-gen-map" style="position:absolute;top:32px;left:28px;right:28px;bottom:32px"></div>
+            <!-- Peta utama: margin 26px di semua sisi untuk ruang label grid koordinat -->
+            <div id="peta-gen-map" style="position:absolute;top:26px;left:26px;right:26px;bottom:26px;border:2px solid #000;box-sizing:border-box"></div>
             <!-- Graticule & bingkai — overlay di atas seluruh area termasuk margin -->
             <div id="peta-gen-graticule" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:450;overflow:visible"></div>
           </div>
@@ -2274,6 +2387,8 @@ body{
 
           </div><!-- /kop -->
           </div><!-- /print-sheet -->
+          <!-- Border overlay: selalu melingkupi sheet+overflow, tidak terpotong konten -->
+          <div id="peta-border-overlay" style="display:none;position:absolute;top:0;left:0;width:100%;height:100%;border:1px solid #555;box-sizing:border-box;pointer-events:none;z-index:99998"></div>
         </div><!-- /print-stage -->
       </div><!-- /kiri -->
       <!-- KANAN: Panel pengaturan kop -->
@@ -2443,7 +2558,7 @@ body{
         <div style="display:flex;flex-direction:column;gap:6px">
           <button class="btn" onclick="genPrint()" style="width:100%;font-family:Arial,sans-serif;font-size:12px;font-weight:700;padding:11px;border-radius:var(--rs);border:none;cursor:pointer;background:var(--accent);color:var(--accent-fg)">🖨️ Cetak / Simpan PDF</button>
           <button id="gen-download-img-btn" class="btn btn-outline" onclick="genDownloadImage()" style="width:100%;font-family:Arial,sans-serif;font-size:12px;font-weight:700;padding:10px;border-radius:var(--rs);cursor:pointer">⬇ Unduh Gambar (PNG)</button>
-          <div style="font-family:Arial,sans-serif;font-size:8px;color:var(--mute);line-height:1.5;text-align:center">Mengunduh peta + kop persis seperti tampilan saat ini, sesuai ukuran kertas yang dipilih.</div>
+          <div style="font-family:Arial,sans-serif;font-size:8px;color:var(--mute);line-height:1.5;text-align:center">Mengunduh peta + kop persis seperti tampilan pratinjau saat ini — tanpa render ulang.</div>
         </div>
 
 
@@ -2623,7 +2738,7 @@ body{
         <div style="display:flex;flex-direction:column;gap:6px">
           <button class="btn" onclick="genPrint()" style="width:100%;font-family:Arial,sans-serif;font-size:12px;font-weight:700;padding:11px;border-radius:var(--rs);border:none;cursor:pointer;background:var(--accent);color:var(--accent-fg)">🖨️ Cetak / Simpan PDF</button>
           <button id="gen-download-img-btn" class="btn btn-outline" onclick="genDownloadImage()" style="width:100%;font-family:Arial,sans-serif;font-size:12px;font-weight:700;padding:10px;border-radius:var(--rs);cursor:pointer">⬇ Unduh Gambar (PNG)</button>
-          <div style="font-family:Arial,sans-serif;font-size:8px;color:var(--mute);line-height:1.5;text-align:center">Mengunduh peta + kop persis seperti tampilan saat ini, sesuai ukuran kertas yang dipilih.</div>
+          <div style="font-family:Arial,sans-serif;font-size:8px;color:var(--mute);line-height:1.5;text-align:center">Mengunduh peta + kop persis seperti tampilan pratinjau saat ini — tanpa render ulang.</div>
         </div>
 
 
@@ -2919,6 +3034,96 @@ var PETA_STORE  = 'rl_peta_v2';
    horizontal atau vertikal terhadap titik sebelumnya (toggle: tombol
    ORTHO di peta atau tombol F8 di keyboard, sama seperti AutoCAD). */
 var _orthoMode = false;
+
+/* SNAP MODE — saat ON (default): klik di area SHP snap ke vertex terdekat.
+   Saat OFF: pakai koordinat klik persis tanpa snap, berguna saat menggambar
+   di dalam / di atas area SHP tanpa terseret ke tepinya. */
+var _snapMode = true; // default ON
+
+function petaToggleSnap(forceState) {
+  _snapMode = (typeof forceState === 'boolean') ? forceState : !_snapMode;
+  var btn = document.getElementById('sg-snap-btn');
+  if (btn) {
+    btn.classList.toggle('sg-snap-on', _snapMode);
+    btn.setAttribute('aria-pressed', _snapMode ? 'true' : 'false');
+    var tip = btn.querySelector('.sg-snap-tip-state');
+    if (tip) tip.textContent = _snapMode ? 'On' : 'Off';
+  }
+  toast((_snapMode ? '🧲 SNAP aktif — klik snap ke vertex SHP' : '🔓 SNAP nonaktif — klik bebas tanpa snap ke tepi SHP'), 'ok');
+  return _snapMode;
+}
+
+function _sgInitZoomWidget() {
+  if (document.getElementById('sg-zoom-wrap') || !_map) return;
+  var mapEl = document.getElementById('peta-map') || document.getElementById('map');
+  if (!mapEl || !mapEl.parentNode) return;
+
+  var wrap = document.createElement('div');
+  wrap.id = 'sg-zoom-wrap';
+
+  var minZ = 3, maxZ = 19;
+  var curZ = _map.getZoom();
+
+  function zStr(z) { return Number(z).toFixed(1); }
+
+  wrap.innerHTML =
+    '<span class="sg-zoom-lbl">ZOOM</span>' +
+    '<button class="sg-zoom-btn" id="sg-zoom-in" title="Zoom In">+</button>' +
+    '<input id="sg-zoom-slider" type="range" min="'+minZ+'" max="'+maxZ+'" step="0.1" value="'+curZ+'" orient="vertical">' +
+    '<button class="sg-zoom-btn" id="sg-zoom-out" title="Zoom Out">−</button>' +
+    '<span class="sg-zoom-val" id="sg-zoom-val">'+zStr(curZ)+'</span>';
+
+  mapEl.parentNode.style.position = mapEl.parentNode.style.position || 'relative';
+  mapEl.parentNode.appendChild(wrap);
+
+  var slider = document.getElementById('sg-zoom-slider');
+  var valEl  = document.getElementById('sg-zoom-val');
+
+  // Slider → map zoom
+  slider.addEventListener('input', function() {
+    var z = parseFloat(this.value);
+    _map.setZoom(z, { animate: true, duration: 0.2 });
+    if (valEl) valEl.textContent = zStr(z);
+  });
+
+  // Map zoom → update slider
+  _map.on('zoom zoomend', function() {
+    var z = _map.getZoom();
+    if (slider) slider.value = z;
+    if (valEl) valEl.textContent = zStr(Math.round(z * 10) / 10);
+  });
+
+  // Tombol +/-
+  document.getElementById('sg-zoom-in').addEventListener('click', function() {
+    _map.setZoom(Math.min(maxZ, Math.round((_map.getZoom() + 0.5) * 10)/10), { animate:true });
+  });
+  document.getElementById('sg-zoom-out').addEventListener('click', function() {
+    _map.setZoom(Math.max(minZ, Math.round((_map.getZoom() - 0.5) * 10)/10), { animate:true });
+  });
+}
+
+function _sgInitSnapButton() {
+  if (document.getElementById('sg-snap-btn')) return;
+  var mapEl = document.getElementById('peta-map') || document.getElementById('map');
+  if (!mapEl || !mapEl.parentNode) return;
+  var wrap = document.createElement('div');
+  wrap.id = 'sg-snap-btn';
+  wrap.setAttribute('role', 'button');
+  wrap.setAttribute('aria-pressed', 'true');
+  wrap.classList.add('sg-snap-on');
+  wrap.innerHTML =
+    '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/></svg>' +
+    '<span>SNAP</span>' +
+    '<div class="sg-snap-tip"><b>Snap ke vertex SHP</b> - <span class="sg-snap-tip-state">On</span><br>Matikan untuk menggambar bebas di dalam/atas area SHP<br><span class="sg-snap-tip-key">Klik untuk toggle</span></div>';
+  wrap.addEventListener('click', function(){ petaToggleSnap(); });
+  mapEl.parentNode.style.position = mapEl.parentNode.style.position || 'relative';
+  mapEl.parentNode.appendChild(wrap);
+}
+
+document.addEventListener('DOMContentLoaded', _sgInitSnapButton);
+if (document.readyState === 'interactive' || document.readyState === 'complete') {
+  setTimeout(_sgInitSnapButton, 0);
+}
 
 function _orthoSnapPoint(prevLatLng, lat, lng) {
   if (!_orthoMode || !prevLatLng) return [lat, lng];
@@ -3232,14 +3437,21 @@ function _pointAtDistance(points, targetKm) {
   var last = points.length - 1;
   return { latlng: points[last], bearing: _computeBearing(points[Math.max(0,last-1)], points[last]) };
 }
-function _makeArrowMarker(latlng, bearingDeg, color) {
+function _makeArrowMarker(latlng, bearingDeg, color, arrowSize, paneName) {
+  // arrowSize: 1–4, default 1. Skala: w=6+4*(s-1), h=13+4*(s-1)
+  var s = arrowSize != null ? Math.max(0.5, Math.min(5, arrowSize)) : 1;
+  var w = Math.round(6 * s);   // setengah lebar kiri/kanan
+  var h = Math.round(13 * s);  // tinggi panah
+  var aX = Math.round(w);      // iconAnchor X = lebar total / 2
+  var aY = Math.round(h * 0.7);// iconAnchor Y = titik "pangkal" panah
   return L.marker(latlng, {
     icon: L.divIcon({
       className: '',
-      html: '<div style="width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;border-bottom:13px solid '+color+';transform:rotate('+bearingDeg+'deg);transform-origin:50% 75%"></div>',
-      iconSize: [12,13], iconAnchor: [6,9]
+      html: '<div style="width:0;height:0;border-left:'+w+'px solid transparent;border-right:'+w+'px solid transparent;border-bottom:'+h+'px solid '+color+';transform:rotate('+bearingDeg+'deg);transform-origin:50% 75%"></div>',
+      iconSize: [w*2, h], iconAnchor: [aX, aY]
     }),
-    interactive: false
+    interactive: false,
+    pane: paneName || 'markerPane'
   });
 }
 /* Bangun layer Leaflet (layerGroup) utk satu garis manual, lengkap dgn kepala panah
@@ -3249,15 +3461,64 @@ function _buildLineLayer(points, opts) {
   var lineStyle = opts.lineStyle || 'solid';
   var dash = _lineDashArray(lineStyle);
   var color = opts.color || '#4488ff';
+  // Buat/pastikan pane untuk layer ini — gunakan _targetMap jika ada (mis. dari genInit)
+  var _tm = opts._targetMap || (typeof _map !== 'undefined' ? _map : null);
+  var paneName = opts._forcePane
+    || ((opts.id && _tm) ? _ensureLayerPane(opts.id, 350, _tm) : null);
+  var rendererLine = opts._forceRenderer || undefined;
   var style = {
     color: color,
     weight: (opts.weight != null ? opts.weight : 3.5),
     opacity: (opts.opacity != null ? opts.opacity : 90) / 100
   };
   if (dash) style.dashArray = dash;
+  if (paneName) style.pane = paneName;
+  if (rendererLine) style.renderer = rendererLine;
   var poly = L.polyline(points, style).addTo(group);
   group._mainPolyline = poly;
   if (opts && opts.id) { group._sgShapeId = opts.id; group._sgShapeKind = 'line'; }
+
+  // ── Hit-area lebar tak-terlihat di bawah garis asli ──────────────────
+  // Garis tipis (weight kecil, mis. 1-2px) sangat susah diklik presisi.
+  // Leaflet hanya mendeteksi klik persis di atas piksel garis yang
+  // digambar (SVG/Canvas hit-test sesuai weight asli). Solusi umum: buat
+  // polyline KEDUA yang transparan (opacity 0) dengan weight jauh lebih
+  // besar, digambar TEPAT di jalur yang sama, ditumpuk DI BAWAH garis
+  // asli (ditambahkan lebih dulu ke group, sebelum poly, lewat insert di
+  // awal array layer) — memperluas area klik tanpa mengubah tampilan
+  // visual garis sama sekali. Event klik/hover diteruskan ke handler yang
+  // sama seperti garis asli.
+  var hitWeight = Math.max(18, (style.weight || 3.5) + 14);
+  var hitPoly = L.polyline(points, {
+    color: '#000', weight: hitWeight, opacity: 0.001,
+    interactive: true, pane: style.pane, renderer: style.renderer,
+    lineCap: 'round', lineJoin: 'round'
+  });
+  hitPoly.addTo(group);
+  // Pastikan hit-area berada di BAWAH garis visual (secara z-order SVG),
+  // supaya tooltip/cursor pointer dari hit-area tidak "menutupi" render
+  // garis asli maupun vertex handle-nya saat mode edit.
+  try { if (hitPoly.bringToBack) hitPoly.bringToBack(); } catch(e) {}
+  group._hitPolyline = hitPoly;
+  // Teruskan SEMUA event mouse dari hit-area lebar ke garis visual asli
+  // (poly) — supaya kode lain di file ini yang sudah men-bindPopup()/.on()
+  // ke item.layer._mainPolyline (banyak titik pemanggilan tersebar di
+  // seluruh file) TETAP BERFUNGSI PERSIS SEPERTI SEBELUMNYA tanpa perlu
+  // diubah satu per satu. hitPoly murni jadi "proxy" transparan yang
+  // memperlebar target klik; semua popup/klik/hover tetap "milik" poly.
+  ['click','dblclick','mouseover','mouseout','mousemove','contextmenu'].forEach(function(evt){
+    hitPoly.on(evt, function(e){ poly.fire(evt, e); });
+  });
+  // Popup: kalau poly sudah/nanti di-bindPopup() oleh kode lain, buka
+  // popup itu saat hit-area diklik (poly sendiri baru menerima popup
+  // lewat bindPopup async setelah _buildLineLayer selesai, jadi cek
+  // getPopup() saat event terjadi, bukan saat baris ini dieksekusi).
+  hitPoly.on('click', function(e){
+    var pop = poly.getPopup && poly.getPopup();
+    if (pop && !(_mode === 'garis' || _mode === 'polygon' || _mode === 'ruler')) {
+      poly.openPopup(e.latlng);
+    }
+  });
 
   // Snap ke garis tersimpan ini saat sedang menggambar garis/poligon/ukur baru —
   // popup info garis ini dicegah terbuka (bukan ditutup setelah kelihatan).
@@ -3267,26 +3528,30 @@ function _buildLineLayer(points, opts) {
   poly.on('click', function(e){
     if (_mode === 'garis' || _mode === 'polygon' || _mode === 'ruler') {
       L.DomEvent.stopPropagation(e);
-      var snapPt = _nearestVertexOf(points, e.latlng);
+      var snapPt = _snapMode
+        ? _nearestVertexOf(points, e.latlng)
+        : [e.latlng.lat, e.latlng.lng];
       if (_mode === 'ruler') _rulerAddPoint(snapPt[0], snapPt[1]);
       else { _shapePts.push(snapPt); _drawTempShape(_mode === 'polygon' ? 'polygon' : 'line'); }
-      toast('📍 Titik dari garis ini ditambahkan', 'ok');
+      toast('📍 Titik dari garis ini ditambahkan' + (_snapMode ? '' : ' (bebas)'), 'ok');
     }
   });
 
+  var arrowSz = opts.arrowSize != null ? opts.arrowSize : 1;
+                (opts.arrowSize != null ? opts.arrowSize : 1);
   if ((lineStyle === 'arrow' || lineStyle === 'arrow-dashed-end') && points.length >= 2) {
     var p1 = points[points.length-2], p2 = points[points.length-1];
     var bearing = _computeBearing(p1, p2);
-    _makeArrowMarker(p2, bearing, color).addTo(group);
+    _makeArrowMarker(p2, bearing, color, arrowSz, paneName).addTo(group);
   } else if ((lineStyle === 'arrow-repeat' || lineStyle === 'arrow-repeat-dense') && points.length >= 2) {
     var totalKm = _totalLengthKm(points);
     if (totalKm > 0) {
-      var divisions = (lineStyle === 'arrow-repeat-dense') ? 8 : 4; // makin besar = makin rapat panahnya
+      var divisions = (lineStyle === 'arrow-repeat-dense') ? 8 : 4;
       var spacingKm = totalKm / divisions;
       for (var i = 0; i < divisions; i++) {
         var d = Math.min(totalKm - 0.0001, spacingKm * i + spacingKm / 2);
         var res = _pointAtDistance(points, d);
-        _makeArrowMarker(res.latlng, res.bearing, color).addTo(group);
+        _makeArrowMarker(res.latlng, res.bearing, color, arrowSz, paneName).addTo(group);
       }
     }
   }
@@ -3294,7 +3559,7 @@ function _buildLineLayer(points, opts) {
 }
 function _lineBuildPopupHtml(item) {
   var lenTxt = _fmtDistance(_totalLengthKm(item.points)*1000);
-  return '<div style="font-family:\'Arial\',sans-serif;font-size:12px"><div style="font-weight:700;color:'+item.color+';font-size:13px;margin-bottom:4px">'+_e(item.name)+'</div><div style="color:#8bb8b0;font-size:10.5px;margin-bottom:4px">'+item.points.length+' titik · Garis</div><div style="color:#d4f0e8;font-size:11px;font-weight:700;margin-bottom:10px">Panjang: '+lenTxt+'</div><button onclick="petaDeleteShape(\'line\',\''+item.id+'\')" style="padding:5px 14px;background:rgba(255,68,68,0.08);border:1px solid rgba(255,68,68,0.25);border-radius:3px;color:#ff4444;cursor:pointer;font-family:\'Arial\',sans-serif;font-size:10px;font-weight:700">✕ HAPUS</button></div>';
+  return '<div style="font-family:\'Arial\',sans-serif;font-size:12px"><div style="font-weight:700;color:'+item.color+';font-size:13px;margin-bottom:4px">'+_e(item.name)+'</div><div style="color:#8bb8b0;font-size:10.5px;margin-bottom:4px">'+item.points.length+' titik · Garis</div><div style="color:#d4f0e8;font-size:11px;font-weight:700;margin-bottom:10px">Panjang: '+lenTxt+'</div><div style="display:flex;gap:6px"><button onclick="_map.closePopup();elevOpenModal(\''+item.id+'\')" title="Cek profil elevasi sepanjang garis (butuh layer TIF/DEMNAS atau DXF kontur aktif)" style="flex:1;padding:5px 10px;background:rgba(96,174,240,0.1);border:1px solid rgba(96,174,240,0.3);border-radius:3px;color:#60aef0;cursor:pointer;font-family:\'Arial\',sans-serif;font-size:10px;font-weight:700;white-space:nowrap">📈 PROFIL ELEVASI</button><button onclick="petaDeleteShape(\'line\',\''+item.id+'\')" style="padding:5px 14px;background:rgba(255,68,68,0.08);border:1px solid rgba(255,68,68,0.25);border-radius:3px;color:#ff4444;cursor:pointer;font-family:\'Arial\',sans-serif;font-size:10px;font-weight:700">✕ HAPUS</button></div></div>';
 }
 /* Bangun ulang seluruh layer garis dari data tersimpan — dipakai saat properti yg butuh
    perubahan struktur (mis. gaya panah) diubah, bukan sekadar setStyle(). */
@@ -3329,7 +3594,11 @@ function _polygonBuildPopupHtml(item) {
 
 /* Bangun layer Leaflet utk satu poligon, lengkap dgn popup info + snap-klik saat menggambar baru. */
 function _buildPolygonLayer(item) {
-  var layer = L.polygon(item.points, _polygonLeafletStyle(item));
+  var _tmPoly = item._targetMap || (typeof _map !== 'undefined' ? _map : null);
+  var paneNamePoly = (item.id && _tmPoly) ? _ensureLayerPane(item.id, 350, _tmPoly) : null;
+  var polyStyle = _polygonLeafletStyle(item);
+  if (paneNamePoly) polyStyle.pane = paneNamePoly;
+  var layer = L.polygon(item.points, polyStyle);
   if (item && item.id) { layer._sgShapeId = item.id; layer._sgShapeKind = 'polygon'; }
   layer.bindPopup(_polygonBuildPopupHtml(item));
   layer.on('popupopen', function(){
@@ -3338,10 +3607,12 @@ function _buildPolygonLayer(item) {
   layer.on('click', function(e){
     if (_mode === 'garis' || _mode === 'polygon' || _mode === 'ruler') {
       L.DomEvent.stopPropagation(e);
-      var snapPt = _nearestVertexOf(item.points, e.latlng);
+      var snapPt = _snapMode
+        ? _nearestVertexOf(item.points, e.latlng)
+        : [e.latlng.lat, e.latlng.lng];
       if (_mode === 'ruler') _rulerAddPoint(snapPt[0], snapPt[1]);
       else { _shapePts.push(snapPt); _drawTempShape(_mode === 'polygon' ? 'polygon' : 'line'); }
-      toast('📍 Titik dari poligon ini ditambahkan', 'ok');
+      toast('📍 Titik dari poligon ini ditambahkan' + (_snapMode ? '' : ' (bebas)'), 'ok');
     }
   });
   return layer;
@@ -3564,19 +3835,35 @@ function petaInit() {
     center: [-2.5, 118],
     zoom: 5,
     crs: L.CRS.EPSG3857,
-    scrollWheelZoom: false,
+    scrollWheelZoom: false,   // dihandle manual di bawah agar bisa smooth zoom
     tap: false,
     zoomControl: true,
     doubleClickZoom: true,
-    preferCanvas: false
+    preferCanvas: false,
+    zoomSnap: 0.1,            // snap ke 0.1 level → zoom lebih granular
+    zoomDelta: 0.3,           // step per klik tombol +/-
+    wheelPxPerZoomLevel: 120  // px scroll per 1 level zoom (default 60 → terlalu sensitif)
   });
 
-  /* Zoom via Ctrl+scroll */
+
+  // Init zoom widget setelah map siap
+  setTimeout(_sgInitZoomWidget, 300);
+
+  /* Zoom via scroll — smooth, granular step 0.3 per wheel event
+     Ctrl+scroll = zoom cepat (step 1 per event)
+     Tanpa Ctrl = zoom halus (step 0.3 per event, ikuti wheelPxPerZoomLevel) */
   _map.getContainer().addEventListener('wheel', function(e) {
-    if (!(e.ctrlKey || e.metaKey)) return;
     e.preventDefault();
-    var delta = e.deltaY < 0 ? 1 : -1;
-    _map.setZoomAround(_map.mouseEventToContainerPoint(e), _map.getZoom() + delta, { animate: true });
+    var fastMode = e.ctrlKey || e.metaKey;
+    var step = fastMode ? 1.0 : 0.3;
+    var dir  = e.deltaY < 0 ? 1 : -1;
+    var cur  = _map.getZoom();
+    var next = Math.round((cur + dir * step) * 10) / 10; // round ke 0.1
+    _map.setZoomAround(
+      _map.mouseEventToContainerPoint(e),
+      next,
+      { animate: true, duration: 0.2 }
+    );
   }, { passive: false });
 
   /* ── Tile layers ─────────────────────────────────────────── */
@@ -3599,7 +3886,7 @@ function petaInit() {
 
   var topo = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
     attribution: '\u00a9 <a href="https://opentopomap.org">OpenTopoMap</a>',
-    maxZoom: 17, minZoom: 3, crossOrigin: true
+    maxZoom: 22, maxNativeZoom: 17, minZoom: 3, crossOrigin: true
   });
 
   var esriTopo = L.tileLayer(
@@ -3609,17 +3896,17 @@ function petaInit() {
 
   var esriTerrain = L.tileLayer(
     'https://server.arcgisonline.com/ArcGIS/rest/services/World_Terrain_Base/MapServer/tile/{z}/{y}/{x}',
-    { attribution: 'Tiles &copy; Esri &mdash; Source: USGS, Esri', maxZoom: 13, minZoom: 3, crossOrigin: true }
+    { attribution: 'Tiles &copy; Esri &mdash; Source: USGS, Esri', maxZoom: 22, maxNativeZoom: 13, minZoom: 3, crossOrigin: true }
   );
 
   var esriShaded = L.tileLayer(
     'https://server.arcgisonline.com/ArcGIS/rest/services/World_Shaded_Relief/MapServer/tile/{z}/{y}/{x}',
-    { attribution: 'Tiles &copy; Esri &mdash; Source: Esri', maxZoom: 13, minZoom: 3, crossOrigin: true }
+    { attribution: 'Tiles &copy; Esri &mdash; Source: Esri', maxZoom: 22, maxNativeZoom: 13, minZoom: 3, crossOrigin: true }
   );
 
   var esriOcean = L.tileLayer(
     'https://server.arcgisonline.com/ArcGIS/rest/services/Ocean/World_Ocean_Base/MapServer/tile/{z}/{y}/{x}',
-    { attribution: 'Tiles &copy; Esri &mdash; Esri, GEBCO, NOAA', maxZoom: 13, minZoom: 3, crossOrigin: true }
+    { attribution: 'Tiles &copy; Esri &mdash; Esri, GEBCO, NOAA', maxZoom: 22, maxNativeZoom: 13, minZoom: 3, crossOrigin: true }
   );
 
   var cartoLight = L.tileLayer(
@@ -3655,22 +3942,22 @@ function petaInit() {
 
   var esriNatGeo = L.tileLayer(
     'https://server.arcgisonline.com/ArcGIS/rest/services/NatGeo_World_Map/MapServer/tile/{z}/{y}/{x}',
-    { attribution: 'Tiles &copy; Esri &mdash; National Geographic, Esri, DeLorme, NAVTEQ', maxZoom: 16, crossOrigin: true }
+    { attribution: 'Tiles &copy; Esri &mdash; National Geographic, Esri, DeLorme, NAVTEQ', maxZoom: 22, maxNativeZoom: 16, crossOrigin: true }
   );
 
   var esriGray = L.tileLayer(
     'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}',
-    { attribution: 'Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ', maxZoom: 16, crossOrigin: true }
+    { attribution: 'Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ', maxZoom: 22, maxNativeZoom: 16, crossOrigin: true }
   );
 
   var esriDarkGray = L.tileLayer(
     'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}',
-    { attribution: 'Tiles &copy; Esri &mdash; Esri, DeLorme', maxZoom: 16, crossOrigin: true }
+    { attribution: 'Tiles &copy; Esri &mdash; Esri, DeLorme', maxZoom: 22, maxNativeZoom: 16, crossOrigin: true }
   );
 
   var esriUsgsImageryTopo = L.tileLayer(
     'https://basemap.nationalmap.gov/arcgis/rest/services/USGSImageryTopo/MapServer/tile/{z}/{y}/{x}',
-    { attribution: 'Tiles courtesy of the <a href="https://usgs.gov/">U.S. Geological Survey</a>', maxZoom: 20, crossOrigin: true }
+    { attribution: 'Tiles courtesy of the <a href="https://usgs.gov/">U.S. Geological Survey</a>', maxZoom: 22, maxNativeZoom: 16, crossOrigin: true }
   );
 
   var stadiaSmooth = L.tileLayer(
@@ -3690,12 +3977,12 @@ function petaInit() {
 
   var stadiaStamenTerrain = L.tileLayer(
     'https://tiles.stadiamaps.com/tiles/stamen_terrain/{z}/{x}/{y}{r}.png',
-    { attribution: '&copy; <a href="https://stadiamaps.com/">Stadia Maps</a> &copy; <a href="https://stamen.com/">Stamen Design</a>', maxZoom: 18, crossOrigin: true }
+    { attribution: '&copy; <a href="https://stadiamaps.com/">Stadia Maps</a> &copy; <a href="https://stamen.com/">Stamen Design</a>', maxZoom: 22, maxNativeZoom: 18, crossOrigin: true }
   );
 
   var stadiaStamenWatercolor = L.tileLayer(
     'https://tiles.stadiamaps.com/tiles/stamen_watercolor/{z}/{x}/{y}.jpg',
-    { attribution: '&copy; <a href="https://stadiamaps.com/">Stadia Maps</a> &copy; <a href="https://stamen.com/">Stamen Design</a>', maxZoom: 16, crossOrigin: true }
+    { attribution: '&copy; <a href="https://stadiamaps.com/">Stadia Maps</a> &copy; <a href="https://stamen.com/">Stamen Design</a>', maxZoom: 22, maxNativeZoom: 16, crossOrigin: true }
   );
 
   var osmFr = L.tileLayer(
@@ -3705,7 +3992,7 @@ function petaInit() {
 
   var inarupa = L.tileLayer(
     'https://tiled.big.go.id/arcgis/rest/services/Rupabumi/RBI50K/MapServer/tile/{z}/{y}/{x}',
-    { attribution: '&copy; <a href="https://big.go.id/">BIG</a> — INARUPA / RBI 1:50.000', maxZoom: 15, minZoom: 3, crossOrigin: true }
+    { attribution: '&copy; <a href="https://big.go.id/">BIG</a> — INARUPA / RBI 1:50.000', maxZoom: 22, maxNativeZoom: 15, minZoom: 3, crossOrigin: true }
   );
 
   var googleSat = L.tileLayer(
@@ -3752,9 +4039,9 @@ function petaInit() {
 
   var esriOceanLabel = L.layerGroup([
     L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Ocean/World_Ocean_Base/MapServer/tile/{z}/{y}/{x}',
-      { attribution: 'Tiles &copy; Esri &mdash; Esri, GEBCO, NOAA', maxZoom: 13, crossOrigin: true }),
+      { attribution: 'Tiles &copy; Esri &mdash; Esri, GEBCO, NOAA', maxZoom: 22, maxNativeZoom: 13, crossOrigin: true }),
     L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Ocean/World_Ocean_Reference/MapServer/tile/{z}/{y}/{x}',
-      { maxZoom: 13, crossOrigin: true })
+      { maxZoom: 22, maxNativeZoom: 13, crossOrigin: true })
   ]);
 
   var _mapBaseLayers = {
@@ -3808,6 +4095,18 @@ function petaInit() {
 
   /* ── Layer groups ─────────────────────────────────── */
   _dbRiverLayer  = L.layerGroup();   /* Pencarian DB (overlay sementara) */
+
+  /* Weight scaling berdasarkan zoom — garis tetap proporsional secara kartografi */
+  // Zoom referensi untuk scaling weight/arrow — nilai lebih tinggi = garis lebih tipis di zoom normal
+  // Diset ke 14 agar weight yang diatur user terlihat benar saat zoom-in detail (14-16)
+  /* Rebuild arrow-repeat markers saat zoom berubah agar posisi panah merata di garis */
+  _map.on('zoomend', function() {
+    (typeof _lines !== 'undefined' ? _lines : []).forEach(function(l) {
+      if ((l.lineStyle||'') === 'arrow-repeat' || (l.lineStyle||'') === 'arrow-repeat-dense') {
+        _rebuildLineLayer(l);
+      }
+    });
+  });
 
   /* Click handler presisi */
   _map.on('click', function(e) {
@@ -4440,9 +4739,25 @@ function _shpResolveFill(opts, feature) {
 function _shpBuildLeafletLayer(geojson, opts, layerName) {
   opts = opts || {};
   var SHP_OPACITY = (opts.opacity != null ? opts.opacity : 85) / 100;
+  // Pane dan renderer: gunakan _forcePane/_forceRenderer (dari genInit) jika ada,
+  // fallback ke pane per-layer dari _layerOrderApply, fallback ke overlayPane
+  var _tmShp = opts._targetMap || (typeof _map !== 'undefined' ? _map : null);
+  var paneNameShp = opts._forcePane
+    || ((opts.id && _tmShp) ? _ensureLayerPane(opts.id, 350, _tmShp) : 'overlayPane');
+  var rendererShp = opts._forceRenderer || undefined;
   var leafletLayer = L.layerGroup();
 
+  var _hiddenFids = opts._hiddenFids || {};
   L.geoJSON(geojson, {
+    pane: paneNameShp,
+    renderer: rendererShp,
+    filter: function(feature) {
+      // Sembunyikan fitur yang di-hide user dari tabel atribut
+      if (Object.keys(_hiddenFids).length === 0) return true;
+      var fid = feature._fid;
+      if (fid === undefined || fid === null) return true;
+      return !_hiddenFids[fid];
+    },
     style: function(feature) {
       var geomType = feature.geometry ? feature.geometry.type : '';
       var outline  = _shpResolveOutline(opts, feature);
@@ -4492,14 +4807,17 @@ function _shpBuildLeafletLayer(geojson, opts, layerName) {
       layer.on('click', function(e){
         if (_mode === 'garis' || _mode === 'polygon' || _mode === 'ruler') {
           L.DomEvent.stopPropagation(e);
-          var snapPt = _shpNearestVertex(feature, e.latlng);
+          // Jika SNAP aktif: snap ke vertex terdekat. Jika off: pakai koordinat klik persis
+          var snapPt = _snapMode
+            ? _shpNearestVertex(feature, e.latlng)
+            : [e.latlng.lat, e.latlng.lng];
           if (_mode === 'ruler') {
             _rulerAddPoint(snapPt[0], snapPt[1]);
           } else {
             _shapePts.push(snapPt);
             _drawTempShape(_mode === 'polygon' ? 'polygon' : 'line');
           }
-          toast('📍 Titik dari "'+nama+'" ditambahkan', 'ok');
+          toast('📍 Titik dari "'+nama+'" ditambahkan' + (_snapMode ? '' : ' (bebas)'), 'ok');
         }
       });
       if (layer.setStyle) {
@@ -7545,6 +7863,14 @@ function petaChangeShapeLegendName(id, name) {
   _persist();
 }
 
+function petaChangeArrowSize(id, size) {
+  var item = _lines.find(function(x){ return x.id === id; });
+  if (!item) return;
+  item.arrowSize = Math.max(0.5, Math.min(4, size));
+  _rebuildLineLayer(item);
+  _persist();
+}
+
 function petaChangeShapeColor(kind, id, color) {
   if (kind === 'polygon') {
     var p = _polygons.find(function(x){ return x.id===id; });
@@ -7570,6 +7896,18 @@ function petaChangeLineStyle(id, lineStyle) {
   if (!l) return;
   l.lineStyle = lineStyle;
   _rebuildLineLayer(l);
+  // Re-render panel agar slider ukuran panah muncul/hilang sesuai tipe garis baru.
+  // Simpan panel mana yang sedang terbuka agar tidak tertutup saat rebuild.
+  var openPanelId = null;
+  document.querySelectorAll('[id^="shape-fill-"]').forEach(function(el){
+    if (el.style.display !== 'none') openPanelId = el.id;
+  });
+  petaRenderShapesList();
+  // Buka kembali panel yang tadi terbuka
+  if (openPanelId) {
+    var reOpened = document.getElementById(openPanelId);
+    if (reOpened) reOpened.style.display = 'block';
+  }
   _persist();
 }
 function petaChangeLineWeight(id, weight) {
@@ -8126,6 +8464,13 @@ function _shapeRowHtml(kind, item, sub) {
         '<input type="range" min="1" max="8" step="0.5" value="'+weight+'" oninput="petaChangeLineWeight(\''+id+'\',parseFloat(this.value));this.nextElementSibling.textContent=this.value" style="flex:1">' +
         '<span style="font-family:Arial,sans-serif;font-size:8px;color:var(--txt2);width:24px;text-align:right">'+weight+'</span>' +
       '</div>' +
+      (lineStyle.indexOf('arrow') >= 0 ?
+        '<div style="display:flex;align-items:center;gap:6px;margin-top:6px">' +
+          '<span style="font-family:Arial,sans-serif;font-size:8px;color:var(--mute);flex-shrink:0;width:58px">Ukuran &#9658;</span>' +
+          '<input type="range" min="0.5" max="4" step="0.1" value="'+(item.arrowSize||1)+'" oninput="petaChangeArrowSize(\''+id+'\',parseFloat(this.value));this.nextElementSibling.textContent=parseFloat(this.value).toFixed(1)+\'\u00d7\'" style="flex:1">' +
+          '<span style="font-family:Arial,sans-serif;font-size:8px;color:var(--txt2);width:28px;text-align:right">'+(item.arrowSize||1).toFixed(1)+'\u00d7</span>' +
+        '</div>'
+      : '') +
       '<div style="display:flex;align-items:center;gap:6px;margin-top:6px">' +
         '<span style="font-family:Arial,sans-serif;font-size:8px;color:var(--mute);flex-shrink:0;width:58px">Transparansi</span>' +
         '<input type="range" min="10" max="100" value="'+opacity+'" oninput="petaChangeLineOpacity(\''+id+'\',parseInt(this.value));this.nextElementSibling.textContent=this.value+\'%\'" style="flex:1">' +
@@ -8721,7 +9066,7 @@ function tifUpdateLayerList() {
       '</select>' +
       '<div class="tif-opacity-row">' +
         '<span style="font-family:Arial,sans-serif;font-size:8px;color:var(--mute);flex-shrink:0">Opasitas</span>' +
-        '<input type="range" min="10" max="100" value="'+l.opacity+'" oninput="tifChangeOpacity(\''+l.id+'\',this.value)">' +
+        '<input type="range" min="0" max="100" value="'+l.opacity+'" oninput="tifChangeOpacity(\''+l.id+'\',this.value)">' +
         '<span style="font-family:Arial,sans-serif;font-size:8px;color:var(--mute);flex-shrink:0;width:28px;text-align:right">'+l.opacity+'%</span>' +
       '</div>' +
       '<div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.06)">' +
@@ -10708,9 +11053,38 @@ function elevOpenModal(lineId) {
   _elevRenderSourceList();
 
   document.getElementById('elev-title').textContent = '📈 Profil Elevasi — ' + line.name;
-  document.getElementById('elev-overlay').style.display = 'block';
+  // #elev-overlay HANYA dipakai di layout mobile (lihat CSS @media max-width:720px)
+  // sebagai backdrop gelap di atas peta. Di desktop ia harus tetap display:none
+  // (diatur oleh CSS #elev-overlay{display:none}) supaya peta di bawahnya tetap
+  // bisa digeser/drag seperti biasa selama panel profil elevasi terbuka — karena
+  // itu style inline TIDAK di-set di sini, biar CSS/media query yang menentukan.
   document.getElementById('elev-modal').style.display = 'flex';
   document.getElementById('peta-map-wrap').classList.add('elev-open');
+
+  // Arahkan peta ke garis yang dituju TANPA zoom berlebihan — dilakukan
+  // SETELAH invalidateSize di bawah (bukan sebelum) supaya Leaflet menghitung
+  // ukuran viewport yang sudah benar (peta menyusut karena panel elev-modal
+  // muncul di bawah). Perilaku: kalau garis (+ sedikit padding) SUDAH
+  // sepenuhnya kelihatan di zoom level saat ini, cukup pan (geser pandangan)
+  // ke tengah garis tanpa mengubah zoom sama sekali. Zoom hanya disesuaikan
+  // (zoom out secukupnya) kalau garis memang tidak muat di level saat ini —
+  // dan tidak pernah di-zoom-in melebihi zoom yang sedang dipakai user.
+  // Ini murni navigasi tampilan (pan/zoom) — tidak mengubah data,
+  // perhitungan, atau state garis itu sendiri.
+  var _elevFitBoundsToLine = function() {
+    try {
+      if (_map && line.points && line.points.length >= 2) {
+        var b = L.latLngBounds(line.points);
+        if (!b.isValid()) return;
+        var curZoom = _map.getZoom();
+        var targetZoom = _map.getBoundsZoom(b, false, [60, 60]);
+        // getBoundsZoom mengembalikan zoom MAKSIMUM agar bounds pas di viewport;
+        // kalau itu >= zoom saat ini, garis sudah/akan muat tanpa perlu zoom-in.
+        var finalZoom = Math.min(curZoom, targetZoom);
+        _map.setView(b.getCenter(), finalZoom, { animate: true });
+      }
+    } catch(e) {}
+  };
 
   // Beri browser waktu reflow layout modal dulu, supaya canvas Chart.js
   // dibuat dengan ukuran yang benar (kalau langsung, kadang lebar terbaca 0/salah → blur).
@@ -10720,12 +11094,12 @@ function elevOpenModal(lineId) {
       if (_map && typeof _map.invalidateSize === 'function') {
         _map.invalidateSize();
       }
+      _elevFitBoundsToLine();
     });
   });
 }
 
 function elevCloseModal() {
-  document.getElementById('elev-overlay').style.display = 'none';
   document.getElementById('elev-modal').style.display = 'none';
   document.getElementById('peta-map-wrap').classList.remove('elev-open');
   _elevCurrentLineId = null;
@@ -11007,16 +11381,85 @@ function _layerOrderGetItem(type, id) {
   return null;
 }
 
-/* Terapkan urutan z-index ke peta dgn memanggil bringToFront() dari BAWAH ke ATAS,
-   supaya susunan akhir persis seperti urutan di _layerOrder. */
+/* ══════════════════════════════════════════════════════════════
+   LAYER ORDER — Z-INDEX PANE SYSTEM
+   Setiap layer mendapat custom pane dengan z-index yang
+   ditentukan posisi dalam _layerOrder. Ini melampaui keterbatasan
+   bringToFront() yang hanya bekerja dalam satu pane yang sama.
+   Z-index range: 200 (bawah) — 599 (atas, di bawah markerPane 600).
+   ══════════════════════════════════════════════════════════════ */
+
+/* Nama pane unik per layer-id */
+function _layerPaneName(id) {
+  return 'sgPane_' + String(id).replace(/[^a-zA-Z0-9]/g, '_');
+}
+
+/* Buat pane jika belum ada, kembalikan nama pane.
+   targetMap: map instance target (default _map, tapi bisa _genMap). */
+function _ensureLayerPane(id, zIndex, targetMap) {
+  var m = targetMap || _map;
+  if (!m) return null;
+  var name = _layerPaneName(id);
+  var existing = m.getPane(name);
+  if (!existing) {
+    var pane = m.createPane(name);
+    pane.style.zIndex = zIndex;
+    pane.style.pointerEvents = 'none';
+  } else {
+    existing.style.zIndex = zIndex;
+  }
+  return name;
+}
+
+/* Pindahkan semua sub-layer (leaflet layer group / geoJSON) ke pane tertentu */
+function _setLayerPane(leafletLayer, paneName) {
+  if (!leafletLayer || !paneName) return;
+  // L.layerGroup / L.geoJSON: iterasi semua sub-layer
+  if (leafletLayer.eachLayer) {
+    leafletLayer.eachLayer(function(sub) {
+      _setLayerPane(sub, paneName);
+    });
+  }
+  // Pane pada layer individual
+  if (leafletLayer.options) {
+    leafletLayer.options.pane = paneName;
+  }
+  // Re-render ke pane baru
+  if (leafletLayer._renderer) {
+    // Canvas/SVG renderer — perlu getPane dari renderer
+  }
+  if (leafletLayer._path) {
+    // SVG path — pindah DOM node ke pane
+    var paneEl = _map.getPane(paneName);
+    if (paneEl && leafletLayer._path.parentNode !== paneEl) {
+      paneEl.appendChild(leafletLayer._path);
+    }
+  }
+  if (leafletLayer._icon) {
+    var paneEl2 = _map.getPane(paneName);
+    if (paneEl2 && leafletLayer._icon.parentNode !== paneEl2) {
+      paneEl2.appendChild(leafletLayer._icon);
+      if (leafletLayer._shadow && leafletLayer._shadow.parentNode) {
+        paneEl2.appendChild(leafletLayer._shadow);
+      }
+    }
+  }
+}
+
+/* Terapkan urutan z-index melalui custom pane per layer.
+   Index 0 = paling atas → z-index tertinggi.
+   Z-index: 220 (paling bawah) hingga 219+N (paling atas), di bawah markerPane (600). */
 function _layerOrderApply() {
   if (!_map) return;
-  for (var i = _layerOrder.length - 1; i >= 0; i--) {
+  var N = _layerOrder.length;
+  for (var i = 0; i < N; i++) {
     var it = _layerOrder[i];
-    var layer = _layerOrderGetLayer(it.type, it.id);
-    if (!layer) continue;
-    if (layer.bringToFront) layer.bringToFront();
-    else if (layer.setZIndex) layer.setZIndex(400 + (_layerOrder.length - i));
+    var zIndex = 220 + (N - i);
+    _ensureLayerPane(it.id, zIndex, _map);
+    // Sync ke _genMap jika sedang terbuka
+    if (typeof _genMap !== 'undefined' && _genMap) {
+      _ensureLayerPane(it.id, zIndex, _genMap);
+    }
   }
 }
 
@@ -11495,6 +11938,7 @@ function _lineStripForSave(l) {
   return {
     id: l.id, name: l.name, color: l.color, points: l.points,
     lineStyle: l.lineStyle, weight: l.weight, opacity: l.opacity,
+    arrowSize: l.arrowSize,
     legendName: l.legendName, legendHidden: l.legendHidden,
     showLabel: l.showLabel, labelSize: l.labelSize, labelColor: l.labelColor,
     labelOffsetLat: l.labelOffsetLat, labelOffsetLng: l.labelOffsetLng
@@ -12460,7 +12904,7 @@ function genInit() {
   ]);
 
   var genTopo = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
-    attribution: '\u00a9 OpenTopoMap', maxZoom: 17, minZoom: 3, crossOrigin: true
+    attribution: '\u00a9 OpenTopoMap', maxZoom: 22, maxNativeZoom: 17, minZoom: 3, crossOrigin: true
   });
 
   var genEsriTopo = L.tileLayer(
@@ -12470,17 +12914,17 @@ function genInit() {
 
   var genEsriTerrain = L.tileLayer(
     'https://server.arcgisonline.com/ArcGIS/rest/services/World_Terrain_Base/MapServer/tile/{z}/{y}/{x}',
-    { attribution: 'Tiles &copy; Esri &mdash; Source: USGS, Esri', maxZoom: 13, minZoom: 3, crossOrigin: true }
+    { attribution: 'Tiles &copy; Esri &mdash; Source: USGS, Esri', maxZoom: 22, maxNativeZoom: 13, minZoom: 3, crossOrigin: true }
   );
 
   var genEsriShaded = L.tileLayer(
     'https://server.arcgisonline.com/ArcGIS/rest/services/World_Shaded_Relief/MapServer/tile/{z}/{y}/{x}',
-    { attribution: 'Tiles &copy; Esri &mdash; Source: Esri', maxZoom: 13, minZoom: 3, crossOrigin: true }
+    { attribution: 'Tiles &copy; Esri &mdash; Source: Esri', maxZoom: 22, maxNativeZoom: 13, minZoom: 3, crossOrigin: true }
   );
 
   var genEsriOcean = L.tileLayer(
     'https://server.arcgisonline.com/ArcGIS/rest/services/Ocean/World_Ocean_Base/MapServer/tile/{z}/{y}/{x}',
-    { attribution: 'Tiles &copy; Esri &mdash; Esri, GEBCO, NOAA', maxZoom: 13, minZoom: 3, crossOrigin: true }
+    { attribution: 'Tiles &copy; Esri &mdash; Esri, GEBCO, NOAA', maxZoom: 22, maxNativeZoom: 13, minZoom: 3, crossOrigin: true }
   );
 
   var genCartoLight = L.tileLayer(
@@ -12514,15 +12958,15 @@ function genInit() {
   );
   var genEsriNatGeo = L.tileLayer(
     'https://server.arcgisonline.com/ArcGIS/rest/services/NatGeo_World_Map/MapServer/tile/{z}/{y}/{x}',
-    { attribution: 'Tiles &copy; Esri &mdash; National Geographic', maxZoom: 16, crossOrigin: true }
+    { attribution: 'Tiles &copy; Esri &mdash; National Geographic', maxZoom: 22, maxNativeZoom: 16, crossOrigin: true }
   );
   var genEsriGray = L.tileLayer(
     'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}',
-    { attribution: 'Tiles &copy; Esri', maxZoom: 16, crossOrigin: true }
+    { attribution: 'Tiles &copy; Esri', maxZoom: 22, maxNativeZoom: 16, crossOrigin: true }
   );
   var genEsriDarkGray = L.tileLayer(
     'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}',
-    { attribution: 'Tiles &copy; Esri', maxZoom: 16, crossOrigin: true }
+    { attribution: 'Tiles &copy; Esri', maxZoom: 22, maxNativeZoom: 16, crossOrigin: true }
   );
   var genStadiaSmooth = L.tileLayer(
     'https://tiles.stadiamaps.com/tiles/alidade_smooth/{z}/{x}/{y}{r}.png',
@@ -12538,11 +12982,11 @@ function genInit() {
   );
   var genStadiaStamenTerrain = L.tileLayer(
     'https://tiles.stadiamaps.com/tiles/stamen_terrain/{z}/{x}/{y}{r}.png',
-    { attribution: '&copy; Stadia Maps &copy; Stamen Design', maxZoom: 18, crossOrigin: true }
+    { attribution: '&copy; Stadia Maps &copy; Stamen Design', maxZoom: 22, maxNativeZoom: 18, crossOrigin: true }
   );
   var genStadiaWatercolor = L.tileLayer(
     'https://tiles.stadiamaps.com/tiles/stamen_watercolor/{z}/{x}/{y}.jpg',
-    { attribution: '&copy; Stadia Maps &copy; Stamen Design', maxZoom: 16, crossOrigin: true }
+    { attribution: '&copy; Stadia Maps &copy; Stamen Design', maxZoom: 22, maxNativeZoom: 16, crossOrigin: true }
   );
   var genGoogleSat = L.tileLayer(
     'https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
@@ -12579,17 +13023,17 @@ function genInit() {
   );
   var genInarupa = L.tileLayer(
     'https://tiled.big.go.id/arcgis/rest/services/Rupabumi/RBI50K/MapServer/tile/{z}/{y}/{x}',
-    { attribution: '&copy; BIG — INARUPA / RBI 1:50.000', maxZoom: 15, crossOrigin: true }
+    { attribution: '&copy; BIG — INARUPA / RBI 1:50.000', maxZoom: 22, maxNativeZoom: 15, crossOrigin: true }
   );
   var genEsriOceanLabel = L.layerGroup([
     L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Ocean/World_Ocean_Base/MapServer/tile/{z}/{y}/{x}',
-      { attribution: 'Tiles &copy; Esri', maxZoom: 13, crossOrigin: true }),
+      { attribution: 'Tiles &copy; Esri', maxZoom: 22, maxNativeZoom: 13, crossOrigin: true }),
     L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Ocean/World_Ocean_Reference/MapServer/tile/{z}/{y}/{x}',
-      { maxZoom: 13, crossOrigin: true })
+      { maxZoom: 22, maxNativeZoom: 13, crossOrigin: true })
   ]);
   var genEsriUsgsImageryTopo = L.tileLayer(
     'https://basemap.nationalmap.gov/arcgis/rest/services/USGSImageryTopo/MapServer/tile/{z}/{y}/{x}',
-    { attribution: 'Tiles courtesy of the U.S. Geological Survey', maxZoom: 20, crossOrigin: true }
+    { attribution: 'Tiles courtesy of the U.S. Geological Survey', maxZoom: 22, maxNativeZoom: 16, crossOrigin: true }
   );
 
   var _genBaseLayers = {
@@ -12686,48 +13130,68 @@ function genInit() {
     r.points.forEach(function(pt){ fitTargets.push(pt); });
   });
 
-  // Garis manual — pakai builder yg sama dgn Lihat Peta agar tipe garis (putus-putus/panah/dst) ikut tampil
-  (typeof _lines !== 'undefined' ? _lines : []).forEach(function(l) {
-    if (!l.points || l.points.length < 2) return;
-    if (typeof _buildLineLayer === 'function') {
-      _buildLineLayer(l.points, l).addTo(_genMap);
-    } else {
-      L.polyline(l.points, { color:l.color, weight:3, opacity:0.9 }).addTo(_genMap);
-    }
-    l.points.forEach(function(pt){ fitTargets.push(pt); });
-  });
+  // ── Render semua layer di _genMap sesuai urutan _layerOrder ──
+  // Strategi: gunakan L.svg renderer per pane agar z-index pane benar-benar berlaku.
+  // Setiap layer mendapat pane + SVG renderer tersendiri sehingga urutan visual
+  // sepenuhnya ditentukan z-index pane, bukan urutan addTo.
 
-  // Poligon manual — pakai gaya isi/outline tersimpan (fillStyle, fillOpacity, outlineColor, outlineWeight)
-  (typeof _polygons !== 'undefined' ? _polygons : []).forEach(function(p) {
-    if (!p.points || p.points.length < 3) return;
-    var pStyle = (typeof _polygonLeafletStyle === 'function') ? _polygonLeafletStyle(p) :
-      { color:p.color, weight:2.2, opacity:0.9, fillColor:p.color, fillOpacity:0.22 };
-    L.polygon(p.points, pStyle).addTo(_genMap);
-    p.points.forEach(function(pt){ fitTargets.push(pt); });
-  });
+  var _genN = _layerOrder.length;
 
-  // Layer SHP — pakai builder yg sama dgn Lihat Peta (outline & isi area, termasuk mode per-atribut)
+  /* Buat pane + SVG renderer per layer di _genMap */
+  function _genMakeRenderer(id, zIndex) {
+    var pName = _layerPaneName(id);
+    _ensureLayerPane(id, zIndex, _genMap);
+    // Buat SVG renderer yang terikat ke pane ini
+    var rend = L.svg({ pane: pName });
+    rend.addTo(_genMap);
+    return { paneName: pName, renderer: rend };
+  }
+
+  // Pre-build semua renderer (dari bawah ke atas agar DOM order benar)
+  var _genRenderers = {};
+  for (var _ri = _genN - 1; _ri >= 0; _ri--) {
+    var _rit = _layerOrder[_ri];
+    var _rzIndex = 220 + (_genN - _ri);
+    _genRenderers[_rit.id] = _genMakeRenderer(_rit.id, _rzIndex);
+  }
+
+  /* Helper: buat style dengan renderer + pane yang tepat */
+  function _genStyle(id, baseStyle) {
+    var rInfo = _genRenderers[id];
+    if (!rInfo) return baseStyle || {};
+    return Object.assign({}, baseStyle || {}, {
+      pane: rInfo.paneName,
+      renderer: rInfo.renderer
+    });
+  }
+
+  // ── SHP layers ──
   _shpLayers.forEach(function(l) {
     var feats = l.features || [];
     if (!feats.length) return;
-    var geo = { type:'FeatureCollection', features: feats };
-    var leafletLayer = (typeof _shpBuildLeafletLayer === 'function')
-      ? _shpBuildLeafletLayer(geo, l, l.name)
-      : L.geoJSON(geo, {
-          style: function(feature) {
-            var gt = feature.geometry ? feature.geometry.type : '';
-            if (gt === 'Point' || gt === 'MultiPoint') return {};
-            return { color: l.color, weight: 2.2, opacity: 0.9, lineJoin:'round', lineCap:'round' };
-          },
-          pointToLayer: function(feature, latlng) {
-            return L.circleMarker(latlng, { radius:4, fillColor:l.color, color:'#fff', weight:1, opacity:1, fillOpacity:0.9 });
-          }
-        });
-    // Hormati visibilitas dari peta utama
     var shpVisibleInMain = l.layerVisible !== false && !(_map && l.layer && !_map.hasLayer(l.layer));
-    if (shpVisibleInMain) leafletLayer.addTo(_genMap);
+    var rInfo = _genRenderers[l.id] || {};
+    var geo = { type:'FeatureCollection', features: feats };
+
+    // Build dengan pane + renderer yg benar
+    var lOpts = Object.assign({}, l, {
+      _targetMap: _genMap,
+      _forcePane: rInfo.paneName,
+      _forceRenderer: rInfo.renderer
+    });
+    var leafletLayer;
+    if (typeof _shpBuildLeafletLayer === 'function') {
+      leafletLayer = _shpBuildLeafletLayer(geo, lOpts, l.name);
+    } else {
+      leafletLayer = L.geoJSON(geo, {
+        pane: rInfo.paneName || 'overlayPane',
+        renderer: rInfo.renderer,
+        style: function() { return { color:l.color, weight:2.2, opacity:0.9, lineJoin:'round', lineCap:'round', pane: rInfo.paneName, renderer: rInfo.renderer }; },
+        pointToLayer: function(f, ll) { return L.circleMarker(ll, { radius:4, fillColor:l.color, color:'#fff', weight:1, opacity:1, fillOpacity:0.9, pane: rInfo.paneName, renderer: rInfo.renderer }); }
+      });
+    }
     _genShpLayers[l.id] = leafletLayer;
-    // Label atribut SHP — ikut tampil di peta Generate sesuai pengaturan dari Lihat Peta
+    if (shpVisibleInMain) leafletLayer.addTo(_genMap);
     if (shpVisibleInMain && l.labelField && l.labelVisible !== false && typeof _shpBuildLabelLayer === 'function') {
       var genLabelLayer = _shpBuildLabelLayer(l);
       genLabelLayer.addTo(_genMap);
@@ -12737,6 +13201,35 @@ function genInit() {
       var b = leafletLayer.getBounds();
       if (b.isValid()) { fitTargets.push([b.getSouthWest().lat, b.getSouthWest().lng]); fitTargets.push([b.getNorthEast().lat, b.getNorthEast().lng]); }
     } catch(e) {}
+  });
+
+  // ── Garis manual ──
+  var _genLineLayers = {}; // id → {layer, lineObj, rInfo} untuk rebuild saat zoom
+
+  (typeof _lines !== 'undefined' ? _lines : []).forEach(function(l) {
+    if (!l.points || l.points.length < 2) return;
+    var rInfo = _genRenderers[l.id] || {};
+    var lineOpts = Object.assign({}, l, { _targetMap: _genMap, _forcePane: rInfo.paneName, _forceRenderer: rInfo.renderer });
+    var lineLayer = (typeof _buildLineLayer === 'function')
+      ? _buildLineLayer(l.points, lineOpts)
+      : L.polyline(l.points, _genStyle(l.id, { color:l.color, weight:3, opacity:0.9 }));
+    lineLayer.addTo(_genMap);
+    _genLineLayers[l.id] = { layer: lineLayer, lineObj: l, rInfo: rInfo };
+    l.points.forEach(function(pt){ fitTargets.push(pt); });
+  });
+
+  // ── Polygon manual ──
+  var _genPolyLayers = {}; // id → {layer, polyObj}
+  (typeof _polygons !== 'undefined' ? _polygons : []).forEach(function(p) {
+    if (!p.points || p.points.length < 3) return;
+    var rInfo = _genRenderers[p.id] || {};
+    var pBase = (typeof _polygonLeafletStyle === 'function') ? _polygonLeafletStyle(p) :
+      { color:p.color, weight:2.2, opacity:0.9, fillColor:p.color, fillOpacity:0.22 };
+    var pStyle = Object.assign({}, pBase, { pane: rInfo.paneName || 'overlayPane', renderer: rInfo.renderer });
+    var polyLayer = L.polygon(p.points, pStyle);
+    polyLayer.addTo(_genMap);
+    _genPolyLayers[p.id] = { layer: polyLayer, polyObj: p };
+    p.points.forEach(function(pt){ fitTargets.push(pt); });
   });
 
   // Layer TIF/DEM (raster elevasi berwarna) — mirror persis seperti tampil di Lihat Peta:
@@ -12850,6 +13343,134 @@ function genInit() {
     _genTifLayers[l.id + '_contour'] = genContourGroup;
   });
 
+  // ── Mirror LABEL kontur (angka elevasi) di Generate Peta ──
+  // Sebelumnya tidak ada — label hanya dibuat oleh tifContourLabelRefresh()
+  // di peta UTAMA (_map), sehingga panel Generate (yang punya instance
+  // Leaflet map sendiri, _genMap) tidak pernah menampilkannya.
+  // Dipanggil ulang saat zoom/pan agar grid label tetap sesuai viewport.
+  window._genMirrorContourLabels = function() {
+    if (!_genMap) return;
+    (_tifLayers || []).forEach(function(l) {
+      var key = l.id + '_contourLabel';
+      if (_genTifLayers[key]) {
+        try { _genMap.removeLayer(_genTifLayers[key]); } catch(e) {}
+        delete _genTifLayers[key];
+      }
+      var isVisibleInMain = !!(_map && l.layer && _map.hasLayer(l.layer));
+      if (!l.contourOn || !isVisibleInMain || !l._contourLinesData || !l._contourLinesData.length) return;
+      try {
+        var density = l.contourLabelDensity !== undefined ? l.contourLabelDensity : 2;
+        if (density === 0) return;
+        if (!_genMap.getPane('genContourLabelPane')) {
+          var glp = _genMap.createPane('genContourLabelPane');
+          glp.style.zIndex = 490;
+          glp.style.pointerEvents = 'none';
+        }
+        var g_along       = !!l.contourLabelAlong;
+        var g_offAlongPct = l.contourLabelOffsetX || 0;
+        var g_offCross    = l.contourLabelOffsetY || 0;
+        var g_autoHide    = !!l.contourLabelAutoHide;
+        var g_hasFill     = l.contourLabelFill !== false;
+        var g_fs          = l.contourLabelSize  || 9;
+        var g_col         = l.contourLabelColor || l.contourColor || '#e0a020';
+
+        var g_bounds = _genMap.getBounds();
+        var g_s = g_bounds.getSouth(), g_n = g_bounds.getNorth();
+        var g_w = g_bounds.getWest(),  g_e = g_bounds.getEast();
+        var g_latSpan = g_n - g_s, g_lngSpan = g_e - g_w;
+
+        var g_gridN     = Math.max(2, density * 2);
+        var g_minSepLat = g_latSpan / (g_gridN * 2.5);
+        var g_minSepLng = g_lngSpan / (g_gridN * 2.5);
+        var g_labelLayer = L.layerGroup();
+        var g_placed = [];
+
+        var g_tooClose = function(lat, lng) {
+          for (var k = 0; k < g_placed.length; k++) {
+            if (Math.abs(g_placed[k].lat-lat) < g_minSepLat &&
+                Math.abs(g_placed[k].lng-lng) < g_minSepLng) return true;
+          }
+          return false;
+        };
+
+        var g_makeLabel = function(lat, lng, text, angleDeg) {
+          var estW = text.length * g_fs * 0.62 + 8;
+          var estH = g_fs * 1.8;
+          var ancY = estH/2 - g_offCross;
+          var rotate = g_along ? 'rotate('+angleDeg.toFixed(1)+'deg)' : 'none';
+          var bgStyle = g_hasFill
+            ? 'background:rgba(255,255,255,0.85);padding:1px 4px;border-radius:3px;box-shadow:0 1px 3px rgba(0,0,0,0.15);'
+            : 'background:none;padding:0 2px;text-shadow:0 0 3px rgba(255,255,255,0.95),0 0 4px rgba(255,255,255,0.95);';
+          var html =
+            '<span style="display:inline-block;transform:'+rotate+';transform-origin:center center;'+
+            'font-size:'+g_fs+'px;color:'+g_col+';font-family:Arial,sans-serif;font-weight:700;'+
+            'white-space:nowrap;line-height:1.4;'+bgStyle+'">'+text+'</span>';
+          return L.marker([lat, lng], {
+            icon: L.divIcon({ className:'', html:html, iconAnchor:[estW/2, ancY], iconSize:[estW, estH] }),
+            pane: 'genContourLabelPane',
+            interactive: false,
+            keyboard: false
+          });
+        };
+
+        var g_gridLats = [], g_gridLngs = [];
+        for (var g_gi = 1; g_gi < g_gridN; g_gi++) {
+          g_gridLats.push(g_s + g_latSpan * g_gi / g_gridN);
+          g_gridLngs.push(g_w + g_lngSpan * g_gi / g_gridN);
+        }
+        var g_useFracMode = (g_offAlongPct !== 0);
+        var g_lineFrac    = 0.5 + g_offAlongPct / 240;
+
+        l._contourLinesData.forEach(function(cd) {
+          var labelText = Math.round(cd.level) + ' m';
+          var sorted = cd.lines.slice().sort(function(a,b){ return b.length - a.length; });
+
+          sorted.forEach(function(line) {
+            if (typeof _contourLineInBounds === 'function' && !_contourLineInBounds(line, g_s, g_w, g_n, g_e)) return;
+            var candidates = [];
+
+            if (g_useFracMode) {
+              var pt = typeof _pointAlongLine === 'function' ? _pointAlongLine(line, g_lineFrac) : null;
+              if (pt && pt[0] >= g_s && pt[0] <= g_n && pt[1] >= g_w && pt[1] <= g_e) candidates.push([pt[0], pt[1]]);
+            } else {
+              g_gridLats.forEach(function(gLat) {
+                for (var si = 0; si < line.length-1; si++) {
+                  var a = line[si], b = line[si+1];
+                  if ((a[0]-gLat)*(b[0]-gLat) <= 0 && a[0] !== b[0]) {
+                    var t = (gLat-a[0])/(b[0]-a[0]);
+                    var lngP = a[1] + t*(b[1]-a[1]);
+                    if (lngP >= g_w && lngP <= g_e) candidates.push([gLat, lngP]);
+                  }
+                }
+              });
+              g_gridLngs.forEach(function(gLng) {
+                for (var si = 0; si < line.length-1; si++) {
+                  var a = line[si], b = line[si+1];
+                  if ((a[1]-gLng)*(b[1]-gLng) <= 0 && a[1] !== b[1]) {
+                    var t = (gLng-a[1])/(b[1]-a[1]);
+                    var latP = a[0] + t*(b[0]-a[0]);
+                    if (latP >= g_s && latP <= g_n) candidates.push([latP, gLng]);
+                  }
+                }
+              });
+            }
+
+            candidates.forEach(function(pt) {
+              var lat = pt[0], lng = pt[1];
+              if (g_tooClose(lat, lng)) return;
+              if (g_autoHide && typeof _contourLabelCovered === 'function' && _contourLabelCovered(lat, lng, l.id)) return;
+              g_placed.push({lat:lat, lng:lng});
+              var angle = g_along && typeof _contourAngleAtPoint === 'function' ? _contourAngleAtPoint(line, lat, lng) : 0;
+              g_labelLayer.addLayer(g_makeLabel(lat, lng, labelText, angle));
+            });
+          });
+        });
+
+        g_labelLayer.addTo(_genMap);
+        _genTifLayers[key] = g_labelLayer;
+      } catch(e) { console.warn('[GenPeta] Gagal mirror label kontur:', l.name, e); }
+    });
+  };
   // ── Sinkronkan posisi & zoom persis dari peta utama ──
   // Prioritas: view peta utama (_map) > fitBounds ke semua objek
   if (_map) {
@@ -12863,13 +13484,33 @@ function genInit() {
   } else if (fitTargets.length) {
     try { _genMap.fitBounds(L.latLngBounds(fitTargets), { padding:[24,24] }); } catch(e) {}
   }
+  if (typeof window._genMirrorContourLabels === 'function') window._genMirrorContourLabels();
 
   _genMap.on('zoomend moveend', genUpdateScale);
   _genMap.on('zoomend moveend', genUpdateInset);
   _genMap.on('zoomend moveend', genRenderGraticule);
+  _genMap.on('zoomend moveend', function(){ if (typeof window._genMirrorContourLabels === 'function') window._genMirrorContourLabels(); });
   _genMap.on('move', symOnMapMove);
   _genMap.on('moveend zoomend', function(){ setTimeout(symRebuildOverlay, 50); });
   setTimeout(function(){ genUpdateScale(); genRenderGraticule(); }, 200);
+
+  /* Rebuild arrow-repeat di genMap saat zoom berubah */
+  _genMap.on('zoomend', function() {
+    Object.keys(_genLineLayers || {}).forEach(function(lid) {
+      var gl = _genLineLayers[lid];
+      if (!gl || !gl.lineObj) return;
+      var ls = gl.lineObj.lineStyle || '';
+      if (ls === 'arrow-repeat' || ls === 'arrow-repeat-dense') {
+        if (_genMap.hasLayer(gl.layer)) _genMap.removeLayer(gl.layer);
+        var rInfo = gl.rInfo || {};
+        var newLayer = _buildLineLayer(gl.lineObj.points, Object.assign({}, gl.lineObj, {
+          _targetMap: _genMap, _forcePane: rInfo.paneName, _forceRenderer: rInfo.renderer
+        }));
+        newLayer.addTo(_genMap);
+        _genLineLayers[lid].layer = newLayer;
+      }
+    });
+  });
 
   // ── Sinkronisasi posisi: peta utama → Generate Peta (saat panel Generate terbuka) ──
   if (_map) {
@@ -12878,6 +13519,8 @@ function genInit() {
       try { _genMap.setView(_map.getCenter(), _map.getZoom(), {animate:false}); } catch(e) {}
     });
   }
+
+
 
   genRenderShpToggleList();
   genRenderLegend();
@@ -13459,8 +14102,10 @@ function _genNiceDegStep(span) {
   for (var i = 0; i < steps.length; i++) { if (steps[i] >= target) return steps[i]; }
   return steps[steps.length-1];
 }
-/* Margin bingkai peta: ruang untuk label koordinat di 4 sisi */
-var GEN_GRID_MARGIN = { top: 32, right: 28, bottom: 32, left: 28 };
+/* Margin bingkai peta: ruang untuk label koordinat di 4 sisi.
+   Nilai ini menyisakan cukup ruang untuk label DMS (font 7px + outer pad 4px
+   + jarak label ~3-10px) tanpa terpotong, di semua 4 sisi peta. */
+var GEN_GRID_MARGIN = { top: 26, right: 26, bottom: 26, left: 26 };
 
 /* ── Graticule profesional ala kartografi BIG/GIS ─────────────────
    • Bingkai ganda (outer + inner) seperti peta topografi resmi
@@ -13471,6 +14116,7 @@ var GEN_GRID_MARGIN = { top: 32, right: 28, bottom: 32, left: 28 };
 ──────────────────────────────────────────────────────────────────── */
 function genRenderGraticule() {
   var el = document.getElementById('peta-gen-graticule');
+  if (el) el.innerHTML = '';
   if (!el || !_genMap) return;
 
   var mg = GEN_GRID_MARGIN;
@@ -13478,10 +14124,27 @@ function genRenderGraticule() {
   var fullW = mapSize.x + mg.left + mg.right;
   var fullH = mapSize.y + mg.top + mg.bottom;
 
-  /* Posisi bingkai DALAM (tepi foto) dan LUAR (tepi margin putih) */
-  var iL = mg.left, iT = mg.top, iR = mg.left + mapSize.x, iB = mg.top + mapSize.y;
-  var OUTER_PAD = 4;   /* jarak bingkai luar dari bingkai dalam */
-  var oL = iL - OUTER_PAD, oT = iT - OUTER_PAD, oR = iR + OUTER_PAD, oB = iB + OUTER_PAD;
+  /* Posisi bingkai DALAM (tepi foto) dan LUAR (tepi margin putih).
+     OUTER_PAD disesuaikan dengan GEN_GRID_MARGIN (26px) supaya proporsional
+     — nilai lama (4px) terlalu sempit untuk font yang lebih besar & rapi.
+
+     PENTING — offset border #peta-gen-map: elemen #peta-gen-map (lihat HTML)
+     diposisikan absolute top/left/right/bottom:26px DENGAN border:2px solid
+     (box-sizing:border-box). Karena border-box, border itu digambar DI DALAM
+     kotak 26px tsb, sehingga KONTEN peta Leaflet yang sesungguhnya (tempat
+     tile/canvas dirender, diukur oleh _genMap.getSize()) baru mulai di
+     26px + 2px border = 28px dari tepi sheet — bukan tepat di 26px.
+     Sebelumnya iL/iT/iR/iB dihitung memakai mg.left/mg.top (26) apa adanya,
+     sehingga bingkai-dalam & clip-path grid berada 2px lebih kiri/atas dari
+     posisi konten peta yang sebenarnya — membuat sisi kanan & bawah peta
+     terlihat "bocor"/melewati garis bingkai grid koordinat sejauh ~2px
+     (persis yang dilaporkan). BORDER_W di bawah mengoreksi ini. */
+  var BORDER_W = 2; /* harus sama dgn border:2px pada #peta-gen-map di HTML */
+  var iL = mg.left + BORDER_W, iT = mg.top + BORDER_W;
+  var iR = iL + mapSize.x, iB = iT + mapSize.y;
+  var OUTER_PAD = 10;   /* jarak bingkai luar dari bingkai dalam */
+  var oL = mg.left - OUTER_PAD, oT = mg.top - OUTER_PAD;
+  var oR = iR + OUTER_PAD, oB = iB + OUTER_PAD;
 
   var bounds = _genMap.getBounds();
   var lngStep = _genNiceDegStep(bounds.getEast()  - bounds.getWest());
@@ -13533,7 +14196,7 @@ function genRenderGraticule() {
   });
 
   /* ── Cross-hair (+) di setiap persilangan ── */
-  var CS = 5; /* setengah panjang cross arm (px) */
+  var CS = 4.5; /* setengah panjang cross arm (px) — proporsional & tidak berlebihan */
   vlines.forEach(function(v) {
     hlines.forEach(function(h) {
       svg += '<line x1="'+(v.x-CS)+'" y1="'+h.y+'" x2="'+(v.x+CS)+'" y2="'+h.y+'"'
@@ -13554,10 +14217,11 @@ function genRenderGraticule() {
   var zebraToggle = false;
   vlines.forEach(function(l, i) {
     var nx = (i < vlines.length - 1) ? vlines[i+1].x : iR;
+    var segW = Math.max(0, nx - l.x); /* clamp: cegah width negatif saat vline terakhir melebihi iR (pembulatan) */
     /* Pita atas */
-    if (zebraToggle) {
-      svg += '<rect x="'+l.x+'" y="'+oT+'" width="'+(nx-l.x)+'" height="'+ZEBRA_H+'" fill="#1a1a1a"/>';
-      svg += '<rect x="'+l.x+'" y="'+iB+'" width="'+(nx-l.x)+'" height="'+ZEBRA_H+'" fill="#1a1a1a"/>';
+    if (zebraToggle && segW > 0) {
+      svg += '<rect x="'+l.x+'" y="'+oT+'" width="'+segW+'" height="'+ZEBRA_H+'" fill="#1a1a1a"/>';
+      svg += '<rect x="'+l.x+'" y="'+iB+'" width="'+segW+'" height="'+ZEBRA_H+'" fill="#1a1a1a"/>';
     }
     zebraToggle = !zebraToggle;
     prevX = l.x;
@@ -13566,9 +14230,10 @@ function genRenderGraticule() {
   var zebraToggle2 = false;
   hlines.forEach(function(l, i) {
     var ny = (i < hlines.length - 1) ? hlines[i+1].y : iB;
-    if (zebraToggle2) {
-      svg += '<rect x="'+oL+'" y="'+l.y+'" width="'+ZEBRA_H+'" height="'+(ny-l.y)+'" fill="#1a1a1a"/>';
-      svg += '<rect x="'+iR+'" y="'+l.y+'" width="'+ZEBRA_H+'" height="'+(ny-l.y)+'" fill="#1a1a1a"/>';
+    var segH = Math.max(0, ny - l.y); /* clamp: cegah height negatif saat hline terakhir melebihi iB (pembulatan) */
+    if (zebraToggle2 && segH > 0) {
+      svg += '<rect x="'+oL+'" y="'+l.y+'" width="'+ZEBRA_H+'" height="'+segH+'" fill="#1a1a1a"/>';
+      svg += '<rect x="'+iR+'" y="'+l.y+'" width="'+ZEBRA_H+'" height="'+segH+'" fill="#1a1a1a"/>';
     }
     zebraToggle2 = !zebraToggle2;
   });
@@ -13579,31 +14244,50 @@ function genRenderGraticule() {
 
   /* ── Tick di bingkai dalam: masuk ke zona outer-inner ── */
   var TICK = OUTER_PAD; /* panjang tick = jarak outer ke inner */
-  var fsLbl = 'font-size="7" font-family="Arial,sans-serif" font-weight="bold" fill="#1a1a1a"';
-  var fsLblSm = 'font-size="6" font-family="Arial,sans-serif" fill="#1a1a1a"';
+  /* Semua label grid koordinat (atas/bawah/kiri/kanan) diseragamkan ke SATU
+     ukuran font & di-bold penuh atas permintaan — sebelumnya ada 3 variasi
+     ukuran/berat (fsLbl 8px/600, fsLblRot 7.6px/500, fsLblRotL 7.2px/400). */
+  var fsLbl = 'font-size="7.6" font-family="Arial,Helvetica,sans-serif" font-weight="700" fill="#1a1a1a" letter-spacing="0.1"';
+  var fsLblSm = 'font-size="7" font-family="Arial,Helvetica,sans-serif" fill="#1a1a1a"';
+  var fsLblRot = fsLbl;
+  var fsLblRotL = fsLbl;
 
   vlines.forEach(function(l) {
-    /* Tick atas */
-    svg += '<line x1="'+l.x+'" y1="'+oT+'" x2="'+l.x+'" y2="'+iT+'" stroke="#1a1a1a" stroke-width="0.9"/>';
+    /* Tick atas — ditipiskan krn sisi atas terasa lebih pekat */
+    svg += '<line x1="'+l.x+'" y1="'+oT+'" x2="'+l.x+'" y2="'+iT+'" stroke="#1a1a1a" stroke-width="0.05"/>';
     /* Tick bawah */
     svg += '<line x1="'+l.x+'" y1="'+iB+'" x2="'+l.x+'" y2="'+oB+'" stroke="#1a1a1a" stroke-width="0.9"/>';
-    /* Label atas (di atas bingkai luar) */
-    svg += '<text x="'+l.x+'" y="'+(oT-3)+'" text-anchor="middle" '+fsLbl+'>'+_e(l.label)+'</text>';
-    /* Label bawah */
-    svg += '<text x="'+l.x+'" y="'+(oB+10)+'" text-anchor="middle" '+fsLbl+'>'+_e(l.label)+'</text>';
+    /* Label atas — PERBAIKAN: offset sebelumnya (oT-8) mendorong baseline
+       terlalu dekat ke tepi PALING ATAS sheet (y=0), sehingga badan huruf
+       terpotong bingkai luar sheet itu sendiri (bukan cuma dekat ke tick).
+       Sekarang dihitung MUNDUR dari batas atas margin (mg.top) dengan jarak
+       aman tetap, supaya posisinya konsisten terhadap tepi sheet, bukan
+       terhadap oT yang bisa mendekati y=0 kalau OUTER_PAD besar. */
+    svg += '<text x="'+l.x+'" y="'+(mg.top-14)+'" text-anchor="middle" '+fsLbl+'>'+_e(l.label)+'</text>';
+    /* Label bawah — offset 11 dari oB sudah aman krn menjauh dari tepi bawah sheet */
+    svg += '<text x="'+l.x+'" y="'+(oB+11)+'" text-anchor="middle" '+fsLbl+'>'+_e(l.label)+'</text>';
   });
 
   hlines.forEach(function(l) {
-    /* Tick kiri */
-    svg += '<line x1="'+oL+'" y1="'+l.y+'" x2="'+iL+'" y2="'+l.y+'" stroke="#1a1a1a" stroke-width="0.9"/>';
+    /* Tick kiri — sedikit lebih tipis (0.8 vs 0.9) krn berhimpitan rapat dgn
+       pita zebra + label rotasi, kombinasi ini yang membuat sisi kiri/kanan
+       terasa lebih pekat dibanding atas/bawah pada ketebalan sama */
+    /* Tick kiri lebih tipis krn berhimpitan dgn label rotasi + zebra yang
+       membuatnya tampak lebih pekat; tick kanan dikembalikan ke ketebalan
+       lebih wajar krn sisi kanan justru terasa kurang tebal. */
+    svg += '<line x1="'+oL+'" y1="'+l.y+'" x2="'+iL+'" y2="'+l.y+'" stroke="#1a1a1a" stroke-width="0.05"/>';
     /* Tick kanan */
     svg += '<line x1="'+iR+'" y1="'+l.y+'" x2="'+oR+'" y2="'+l.y+'" stroke="#1a1a1a" stroke-width="0.9"/>';
-    /* Label kiri — vertikal (rotasi) */
-    svg += '<text x="'+(oL-3)+'" y="'+l.y+'" text-anchor="middle"'
-         + ' transform="rotate(-90,'+(oL-3)+','+l.y+')" '+fsLbl+'>'+_e(l.label)+'</text>';
-    /* Label kanan — vertikal */
-    svg += '<text x="'+(oR+3)+'" y="'+l.y+'" text-anchor="middle"'
-         + ' transform="rotate(90,'+(oR+3)+','+l.y+')" '+fsLbl+'>'+_e(l.label)+'</text>';
+    /* Label kiri — vertikal (rotasi). Sama seperti label atas: dihitung dari
+       mg.left (batas margin absolut) dengan jarak aman tetap, bukan dari oL
+       yang bisa mendekati x=0 dan memotong badan huruf setelah rotasi.
+       Memakai fsLblRot (bobot lebih ringan) supaya seimbang dgn label
+       horizontal atas/bawah yang memakai fsLbl (semi-bold). */
+    svg += '<text x="'+(mg.left-16)+'" y="'+l.y+'" text-anchor="middle"'
+         + ' transform="rotate(-90,'+(mg.left-16)+','+l.y+')" '+fsLblRotL+'>'+_e(l.label)+'</text>';
+    /* Label kanan — vertikal. Sisi kanan aman menjauh dari tepi sheet, offset dari oR cukup */
+    svg += '<text x="'+(oR+9)+'" y="'+l.y+'" text-anchor="middle"'
+         + ' transform="rotate(90,'+(oR+9)+','+l.y+')" '+fsLblRot+'>'+_e(l.label)+'</text>';
   });
 
   svg += '</svg>';
@@ -13725,8 +14409,10 @@ function genBuildInset() {
     zoomControl:false, attributionControl:false, dragging:false,
     scrollWheelZoom:false, doubleClickZoom:false, boxZoom:false, keyboard:false, touchZoom:false
   });
+  // Basemap OSM Standard untuk Peta Situasi (inset), menunjukkan jalan,
+  // batas wilayah, dan nama tempat langsung dari tile OpenStreetMap.
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    maxZoom: 19, minZoom: 2, crossOrigin: true
+    attribution: '&copy; OpenStreetMap contributors', maxZoom: 19, minZoom: 2, crossOrigin: true
   }).addTo(_genInsetMap);
 
   setTimeout(function(){
@@ -13747,6 +14433,8 @@ function genUpdateInset() {
   _genInsetRectLayer = L.rectangle(bounds, {
     color:'#ff4444', weight:2, fill:true, fillColor:'#ff4444', fillOpacity:0.12
   }).addTo(_genInsetMap);
+  // Pastikan rectangle lokasi selalu di atas layer GeoJSON provinsi
+  try { _genInsetRectLayer.bringToFront(); } catch(e) {}
 }
 
 /* ─── Cetak / unduh PDF lembar peta ───────────────────────────── */
@@ -13788,8 +14476,12 @@ function _genDrawGeometry(ctx, map, geom, style) {
   var strokeOp     = style.opacity != null ? style.opacity : 1;
   var fillOp       = style.fillOpacity != null ? style.fillOpacity : 0.22;
 
+  // Gunakan ll2c() dari _genRasterizeMapCanvas closure untuk koordinat yang aligned dengan tile
+  // (ll2c = latlng → canvas pixel dengan koreksi offset)
   function toPts(coords) {
-    return coords.map(function(c){ return map.latLngToContainerPoint([c[1], c[0]]); });
+    return coords.map(function(c){
+      return (typeof ll2c==='function') ? ll2c(c[1],c[0]) : map.latLngToContainerPoint(L.latLng(c[1],c[0]));
+    });
   }
   function strokePath(coords, close) {
     var pts = toPts(coords);
@@ -13822,7 +14514,7 @@ function _genDrawGeometry(ctx, map, geom, style) {
     ctx.restore();
   }
   function drawPoint(c) {
-    var p = map.latLngToContainerPoint([c[1], c[0]]);
+    var p = toPts([c])[0] || {x:0,y:0};
     ctx.save();
     ctx.globalAlpha = strokeOp;
     ctx.beginPath(); ctx.arc(p.x, p.y, Math.max(4, weight+2), 0, Math.PI*2);
@@ -13840,93 +14532,577 @@ function _genDrawGeometry(ctx, map, geom, style) {
   else if (t === 'MultiPoint') geom.coordinates.forEach(drawPoint);
 }
 
+/* Render TIF georaster langsung ke canvas dari data pixel (tanpa GeoRasterLayer DOM) */
+function _genDrawTifToCanvas(ctx, map, tifLayerObj, offsetX, offsetY) {
+  var l = tifLayerObj;
+  if (!l || !l.georaster) return;
+  var g = l.georaster;
+  var values = g.values && g.values[0];
+  if (!values || !values.length) return;
+  var rows = g.height || values.length;
+  var cols = g.width || (values[0] && values[0].length) || 0;
+  if (!rows || !cols) return;
+  var noData = g.noDataValue;
+  var min = l.min, max = l.max;
+  var scheme = l.colorScheme || 'terrain';
+  var opacity = l.opacity != null ? l.opacity / 100 : 0.75;
+  // Build pixel data
+  var offCanvas = document.createElement('canvas');
+  offCanvas.width = cols; offCanvas.height = rows;
+  var offCtx = offCanvas.getContext('2d');
+  var imgData = offCtx.createImageData(cols, rows);
+  var data = imgData.data;
+  var hasPixel = false;
+  for (var row = 0; row < rows; row++) {
+    var rowArr = values[row]; if (!rowArr) continue;
+    for (var col = 0; col < cols; col++) {
+      var v = rowArr[col];
+      var i4 = (row * cols + col) * 4;
+      if (v === null || v === undefined || isNaN(v) || (noData != null && Math.abs(v - noData) < 1e-6)) { data[i4+3]=0; continue; }
+      var t = (max > min) ? Math.max(0, Math.min(1, (v-min)/(max-min))) : 0.5;
+      var rgb = _tifColorAt(scheme, t);
+      data[i4]=rgb[0]; data[i4+1]=rgb[1]; data[i4+2]=rgb[2];
+      data[i4+3]=Math.round(opacity*255);
+      hasPixel = true;
+    }
+  }
+  if (!hasPixel) return;
+  offCtx.putImageData(imgData, 0, 0);
+  // Proyeksikan bbox menggunakan map.project() + getPixelOrigin()
+  // Ini stabil bahkan saat map container di-offscreen/dipindah
+  try {
+    var zoom = map.getZoom();
+    var origin = map.getPixelOrigin();
+    var _ox = offsetX || 0, _oy = offsetY || 0;
+    function _ll2px(lat, lng) {
+      var pt = map.project(L.latLng(lat, lng), zoom);
+      return { x: Math.round(pt.x - origin.x + _ox), y: Math.round(pt.y - origin.y + _oy) };
+    }
+    var sw = _ll2px(g.ymin, g.xmin);
+    var ne = _ll2px(g.ymax, g.xmax);
+    var drawX = Math.min(sw.x, ne.x);
+    var drawY = Math.min(sw.y, ne.y);
+    var drawW = Math.abs(sw.x - ne.x);
+    var drawH = Math.abs(sw.y - ne.y);
+    if (drawW < 1 || drawH < 1) return;
+    ctx.save();
+    ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(offCanvas, drawX, drawY, drawW, drawH);
+    ctx.restore();
+  } catch(e) { console.warn('[TIF render]', e.message); }
+}
+
+/* ─── Preload tile basemap sebagai blob URL ──────────────────────────
+   PENTING (kasus file://): saat HTML ini dibuka langsung dari disk
+   (file:///C:/...), Chrome memperlakukan origin sebagai "unique/opaque
+   origin". Tile basemap dari domain eksternal (tile.openstreetmap.org,
+   dst) yang digambar via ctx.drawImage(imgAsliDariDOM, ...) MEMBUAT
+   CANVAS TAINTED secara diam-diam (tanpa exception saat drawImage itu
+   sendiri) — taint itu baru "meledak" belakangan saat html2canvas
+   mencoba MEMBACA ULANG kanvas snapshot ini untuk digabung jadi PNG
+   akhir, sehingga hasil akhirnya area basemap kosong/abu tanpa error
+   yang jelas ke pengguna.
+   SOLUSI: fetch tile via fetch() lalu ubah jadi blob: URL. Data yang
+   sudah di-fetch dan dimiliki halaman lewat blob: URL TIDAK membawa
+   status cross-origin lagi, sehingga drawImage dari blob: URL tidak
+   men-taint canvas — aman dibaca lagi oleh html2canvas walau origin
+   halaman adalah file://.
+   Return: Promise yang resolve ke Map(originalSrc -> loaded <img> blob). */
+function _genPreloadTileBlobs(map) {
+  if (!map || !map.getContainer) return Promise.resolve(new Map());
+  var container = map.getContainer();
+  var imgs = Array.from(container.querySelectorAll('.leaflet-tile-pane img.leaflet-tile'));
+  var cache = window._genTileBlobCache || (window._genTileBlobCache = new Map());
+  console.log('[GenPeta][blob] Mulai preload ' + imgs.length + ' tile...');
+  var okCount = 0, failCount = 0;
+  var jobs = imgs.map(function(img) {
+    var src = img.currentSrc || img.src;
+    if (!src) return Promise.resolve();
+    if (cache.has(src)) { okCount++; return Promise.resolve(); }
+    return fetch(src, { mode: 'cors' }).then(function(res) {
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      return res.blob();
+    }).then(function(blob) {
+      return new Promise(function(resolve) {
+        var blobUrl = URL.createObjectURL(blob);
+        var im = new Image();
+        im.onload = function(){ cache.set(src, im); okCount++; resolve(); };
+        im.onerror = function(){ failCount++; resolve(); }; // gagal decode — biarkan fallback ke img asli
+        im.src = blobUrl;
+      });
+    }).catch(function(e){
+      failCount++;
+      console.warn('[GenPeta][blob] fetch gagal utk 1 tile:', e.message);
+    });
+  });
+  return Promise.all(jobs).then(function(){
+    console.log('[GenPeta][blob] Selesai. Berhasil: ' + okCount + ', Gagal: ' + failCount + ' dari ' + imgs.length + ' tile.');
+    return cache;
+  });
+}
+
 function _genRasterizeMapCanvas(map, drawVectorsFn) {
   var size = map.getSize();
   var dpr  = 2;
-
   var canvas = document.createElement('canvas');
   canvas.width  = Math.round(size.x * dpr);
   canvas.height = Math.round(size.y * dpr);
   var ctx = canvas.getContext('2d');
   ctx.scale(dpr, dpr);
-
   ctx.fillStyle = '#cfe3ea';
   ctx.fillRect(0, 0, size.x, size.y);
 
-  // ── Tile basemap ──
-  // getBoundingClientRect dipengaruhi CSS transform (scale preview sheet).
-  // Solusi: sementara reset transform sheet ke none, ambil rect, lalu kembalikan.
   var mapContainer = map.getContainer();
-  // Cari ancestor sheet yang punya transform scale (preview wrapper)
   var sheetEl = document.getElementById('peta-print-sheet');
-  var savedSheetTransform = '';
-  if (sheetEl) {
-    savedSheetTransform = sheetEl.style.transform;
-    sheetEl.style.transform = 'none';
-  }
-
-  // Flush layout setelah reset transform
-  void mapContainer.offsetWidth; // force reflow
-
+  var savedTransform = sheetEl ? sheetEl.style.transform : '';
+  if (sheetEl) sheetEl.style.transform = 'none';
+  void mapContainer.offsetWidth;
+  // containerRect: posisi mapContainer di viewport — dipakai oleh blok fallback
+  // overlay-pane (GeoRasterLayer canvas dll) untuk menghitung offset drawImage.
+  // HARUS didefinisikan SETELAH transform sheet di-reset ke 'none' dan reflow
+  // terjadi (void offsetWidth di atas), supaya koordinat BoundingClientRect
+  // mencerminkan posisi tanpa scale pratinjau.
   var containerRect = mapContainer.getBoundingClientRect();
 
-  var tiles = mapContainer.querySelectorAll('.leaflet-tile-pane img.leaflet-tile');
-  tiles.forEach(function(img) {
-    if (!img.complete || !img.naturalWidth) return;
+  // ── Satu sistem koordinat untuk SEMUA elemen (tile & vector) ──
+  //
+  // PRINSIP: latLngToContainerPoint() milik Leaflet mengembalikan piksel
+  // RELATIF TERHADAP TOP-LEFT CONTAINER MAP itu sendiri — tidak peduli
+  // di mana container tersebut berada di layar (DOM position, scroll, dll).
+  // Inilah sistem koordinat "kebenaran" yang dipakai untuk menggambar vector.
+  //
+  // Untuk tile: dulu diposisikan dengan menjumlahkan offsetLeft/offsetTop +
+  // parsing manual CSS transform (translate/translate3d) dari setiap
+  // ancestor. Pendekatan itu selalu punya error residual kecil (beberapa
+  // piksel) karena offsetLeft/offsetTop DIBULATKAN ke bilangan bulat oleh
+  // browser di setiap langkah rantai ancestor, sedangkan posisi tile asli
+  // dari Leaflet (translate3d) presisi sub-piksel — akumulasi pembulatan
+  // di banyak ancestor menghasilkan pergeseran kecil tapi terlihat,
+  // konsisten dengan yang dilaporkan ("masih ada pergeseran kecil").
+  //
+  // Solusi presisi penuh: pakai getBoundingClientRect() — nilai float
+  // (bukan integer) yang mencerminkan posisi FINAL ter-render browser
+  // apa adanya, termasuk semua transform CSS/GPU tanpa perlu kita parsing
+  // sendiri. AMAN dipakai di sini karena sheetEl.style.transform sudah
+  // di-reset ke 'none' TEPAT SEBELUM baris ini (lihat atas) — sehingga
+  // tidak ada lagi scale pratinjau yang bisa mendistorsi hasil rect.
+  // Delta terhadap containerRect (posisi mapContainer itu sendiri di
+  // viewport) menghasilkan offset relatif ke top-left container map —
+  // sistem koordinat yang SAMA PERSIS dipakai vector via
+  // latLngToContainerPoint(), tanpa akumulasi pembulatan sama sekali.
+  function _offsetRelTo(el, ancestor) {
     try {
-      var r = img.getBoundingClientRect();
-      ctx.drawImage(img,
-        r.left - containerRect.left,
-        r.top  - containerRect.top,
-        r.width, r.height);
-    } catch(e) {}
-  });
-
-  // ── Layer raster TIF/DEM (GeoRasterLayer merender ke <canvas> per-tile) &
-  //    hillshade (L.imageOverlay → <img>) — keduanya di luar tile-pane basemap
-  //    sehingga perlu disapu terpisah, kalau tidak akan hilang saat export.
-  var rasterCanvases = mapContainer.querySelectorAll('.leaflet-overlay-pane canvas, .leaflet-tile-pane canvas');
-  rasterCanvases.forEach(function(cv) {
-    try {
-      var r = cv.getBoundingClientRect();
-      if (r.width <= 0 || r.height <= 0) return;
-      ctx.drawImage(cv, r.left - containerRect.left, r.top - containerRect.top, r.width, r.height);
-    } catch(e) {}
-  });
-  var overlayImages = mapContainer.querySelectorAll('.leaflet-overlay-pane img, .leaflet-pane img.leaflet-image-layer');
-  overlayImages.forEach(function(img) {
-    if (!img.complete || !img.naturalWidth) return;
-    try {
-      var r = img.getBoundingClientRect();
-      ctx.drawImage(img, r.left - containerRect.left, r.top - containerRect.top, r.width, r.height);
-    } catch(e) {}
-  });
-
-  // ── Vektor & marker ──
-  // latLngToContainerPoint() tidak terpengaruh CSS transform — selalu CSS px relatif container
-  // Sekarang tile juga dalam CSS px relatif container (tanpa scale) → SEJAJAR
-  if (typeof drawVectorsFn === 'function') {
-    try { drawVectorsFn(ctx, map); } catch(e) { console.error('Gagal menggambar elemen peta ke gambar:', e); }
+      var r = el.getBoundingClientRect();
+      var ar = (ancestor === mapContainer) ? containerRect : ancestor.getBoundingClientRect();
+      return { x: r.left - ar.left, y: r.top - ar.top };
+    } catch(e) { return { x: 0, y: 0 }; }
   }
 
-  // Kembalikan transform sheet
-  if (sheetEl) sheetEl.style.transform = savedSheetTransform;
+  // ── Tile basemap ──
+  // Pakai versi blob (lihat _genPreloadTileBlobs) jika sudah di-preload —
+  // menghindari taint canvas saat halaman dibuka via file://. Kalau belum
+  // di-preload (cache kosong/miss), fallback ke <img> asli seperti semula.
+  var _tileBlobCache = window._genTileBlobCache;
+  var tiles = Array.from(mapContainer.querySelectorAll('.leaflet-tile-pane img.leaflet-tile'));
+  var _tileDrawnCount = 0, _tileSkippedNotReady = 0, _tileDrawErr = 0, _tileFromBlob = 0;
 
+  // Ukuran satu tile dalam piksel Leaflet (CSS px, bukan piksel layar)
+  // — dipakai sebagai fallback jika offsetWidth tile 0 (lazy-load belum render)
+  var _tileSize = 256;
+  try { var _ts = map.options.tileSize; if (_ts > 0) _tileSize = _ts; } catch(e) {}
+
+  tiles.forEach(function(img) {
+    if (!img.complete || !img.naturalWidth) { _tileSkippedNotReady++; return; }
+    try {
+      // Posisi & UKURAN tile harus berasal dari SUMBER YANG SAMA
+      // (getBoundingClientRect, float) — jika posisi dari rect tapi ukuran
+      // dari offsetWidth/offsetHeight (integer dibulatkan), tile bertetangga
+      // tidak lagi pas menempel sempurna, menyisakan celah sub-piksel di
+      // antara tile yang tembus sebagai garis grid tipis (warna latar
+      // placeholder canvas) — persis pola yang dilaporkan.
+      var rect = img.getBoundingClientRect();
+      var off = { x: rect.left - containerRect.left, y: rect.top - containerRect.top };
+      var w = rect.width  || img.offsetWidth  || _tileSize;
+      var h = rect.height || img.offsetHeight || _tileSize;
+      // Sedikit "overdraw" (0.5px) di sisi kanan/bawah tiap tile — menutup
+      // celah anti-aliasing sub-piksel antar tile bertetangga tanpa merusak
+      // presisi posisi (tile digambar sedikit lebih besar dari ukuran
+      // sebenarnya, bukan digeser), teknik umum utk tile-based rendering.
+      w += 0.5; h += 0.5;
+      var src = img.currentSrc || img.src;
+      var blobImg = (_tileBlobCache && src) ? _tileBlobCache.get(src) : null;
+      if (blobImg) _tileFromBlob++;
+      ctx.drawImage(blobImg || img, off.x, off.y, w, h);
+      _tileDrawnCount++;
+    } catch(e) { _tileDrawErr++; }
+  });
+  console.log('[GenPeta][canvas] Tile total di DOM: ' + tiles.length + ' | tergambar: ' + _tileDrawnCount +
+              ' (dari blob: ' + _tileFromBlob + ') | belum ready: ' + _tileSkippedNotReady + ' | error drawImage: ' + _tileDrawErr);
+
+  // ── Canvas tile (GeoRasterLayer) ──
+  // GeoRasterLayer v3 extends L.GridLayer — tile-nya berupa <canvas>.
+  // TIDAK selalu punya class 'leaflet-tile'. Ambil SEMUA canvas di tile-pane
+  // tanpa filter class, plus canvas di custom pane (GeoRasterLayer kadang
+  // pakai pane khusus). Gunakan _offsetRelTo agar sejajar dengan basemap.
+  //
+  // PENTING — opacity: Leaflet mengatur opacity GeoRasterLayer lewat CSS pada
+  // elemen container layer (.leaflet-layer) atau pada pane, BUKAN via ctx.globalAlpha.
+  // ctx.drawImage() selalu menggambar pada globalAlpha = 1.0 sehingga hasil
+  // terlihat lebih pekat dari pratinjau. Solusi: baca opacity CSS cascaded dari
+  // canvas naik ke mapContainer, lalu terapkan sebagai ctx.globalAlpha saat draw.
+  function _readCssOpacity(el, stopAt) {
+    var op = 1.0;
+    var cur = el;
+    while (cur && cur !== stopAt) {
+      try {
+        var s = parseFloat(window.getComputedStyle(cur).opacity);
+        if (!isNaN(s)) op *= s;
+      } catch(e) {}
+      cur = cur.parentElement;
+    }
+    return op;
+  }
+  var _cvTileDrawn = 0;
+  // Pass 1: canvas di leaflet-tile-pane
+  Array.from(mapContainer.querySelectorAll('.leaflet-tile-pane canvas')).forEach(function(cv) {
+    if (!cv.width || !cv.height) return;
+    try {
+      var off = _offsetRelTo(cv, mapContainer);
+      // rect (float, getBoundingClientRect via _offsetRelTo) dipakai utk posisi;
+      // ukuran juga harus float + overdraw 0.5px sama seperti tile <img> basemap
+      // di atas, kalau tidak celah sub-piksel antar tile canvas (mis. hillshade/
+      // GeoRasterLayer) tembus jadi garis grid tipis di hasil unduhan.
+      var cvRect = cv.getBoundingClientRect();
+      var w = (cvRect.width  || cv.offsetWidth  || _tileSize) + 0.5;
+      var h = (cvRect.height || cv.offsetHeight || _tileSize) + 0.5;
+      var op = _readCssOpacity(cv, mapContainer);
+      ctx.save(); ctx.globalAlpha = Math.max(0, Math.min(1, op));
+      ctx.drawImage(cv, off.x, off.y, w, h);
+      ctx.restore();
+      _cvTileDrawn++;
+    } catch(e) {}
+  });
+  // Pass 2: canvas di pane lain (custom pane GeoRasterLayer, overlay pane, dll)
+  // Gunakan _offsetRelTo bukan getBoundingClientRect agar tidak terpengaruh
+  // scroll atau scale pratinjau yang masih aktif di DOM.
+  var _skipCvPanes = ['leaflet-tile-pane','leaflet-marker-pane','leaflet-shadow-pane','leaflet-tooltip-pane','leaflet-popup-pane'];
+  var _sortedPanes = Array.from(mapContainer.querySelectorAll('.leaflet-pane'));
+  _sortedPanes.sort(function(a,b){ return (parseInt(getComputedStyle(a).zIndex)||0)-(parseInt(getComputedStyle(b).zIndex)||0); });
+  _sortedPanes.forEach(function(pane) {
+    if (_skipCvPanes.some(function(c){ return pane.classList.contains(c); })) return;
+    Array.from(pane.querySelectorAll('canvas')).forEach(function(cv) {
+      if (!cv.width || !cv.height) return;
+      try {
+        var off = _offsetRelTo(cv, mapContainer);
+        var cvRect = cv.getBoundingClientRect();
+        var w = cvRect.width  || cv.offsetWidth  || cv.width;
+        var h = cvRect.height || cv.offsetHeight || cv.height;
+        if (w > 0 && h > 0) {
+          // Overdraw 0.5px — tutup celah sub-piksel antar tile canvas bertetangga
+          // (lihat komentar di Pass 1 di atas untuk penjelasan lengkap).
+          w += 0.5; h += 0.5;
+          var op = _readCssOpacity(cv, mapContainer);
+          ctx.save(); ctx.globalAlpha = Math.max(0, Math.min(1, op));
+          ctx.drawImage(cv, off.x, off.y, w, h);
+          ctx.restore();
+          _cvTileDrawn++;
+        }
+      } catch(e) {}
+    });
+  });
+  if (_cvTileDrawn > 0) console.log('[GenPeta][canvas] Canvas raster tergambar: ' + _cvTileDrawn);
+
+  // ll2c: posisi piksel vector relatif terhadap container Leaflet.
+  // latLngToContainerPoint() sudah relatif ke top-left container — sama
+  // dengan sistem koordinat tile di atas (keduanya relatif ke mapContainer).
+  function ll2c(lat, lng) {
+    var p = map.latLngToContainerPoint(L.latLng(lat, lng));
+    return { x: p.x, y: p.y };
+  }
+  // PENTING: _genDrawGeometry, _genDrawArrowHeadAt, dan helper label di
+  // _genMainMapVectorDraw/_genInsetVectorDraw berada di luar closure ini,
+  // jadi `typeof ll2c==='function'` di sana TIDAK melihat ll2c lokal di atas
+  // -- selalu jatuh ke fallback map.project()-getPixelOrigin(), yang memakai
+  // sistem koordinat BERBEDA dari yang dipakai tile basemap. Inilah sebab
+  // garis & panah di gambar hasil generate tampak bergeser dari pratinjau.
+  // Perbaikan: pasang ll2c sebagai global sementara selama rasterisasi ini
+  // berjalan, supaya seluruh helper vector memakai satu sistem koordinat
+  // yang sama persis dengan tile -- lalu bersihkan lagi di akhir fungsi.
+  var _prevGlobalLl2c = window.ll2c;
+  window.ll2c = ll2c;
+
+  // ── TIF/DEM raster (fallback manual) ──
+  // GeoRasterLayer sudah ditangkap via canvas tile di atas (_cvTileDrawn).
+  // Blok manual ini hanya berjalan sebagai FALLBACK jika tidak ada canvas tile
+  // GeoRasterLayer yang berhasil ter-capture (mis. belum selesai render, atau
+  // koneksi CDN georaster-layer-for-leaflet gagal).
+  // Bila _cvTileDrawn > 0 artinya GeoRasterLayer sudah tercapture — skip blok
+  // ini untuk menghindari double-rendering yang menyebabkan TIF tampak bergeser.
+  var _isMainGenMap = (typeof _genMap !== 'undefined' && map === _genMap);
+  if (_isMainGenMap && _cvTileDrawn === 0) {
+  (_tifLayers || []).forEach(function(l) {
+    if (!_map || !l.layer || !_map.hasLayer(l.layer)) return;
+    if (!l.georaster || !l.georaster.values || !l.georaster.values[0]) return;
+    try {
+      var g = l.georaster, values = g.values[0];
+      var srcRows = g.height || values.length;
+      var srcCols = g.width || (values[0] && values[0].length) || 0;
+      if (!srcRows || !srcCols) return;
+      var noData = g.noDataValue, min = l.min, max = l.max;
+      var scheme = l.colorScheme || 'terrain', opacity = l.opacity != null ? l.opacity / 100 : 0.75;
+      var MAX_DIM = 1200;
+      var stepR = Math.max(1, Math.ceil(srcRows / MAX_DIM));
+      var stepC = Math.max(1, Math.ceil(srcCols / MAX_DIM));
+      var rows = Math.ceil(srcRows / stepR);
+      var cols = Math.ceil(srcCols / stepC);
+      var offC = document.createElement('canvas'); offC.width = cols; offC.height = rows;
+      var offCtx = offC.getContext('2d'), imgData = offCtx.createImageData(cols, rows), data = imgData.data;
+      var hasPixel = false;
+      for (var row = 0, outRow = 0; row < srcRows; row += stepR, outRow++) {
+        var rowArr = values[row]; if (!rowArr) continue;
+        for (var col = 0, outCol = 0; col < srcCols; col += stepC, outCol++) {
+          var v = rowArr[col], i4 = (outRow * cols + outCol) * 4;
+          if (v === null || v === undefined || isNaN(v) || (noData != null && Math.abs(v - noData) < 1e-6)) { data[i4+3]=0; continue; }
+          var t = (max > min) ? Math.max(0, Math.min(1, (v-min)/(max-min))) : 0.5;
+          var rgb = _tifColorAt(scheme, t);
+          data[i4]=rgb[0]; data[i4+1]=rgb[1]; data[i4+2]=rgb[2]; data[i4+3]=Math.round(opacity*255);
+          hasPixel = true;
+        }
+      }
+      if (!hasPixel) return;
+      offCtx.putImageData(imgData, 0, 0);
+      var sw = ll2c(g.ymin, g.xmin), ne = ll2c(g.ymax, g.xmax);
+      var dx = Math.min(sw.x,ne.x), dy = Math.min(sw.y,ne.y), dw = Math.abs(sw.x-ne.x), dh = Math.abs(sw.y-ne.y);
+      if (dw>0&&dh>0) { ctx.save(); ctx.imageSmoothingEnabled=true; ctx.drawImage(offC,dx,dy,dw,dh); ctx.restore(); }
+    } catch(e) { console.warn('[TIF fallback]',e.message); }
+  });
+  } // end fallback TIF manual
+
+  // ── Hillshade ── (hanya peta utama, lihat catatan _isMainGenMap di atas)
+  (_tifLayers || []).forEach(function(l) {
+    if (!_isMainGenMap) return;
+    if (!l.hillshadeOn || !_map || !l.layer || !_map.hasLayer(l.layer)) return;
+    var hsKey = l.id + '_hillshade', hsLayer = _genTifLayers && _genTifLayers[hsKey];
+    if (!hsLayer) return;
+    try {
+      var hsImg = hsLayer._image || (hsLayer.getElement && hsLayer.getElement());
+      if (!hsImg || !hsImg.complete || !hsImg.naturalWidth) return;
+      var b = hsLayer.getBounds();
+      var sw = ll2c(b.getSouth(),b.getWest()), ne = ll2c(b.getNorth(),b.getEast());
+      var dx=Math.min(sw.x,ne.x),dy=Math.min(sw.y,ne.y),dw=Math.abs(sw.x-ne.x),dh=Math.abs(sw.y-ne.y);
+      if (dw>0&&dh>0) { ctx.save(); ctx.globalAlpha=l.hillshadeOpacity!=null?l.hillshadeOpacity:0.7; ctx.drawImage(hsImg,dx,dy,dw,dh); ctx.restore(); }
+    } catch(e) {}
+  });
+
+  // ── Kontur TIF ── (hanya peta utama, lihat catatan _isMainGenMap di atas)
+  (_tifLayers || []).forEach(function(l) {
+    if (!_isMainGenMap) return;
+    if (!l.contourOn || !l.contourLayerGroup || !_map || !l.layer || !_map.hasLayer(l.layer)) return;
+    var color = l.contourColor || '#e0a020';
+    l.contourLayerGroup.eachLayer(function(pl) {
+      try {
+        var lls = pl.getLatLngs ? pl.getLatLngs() : null;
+        if (!lls || !lls.length) return;
+        var pts = (lls[0] && lls[0].lat !== undefined) ? lls : lls[0];
+        if (!pts || pts.length < 2) return;
+        var isMajor = !!pl.options._isMajor;
+        var w = isMajor ? (l.contourWeightMajor!=null?l.contourWeightMajor:2.0):(l.contourWeightMinor!=null?l.contourWeightMinor:0.8);
+        var op = (l.contourOpacity!=null?l.contourOpacity/100:0.70) * (isMajor?1.25:1);
+        ctx.save(); ctx.globalAlpha=Math.min(1,op); ctx.strokeStyle=color; ctx.lineWidth=w;
+        ctx.lineJoin='round'; ctx.lineCap='round'; ctx.beginPath();
+        pts.forEach(function(pt,i){ var c=ll2c(pt.lat,pt.lng); if(i===0)ctx.moveTo(c.x,c.y);else ctx.lineTo(c.x,c.y); });
+        ctx.stroke(); ctx.restore();
+      } catch(e) {}
+    });
+  });
+
+  // ── Label kontur TIF (angka elevasi) ──
+  // Label kontur di-mirror sebagai Leaflet divIcon marker di _genMap.
+  // html2canvas TIDAK andal untuk menangkap divIcon (elemen <span> dengan
+  // transform CSS di dalam Leaflet marker pane) — label sering hilang di
+  // hasil unduhan meski tampak benar di pratinjau.
+  // Solusi: gambar ulang label ke snapshot canvas secara manual menggunakan
+  // koordinat ll2c() yang SAMA dengan sistem koordinat tile dan kontur,
+  // sehingga label dipastikan sejajar dengan garis kontur di hasil unduhan.
+  if (_isMainGenMap) {
+    (_tifLayers || []).forEach(function(l) {
+      if (!l.contourOn || !l._contourLinesData || !l._contourLinesData.length) return;
+      if (!_map || !l.layer || !_map.hasLayer(l.layer)) return;
+      try {
+        var density = l.contourLabelDensity !== undefined ? l.contourLabelDensity : 2;
+        if (density === 0) return;
+        var g_along       = !!l.contourLabelAlong;
+        var g_offAlongPct = l.contourLabelOffsetX || 0;
+        var g_offCross    = l.contourLabelY || l.contourLabelOffsetY || 0;
+        var g_autoHide    = !!l.contourLabelAutoHide;
+        var g_hasFill     = l.contourLabelFill !== false;
+        var g_fs          = l.contourLabelSize || 9;
+        var g_col         = l.contourLabelColor || l.contourColor || '#e0a020';
+
+        var g_bounds  = map.getBounds();
+        var g_s = g_bounds.getSouth(), g_n = g_bounds.getNorth();
+        var g_w = g_bounds.getWest(),  g_e = g_bounds.getEast();
+        var g_latSpan = g_n - g_s, g_lngSpan = g_e - g_w;
+        var g_gridN   = Math.max(2, density * 2);
+        var g_minSepLat = g_latSpan / (g_gridN * 2.5);
+        var g_minSepLng = g_lngSpan / (g_gridN * 2.5);
+        var g_placed = [];
+        var g_tooClose = function(lat, lng) {
+          for (var k = 0; k < g_placed.length; k++) {
+            if (Math.abs(g_placed[k].lat - lat) < g_minSepLat &&
+                Math.abs(g_placed[k].lng - lng) < g_minSepLng) return true;
+          }
+          return false;
+        };
+        var g_gridLats = [], g_gridLngs = [];
+        for (var g_gi = 1; g_gi < g_gridN; g_gi++) {
+          g_gridLats.push(g_s + g_latSpan * g_gi / g_gridN);
+          g_gridLngs.push(g_w + g_lngSpan * g_gi / g_gridN);
+        }
+        var g_useFracMode = (g_offAlongPct !== 0);
+        var g_lineFrac    = 0.5 + g_offAlongPct / 240;
+
+        l._contourLinesData.forEach(function(cd) {
+          var labelText = Math.round(cd.level) + ' m';
+          var sorted = cd.lines.slice().sort(function(a, b) { return b.length - a.length; });
+          sorted.forEach(function(line) {
+            if (typeof _contourLineInBounds === 'function' && !_contourLineInBounds(line, g_s, g_w, g_n, g_e)) return;
+            var candidates = [];
+            if (g_useFracMode) {
+              var pt = typeof _pointAlongLine === 'function' ? _pointAlongLine(line, g_lineFrac) : null;
+              if (pt && pt[0] >= g_s && pt[0] <= g_n && pt[1] >= g_w && pt[1] <= g_e) candidates.push([pt[0], pt[1]]);
+            } else {
+              g_gridLats.forEach(function(gLat) {
+                for (var si = 0; si < line.length - 1; si++) {
+                  var a = line[si], b = line[si + 1];
+                  if ((a[0] - gLat) * (b[0] - gLat) <= 0 && a[0] !== b[0]) {
+                    var t = (gLat - a[0]) / (b[0] - a[0]);
+                    var lngP = a[1] + t * (b[1] - a[1]);
+                    if (lngP >= g_w && lngP <= g_e) candidates.push([gLat, lngP]);
+                  }
+                }
+              });
+              g_gridLngs.forEach(function(gLng) {
+                for (var si = 0; si < line.length - 1; si++) {
+                  var a = line[si], b = line[si + 1];
+                  if ((a[1] - gLng) * (b[1] - gLng) <= 0 && a[1] !== b[1]) {
+                    var t = (gLng - a[1]) / (b[1] - a[1]);
+                    var latP = a[0] + t * (b[0] - a[0]);
+                    if (latP >= g_s && latP <= g_n) candidates.push([latP, gLng]);
+                  }
+                }
+              });
+            }
+            candidates.forEach(function(pt) {
+              var lat = pt[0], lng = pt[1];
+              if (g_tooClose(lat, lng)) return;
+              if (g_autoHide && typeof _contourLabelCovered === 'function' && _contourLabelCovered(lat, lng, l.id)) return;
+              g_placed.push({ lat: lat, lng: lng });
+              var cp = ll2c(lat, lng);
+              var cx = cp.x, cy = cp.y - g_offCross;
+              var angle = (g_along && typeof _contourAngleAtPoint === 'function') ? _contourAngleAtPoint(line, lat, lng) : 0;
+              ctx.save();
+              ctx.font = 'bold ' + g_fs + 'px Arial,sans-serif';
+              var tw = ctx.measureText(labelText).width;
+              ctx.translate(cx, cy);
+              if (g_along && angle !== 0) ctx.rotate(angle * Math.PI / 180);
+              if (g_hasFill) {
+                ctx.fillStyle = 'rgba(255,255,255,0.85)';
+                ctx.beginPath();
+                ctx.roundRect ? ctx.roundRect(-tw/2 - 4, -g_fs * 0.7 - 1, tw + 8, g_fs * 1.4 + 2, 3)
+                              : ctx.rect(-tw/2 - 4, -g_fs * 0.7 - 1, tw + 8, g_fs * 1.4 + 2);
+                ctx.fill();
+              } else {
+                ctx.shadowColor = 'rgba(255,255,255,0.95)';
+                ctx.shadowBlur = 3;
+              }
+              ctx.fillStyle = g_col;
+              ctx.textAlign = 'center';
+              ctx.textBaseline = 'middle';
+              ctx.fillText(labelText, 0, 0);
+              ctx.restore();
+            });
+          });
+        });
+      } catch(e) { console.warn('[GenPeta] Gagal gambar label kontur ke canvas:', e); }
+    });
+  }
+
+  // ── Pane canvas lain sudah ditangani di blok Pass 2 canvas tile di atas ──
+  // (blok lama yang memakai getBoundingClientRect - containerRect dihapus
+  //  karena digantikan _offsetRelTo yang lebih akurat)
+
+  // ── Vector & marker (SHP, garis, polygon, titik) ──
+  if (typeof drawVectorsFn === 'function') {
+    try { drawVectorsFn(ctx, map); } catch(e) { console.error('vector draw:', e); }
+  }
+
+  // Bersihkan ll2c global sementara — jangan biarkan menempel di window
+  // setelah rasterisasi ini selesai (mis. saat peta utama & inset dirender
+  // berurutan, ll2c berikutnya harus memakai closure map yang benar).
+  window.ll2c = _prevGlobalLl2c;
+
+  if (sheetEl) sheetEl.style.transform = savedTransform;
   return canvas;
 }
-
 function _genSwapToSnapshot(containerId, map, drawVectorsFn) {
+  // Legacy sync path — tidak dipakai untuk PNG download (pakai _genSwapToSnapshotAsync)
   var container = document.getElementById(containerId);
   if (!container || !map) return null;
   var canvas;
-  try {
-    canvas = _genRasterizeMapCanvas(map, drawVectorsFn);
-  } catch(e) { return null; }
+  try { canvas = _genRasterizeMapCanvas(map, drawVectorsFn); } catch(e) { return null; }
   canvas.className = 'gen-print-snapshot';
-  canvas.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;z-index:99999;display:block';
+  canvas.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;z-index:440;display:block';
   if (getComputedStyle(container).position === 'static') container.style.position = 'relative';
   container.appendChild(canvas);
   return { restore: function(){ if (canvas.parentNode) canvas.parentNode.removeChild(canvas); } };
+}
+
+/* Capture map container langsung via html2canvas (async) — hasilnya canvas yang
+   pixel-perfect sesuai tampilan browser, tidak ada masalah koordinat offset. */
+function _genCaptureMapDirect(containerId, map, drawVectorsFn) {
+  return new Promise(function(resolve) {
+    var container = document.getElementById(containerId);
+    if (!container || !map || typeof html2canvas === 'undefined') { resolve(null); return; }
+
+    // Gambar vector di atas peta via canvas overlay sementara
+    var vectorCanvas = null;
+    try {
+      var size = map.getSize();
+      vectorCanvas = document.createElement('canvas');
+      vectorCanvas.width  = size.x * 2;
+      vectorCanvas.height = size.y * 2;
+      vectorCanvas.style.cssText = 'position:absolute;top:0;left:0;width:'+size.x+'px;height:'+size.y+'px;z-index:500;pointer-events:none';
+      var vctx = vectorCanvas.getContext('2d');
+      vctx.scale(2, 2);
+      if (typeof drawVectorsFn === 'function') drawVectorsFn(vctx, map);
+      if (getComputedStyle(container).position === 'static') container.style.position = 'relative';
+      container.appendChild(vectorCanvas);
+    } catch(e) { vectorCanvas = null; }
+
+    // html2canvas langsung pada container saat masih di DOM asli
+    html2canvas(container, {
+      scale: 2,
+      useCORS: true,
+      backgroundColor: null,
+      logging: false,
+      width: container.offsetWidth,
+      height: container.offsetHeight
+    }).then(function(canvas) {
+      if (vectorCanvas && vectorCanvas.parentNode) vectorCanvas.parentNode.removeChild(vectorCanvas);
+      // Overlay sebagai snapshot
+      canvas.className = 'gen-print-snapshot';
+      canvas.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;z-index:440;display:block';
+      container.appendChild(canvas);
+      resolve({ restore: function(){ if (canvas.parentNode) canvas.parentNode.removeChild(canvas); } });
+    }).catch(function(e) {
+      if (vectorCanvas && vectorCanvas.parentNode) vectorCanvas.parentNode.removeChild(vectorCanvas);
+      console.warn('html2canvas direct capture failed:', e);
+      // Fallback ke metode lama
+      var fb = _genSwapToSnapshot(containerId, map, drawVectorsFn);
+      resolve(fb);
+    });
+  });
 }
 
 /* Paksa Leaflet render semua tile dalam current bounds dengan zoom saat ini.
@@ -13935,52 +15111,132 @@ function _genSwapToSnapshot(containerId, map, drawVectorsFn) {
 function _genForceViewportTiles(map) {
   if (!map) return;
   try {
-    // Paksa Leaflet recalculate tile coverage tanpa menggeser view
     map.invalidateSize({ animate: false, pan: false });
-    // Fire moveend agar tile layer update coverage
     map.fire('moveend');
   } catch(e) {}
 }
 
-/* Tunggu semua tile di map ter-load + ter-decode (Promise) — maks 5 detik */
+/* Paksa Leaflet REDRAW TOTAL setelah container di-resize ke ukuran penuh.
+   invalidateSize() saja kadang tidak cukup memicu tile layer memuat ubin baru
+   untuk area yang baru terbuka — setView eksplisit ke center+zoom yang sama
+   memaksa Leaflet menghitung ulang seluruh tile grid dari nol. */
+function _genForceFullRedraw(map) {
+  if (!map) return Promise.resolve();
+  return new Promise(function(resolve) {
+    try {
+      var center = map.getCenter();
+      var zoom = map.getZoom();
+      map.invalidateSize({ animate: false, pan: false });
+      // setView ulang dgn koordinat yang SAMA memaksa Leaflet recalculate
+      // _tileZoom, pixel origin, dan tile grid berdasarkan ukuran container terbaru.
+      map.setView(center, zoom, { animate: false, duration: 0 });
+      map.fire('moveend');
+      map.fire('zoomend');
+      requestAnimationFrame(function(){ requestAnimationFrame(resolve); });
+    } catch(e) { resolve(); }
+  });
+}
+
+/* Poll sampai container benar-benar mencapai lebar target (maks 1 detik).
+   Ini mengatasi race condition di mana JS sudah lanjut eksekusi sebelum
+   browser selesai reflow ukuran DOM baru. */
+function _genWaitForSize(el, targetW, targetH, maxMs) {
+  return new Promise(function(resolve) {
+    var start = Date.now();
+    maxMs = maxMs || 1000;
+    function check() {
+      if (!el) { resolve(); return; }
+      var w = el.offsetWidth, h = el.offsetHeight;
+      var okW = Math.abs(w - targetW) <= 2;
+      var okH = Math.abs(h - targetH) <= 2;
+      if ((okW && okH) || (Date.now() - start > maxMs)) { resolve(); return; }
+      requestAnimationFrame(check);
+    }
+    check();
+  });
+}
+
+/* Tunggu semua tile + GeoRasterLayer canvas selesai render — maks 8 detik.
+   PENTING: setelah invalidateSize/setView, Leaflet bisa menambah elemen
+   <img> tile baru ke DOM secara bertahap (bukan sekaligus) — mis. tile
+   untuk area yang baru kebuka muncul beberapa saat kemudian. Snapshot
+   daftar tile sekali di awal bisa selesai "resolve" sebelum tile
+   belakangan itu bahkan sempat dibuat, menyisakan kotak tile kosong saat
+   capture. Sebagai gantinya, polling berulang sampai daftar tile stabil
+   (tidak ada tile baru & semua yang ada sudah selesai load) selama 2
+   pemeriksaan berturut-turut. */
 function _genWaitTiles(map) {
   if (!map || !map.getContainer) return Promise.resolve();
   return new Promise(function(resolve) {
-    // Beri sedikit waktu agar Leaflet trigger load tile yang baru masuk viewport
-    setTimeout(function() {
-      var imgs = Array.from(map.getContainer().querySelectorAll('.leaflet-tile-pane img'));
+    var container = map.getContainer();
+    var deadline = Date.now() + 8000;
+    var stableCount = 0;
+    var STABLE_NEEDED = 2;
+    var POLL_MS = 150;
+
+    function checkRasterCanvases() {
+      var allPanes = Array.from(container.querySelectorAll('.leaflet-pane'));
+      var rasterCanvases = [];
+      allPanes.forEach(function(pane) {
+        if (pane.classList.contains('leaflet-tile-pane')) return;
+        Array.from(pane.querySelectorAll('canvas')).forEach(function(cv) {
+          if (cv.width > 0 && cv.height > 0) rasterCanvases.push(cv);
+        });
+      });
+      return rasterCanvases;
+    }
+
+    function poll() {
+      var imgs = Array.from(container.querySelectorAll('.leaflet-tile-pane img'));
       var pending = imgs.filter(function(img){ return !img.complete || !img.naturalWidth; });
-      if (!pending.length) {
-        // Semua sudah complete — flush GPU composite via rAF sebelum lanjut
-        requestAnimationFrame(function(){ requestAnimationFrame(resolve); });
+
+      // Tile yang gagal load (naturalWidth tetap 0 walau 'complete') coba
+      // di-reload sekali — bisa karena rate-limit sesaat dari server tile,
+      // bukan berarti tile itu benar-benar tidak ada.
+      pending.forEach(function(img) {
+        if (img.complete && !img.naturalWidth && !img.dataset.sgRetried) {
+          img.dataset.sgRetried = '1';
+          var src = img.src;
+          img.src = '';
+          img.src = src;
+        }
+      });
+
+      var allDone = pending.length === 0 && imgs.length > 0;
+
+      if (allDone) {
+        stableCount++;
+      } else {
+        stableCount = 0;
+      }
+
+      if (stableCount >= STABLE_NEEDED || Date.now() > deadline) {
+        var rasterWaitMs = checkRasterCanvases().length > 0 ? 600 : 200;
+        setTimeout(function() {
+          requestAnimationFrame(function(){ requestAnimationFrame(resolve); });
+        }, rasterWaitMs);
         return;
       }
-      var resolved = 0;
-      var total = pending.length;
-      function tryResolve() {
-        resolved++;
-        if (resolved >= total) {
-          // Flush GPU composite setelah semua tile decode
-          requestAnimationFrame(function(){ requestAnimationFrame(resolve); });
-        }
-      }
-      pending.forEach(function(img){
-        var done = false;
-        var timer = setTimeout(function(){ if(!done){ done=true; tryResolve(); } }, 5000);
-        function fin(){ if(!done){ done=true; clearTimeout(timer); tryResolve(); } }
-        img.addEventListener('load',  fin, {once:true});
-        img.addEventListener('error', fin, {once:true});
-        if (img.decode) img.decode().then(fin).catch(fin);
-      });
-    }, 300); // beri Leaflet 300ms request tile dulu
+      setTimeout(poll, POLL_MS);
+    }
+
+    // Beri Leaflet + GeoRasterLayer waktu awal utk mulai request tile
+    setTimeout(poll, 600);
   });
 }
 
 /* Gambar kepala panah kecil di kanvas pada posisi latlng, mengarah sesuai bearing (derajat, 0=utara) */
-function _genDrawArrowHeadAt(ctx, map, latlng, bearingDeg, color) {
-  var p = map.latLngToContainerPoint(latlng);
+function _genDrawArrowHeadAt(ctx, map, latlng, bearingDeg, color, arrowSize) {
+  var _alat = latlng[0] !== undefined ? latlng[0] : latlng.lat;
+  var _alng = latlng[1] !== undefined ? latlng[1] : latlng.lng;
+  var p = (typeof ll2c === 'function') ? ll2c(_alat, _alng) : (function(){
+    var _ao = map.getPixelOrigin(), _az = map.getZoom();
+    var _apt = map.project(L.latLng(_alat, _alng), _az);
+    return { x: _apt.x - _ao.x, y: _apt.y - _ao.y };
+  })();
   var rad = bearingDeg * Math.PI / 180;
-  var len = 13, wid = 6;
+  var s = arrowSize != null ? Math.max(0.5, arrowSize) : 1;
+  var len = 13 * s, wid = 6 * s;
   ctx.save();
   ctx.translate(p.x, p.y);
   ctx.rotate(rad);
@@ -13995,10 +15251,22 @@ function _genDrawArrowHeadAt(ctx, map, latlng, bearingDeg, color) {
 }
 
 function _genMainMapVectorDraw(ctx, map) {
-  // ── Layer SHP — pakai gaya & warna per-fitur yang sesungguhnya (termasuk mode per-atribut) ──
-  _shpLayers.forEach(function(l) {
-    if (!_genShpLayers[l.id] || !map.hasLayer(_genShpLayers[l.id])) return;
+  // ── Gambar sesuai _layerOrder dari BAWAH ke ATAS ──
+  // Ini memastikan urutan visual di PNG persis sama dengan tampilan peta.
+
+  /* Helper — gambar satu layer SHP ke canvas, skip fitur yang hidden */
+  function _drawShp(l) {
+    // Sumber kebenaran utama: apakah layer clone ada & terpasang di _genMap.
+    // Fallback: kalau clone tidak ada/tidak terpasang, cek visibilitas ASLI di
+    // peta interaktif (_map + l.layer) — mencegah layer yang jelas tercentang/
+    // terlihat di aplikasi tapi gagal ter-clone ke _genMap ikut hilang dari export.
+    var visibleInGenMap = _genShpLayers[l.id] && map.hasLayer(_genShpLayers[l.id]);
+    var visibleInMainMap = (typeof _map !== 'undefined' && _map && l.layer && _map.hasLayer(l.layer));
+    if (!visibleInGenMap && !visibleInMainMap) return;
+    var hidFids = l._hiddenFids || {};
     (l.features || []).forEach(function(f) {
+      // Skip fitur yang disembunyikan user di tabel atribut
+      if (f._fid !== undefined && f._fid !== null && hidFids[f._fid]) return;
       var outline = _shpResolveOutline(l, f);
       var fill = _shpResolveFill(l, f);
       _genDrawGeometry(ctx, map, f.geometry, {
@@ -14007,47 +15275,58 @@ function _genMainMapVectorDraw(ctx, map) {
         fillColor: fill.color, fillStyle: fill.fillStyle, fillOpacity: fill.fillOpacity / 100
       });
     });
-    // Label atribut SHP (kalau diaktifkan)
-    if (l.labelField && l.labelVisible !== false) {
-      var fontSize = l.labelFontSize || 11;
-      var labelColor = l.labelColor || '#1a1a1a';
+    // Label SHP: support labelFields multi-kolom DAN labelField legacy
+
+    var _rawFields = l.labelFields;
+    var _colDefs = (Array.isArray(_rawFields) && _rawFields.length)
+      ? _rawFields.filter(function(d){ return d.on !== false; })
+      : (l.labelField && l.labelVisible !== false
+          ? [{ col: l.labelField, size: l.labelFontSize||11, color: l.labelColor||'#1a1a1a', bold: true }]
+          : []);
+    if (_colDefs.length && l.labelVisible !== false) {
       (l.features || []).forEach(function(f) {
-        var val = (f.properties || {})[l.labelField];
-        if (val === undefined || val === null || val === '') return;
+        if (f._fid !== undefined && f._fid !== null && hidFids[f._fid]) return;
         var center = _shpFeatureCentroid(f);
         if (!center) return;
-        var p = map.latLngToContainerPoint(center);
-        ctx.save();
-        ctx.font = '700 ' + fontSize + 'px Arial,sans-serif';
-        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-        ctx.lineWidth = 3; ctx.strokeStyle = '#fff';
-        ctx.strokeText(String(val), p.x, p.y);
-        ctx.fillStyle = labelColor;
-        ctx.fillText(String(val), p.x, p.y);
-        ctx.restore();
+        var p = (typeof ll2c==='function') ? ll2c(center[0],center[1]) : map.latLngToContainerPoint(L.latLng(center[0],center[1]));
+        var lineH = 0;
+        _colDefs.forEach(function(d){ lineH += (d.size || 11) + 2; });
+        var startY = p.y - lineH/2 + ((_colDefs[0] && _colDefs[0].size)||11)/2;
+        _colDefs.forEach(function(d, di) {
+          var val = (f.properties || {})[d.col];
+          if (val === undefined || val === null || val === '') return;
+          var fs = d.size || 11;
+          var fc = d.color || '#1a1a1a';
+          var fw = d.bold !== false ? '700' : '400';
+          var cy = startY + di * (fs + 2);
+          ctx.save();
+          ctx.font = fw + ' ' + fs + 'px Arial,sans-serif';
+          ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+          ctx.lineWidth = 3; ctx.strokeStyle = '#fff';
+          ctx.strokeText(String(val), p.x, cy);
+          ctx.fillStyle = fc;
+          ctx.fillText(String(val), p.x, cy);
+          ctx.restore();
+        });
       });
     }
-  });
+  }
 
-  // ── Alur sungai dari database ──
-  _rivers.forEach(function(r) {
-    var clr = r.fromDB ? '#00b8d4' : '#4488ff';
-    _genDrawGeometry(ctx, map, { type:'LineString', coordinates: r.points.map(function(pt){ return [pt[1], pt[0]]; }) }, { outlineColor: clr, weight: 3 });
-  });
-
-  // ── Garis manual — pakai tipe garis, ketebalan, transparansi asli, + kepala panah bila relevan ──
-  (typeof _lines !== 'undefined' ? _lines : []).forEach(function(l) {
+  /* Helper — gambar satu garis manual ke canvas */
+  function _drawLine(l) {
     if (!l.points || l.points.length < 2) return;
     var lineStyle = l.lineStyle || 'solid';
     var weight = l.weight != null ? l.weight : 3.5;
     var opacity = (l.opacity != null ? l.opacity : 90) / 100;
-    _genDrawGeometry(ctx, map, { type:'LineString', coordinates: l.points.map(function(pt){ return [pt[1], pt[0]]; }) },
+    var arrowSz = l.arrowSize || 1;
+    _genDrawGeometry(ctx, map,
+      { type:'LineString', coordinates: l.points.map(function(pt){ return [pt[1], pt[0]]; }) },
       { outlineColor: l.color, weight: weight, dash: _lineDashArray(lineStyle), opacity: opacity });
-
-    if ((lineStyle === 'arrow' || lineStyle === 'arrow-dashed-end')) {
+    if (lineStyle === 'arrow' || lineStyle === 'arrow-dashed-end') {
       var bearing = _computeBearing(l.points[l.points.length-2], l.points[l.points.length-1]);
-      _genDrawArrowHeadAt(ctx, map, l.points[l.points.length-1], bearing, l.color);
-    } else if ((lineStyle === 'arrow-repeat' || lineStyle === 'arrow-repeat-dense') && typeof _totalLengthKm === 'function' && typeof _pointAtDistance === 'function') {
+      _genDrawArrowHeadAt(ctx, map, l.points[l.points.length-1], bearing, l.color, arrowSz);
+    } else if ((lineStyle === 'arrow-repeat' || lineStyle === 'arrow-repeat-dense') &&
+               typeof _totalLengthKm === 'function' && typeof _pointAtDistance === 'function') {
       var totalKm = _totalLengthKm(l.points);
       if (totalKm > 0) {
         var divisions = (lineStyle === 'arrow-repeat-dense') ? 8 : 4;
@@ -14055,35 +15334,96 @@ function _genMainMapVectorDraw(ctx, map) {
         for (var i = 0; i < divisions; i++) {
           var d = Math.min(totalKm - 0.0001, spacingKm * i + spacingKm / 2);
           var res = _pointAtDistance(l.points, d);
-          if (res) _genDrawArrowHeadAt(ctx, map, res.latlng, res.bearing, l.color);
+          if (res) _genDrawArrowHeadAt(ctx, map, res.latlng, res.bearing, l.color, arrowSz);
         }
       }
     }
-  });
+  }
 
-  // ── Poligon manual — isi & outline terpisah, sesuai gaya yang sudah diatur user ──
-  (typeof _polygons !== 'undefined' ? _polygons : []).forEach(function(pg) {
+  /* Helper — gambar satu polygon manual ke canvas */
+  function _drawPoly(pg) {
     if (!pg.points || pg.points.length < 3) return;
     var ring = pg.points.map(function(pt){ return [pt[1], pt[0]]; });
     _genDrawGeometry(ctx, map, { type:'Polygon', coordinates: [ring] }, {
-      outlineColor: pg.outlineColor || pg.color, weight: (pg.outlineWeight != null ? pg.outlineWeight : 2.5),
-      fillColor: pg.fillColor || pg.color, fillStyle: pg.fillStyle || 'solid',
+      outlineColor: pg.outlineColor || pg.color,
+      weight: (pg.outlineWeight != null ? pg.outlineWeight : 2.5),
+      fillColor: pg.fillColor || pg.color,
+      fillStyle: pg.fillStyle || 'solid',
       fillOpacity: (pg.fillOpacity != null ? pg.fillOpacity : 22) / 100
     });
+  }
+
+  // Sungai tidak masuk _layerOrder — gambar paling bawah (sebelum loop)
+  _rivers.forEach(function(r) {
+    var clr = r.fromDB ? '#00b8d4' : '#4488ff';
+    _genDrawGeometry(ctx, map,
+      { type:'LineString', coordinates: r.points.map(function(pt){ return [pt[1], pt[0]]; }) },
+      { outlineColor: clr, weight: 3 });
   });
 
-  // ── Titik pemantauan ──
+  // Gambar layer sesuai _layerOrder dari BAWAH (index terakhir) ke ATAS (index 0)
+  // PENTING: drawnIds hanya ditandai true JIKA layer benar-benar ditemukan & digambar.
+  // Sebelumnya ditandai true untuk SETIAP entri _layerOrder meski objek layernya tidak
+  // ditemukan (mis. _layerOrder menyimpan id basi/tidak sinkron dengan _shpLayers/_lines/
+  // _polygons) — akibatnya layer tsb gagal digambar DI SINI, tapi juga dilewati oleh
+  // fallback loop di bawah karena sudah "dianggap" tergambar. Hasilnya layer hilang
+  // total dari PDF/PNG walau tampil normal & tercentang di peta interaktif.
+  var drawnIds = {};
+  for (var _ci = _layerOrder.length - 1; _ci >= 0; _ci--) {
+    var _cit = _layerOrder[_ci];
+    if (_cit.type === 'shp') {
+      var _sl = _shpLayers.find(function(x){ return x.id === _cit.id; });
+      if (_sl) { _drawShp(_sl); drawnIds[_cit.type + ':' + _cit.id] = true; }
+    } else if (_cit.type === 'line') {
+      var _ll = (typeof _lines !== 'undefined' ? _lines : []).find(function(x){ return x.id === _cit.id; });
+      if (_ll) { _drawLine(_ll); drawnIds[_cit.type + ':' + _cit.id] = true; }
+    } else if (_cit.type === 'polygon') {
+      var _pl = (typeof _polygons !== 'undefined' ? _polygons : []).find(function(x){ return x.id === _cit.id; });
+      if (_pl) { _drawPoly(_pl); drawnIds[_cit.type + ':' + _cit.id] = true; }
+    }
+  }
+
+  // Fallback: layer yang belum masuk _layerOrder
+  _shpLayers.forEach(function(l){ if (!drawnIds['shp:'+l.id]) _drawShp(l); });
+  (typeof _lines !== 'undefined' ? _lines : []).forEach(function(l){ if (!drawnIds['line:'+l.id]) _drawLine(l); });
+  (typeof _polygons !== 'undefined' ? _polygons : []).forEach(function(pg){ if (!drawnIds['polygon:'+pg.id]) _drawPoly(pg); });
+
+  // ── Titik pemantauan — selalu di atas semua layer ──
   _markers.forEach(function(m) {
     var clr = _ptType(m.type).color;
-    var p = map.latLngToContainerPoint([m.lat, m.lng]);
+    var p = (typeof ll2c === 'function') ? ll2c(m.lat, m.lng) : (function(){
+      var _mo = map.getPixelOrigin(), _mz = map.getZoom();
+      var _mp = map.project(L.latLng(m.lat, m.lng), _mz);
+      return { x: _mp.x - _mo.x, y: _mp.y - _mo.y };
+    })();
     ctx.beginPath(); ctx.arc(p.x, p.y, 6, 0, Math.PI*2);
     ctx.fillStyle = clr; ctx.fill();
     ctx.lineWidth = 1.5; ctx.strokeStyle = '#fff'; ctx.stroke();
   });
-  // Render label symbology ke canvas (label + callout)
   if (typeof symRenderLabels === 'function') symRenderLabels(ctx, map);
 }
 function _genInsetVectorDraw(ctx, map) {
+  // Gambar ulang kotak highlight lokasi (_genInsetRectLayer) secara manual.
+  // PENTING: L.rectangle dirender Leaflet sebagai SVG (bukan <canvas>), jadi
+  // tidak pernah tertangkap oleh blok "Pane canvas/img lain (fallback)" di
+  // _genRasterizeMapCanvas (yang hanya menyalin elemen <canvas>). Akibatnya
+  // kotak highlight lokasi hilang total dari peta situasi hasil PNG/PDF.
+  // Gambar manual di sini memakai bounds yang sama dengan _genInsetRectLayer.
+  if (_genInsetRectLayer && typeof _genInsetRectLayer.getBounds === 'function') {
+    try {
+      var rb = _genInsetRectLayer.getBounds();
+      var nw2 = map.latLngToContainerPoint(rb.getNorthWest());
+      var se2 = map.latLngToContainerPoint(rb.getSouthEast());
+      ctx.save();
+      ctx.fillStyle = 'rgba(255,68,68,0.12)';
+      ctx.fillRect(nw2.x, nw2.y, se2.x - nw2.x, se2.y - nw2.y);
+      ctx.strokeStyle = '#ff4444'; ctx.lineWidth = 2;
+      ctx.strokeRect(nw2.x, nw2.y, se2.x - nw2.x, se2.y - nw2.y);
+      ctx.restore();
+      return;
+    } catch(e) {}
+  }
+  // Fallback lama: hitung ulang dari bounds peta utama jika rectangle belum tersedia.
   if (!_genMap) return;
   var b = _genMap.getBounds();
   var nw = map.latLngToContainerPoint(b.getNorthWest());
@@ -14097,10 +15437,30 @@ function _genInsetVectorDraw(ctx, map) {
 /* ─── Tinggi asli kop (tanpa batasan), supaya tanda tangan/footer TIDAK PERNAH terpotong saat
    cetak/unduh — kalau kontennya lebih tinggi dari ukuran kertas, lembar ikut membesar sedikit
    daripada kehilangan isi. ─── */
-function _genComputeExportHeight(sheet) {
+function _genComputeExportHeight(sheet, nominalHOverride) {
   var kop = document.getElementById('peta-kop-wrap');
-  var nominalH = sheet.offsetHeight;
+  var kopScroll = document.getElementById('peta-kop-scroll');
+  // Pakai nilai nominal yang diberikan (mis. dataset.fullH, ukuran kertas
+  // target) bila tersedia — sheet.offsetHeight tidak bisa diandalkan di sini
+  // karena saat fungsi ini dipanggil, sheet mungkin masih dalam mode
+  // preview yang di-scale-kecil, bukan ukuran kertas penuh yang sebenarnya.
+  var nominalH = (typeof nominalHOverride === 'number' && nominalHOverride > 0)
+    ? nominalHOverride : sheet.offsetHeight;
   if (!kop) return nominalH;
+  // PENTING: elemen yang benar-benar meng-clip konten Keterangan/legenda
+  // adalah #peta-kop-scroll (child, flex:1; min-height:0; overflow:auto),
+  // BUKAN #peta-kop-wrap (parent). Mengubah overflow/height pada wrap saja
+  // tidak berpengaruh karena wrap sudah height:100% dan tidak pernah clip —
+  // clip terjadi di dalam kop-scroll akibat flex-basis-nya. Untuk mengukur
+  // tinggi natural yang sebenarnya, harus dibuka pada kop-scroll itu sendiri.
+  var savedKS = null;
+  if (kopScroll) {
+    savedKS = { height: kopScroll.style.height, overflow: kopScroll.style.overflow, flex: kopScroll.style.flex, minHeight: kopScroll.style.minHeight };
+    kopScroll.style.flex = 'none';
+    kopScroll.style.height = 'auto';
+    kopScroll.style.minHeight = '0';
+    kopScroll.style.overflow = 'visible';
+  }
   var prevHeight = kop.style.height;
   var prevOverflow = kop.style.overflow;
   kop.style.height = 'auto';
@@ -14108,7 +15468,35 @@ function _genComputeExportHeight(sheet) {
   var naturalH = kop.scrollHeight;
   kop.style.height = prevHeight;
   kop.style.overflow = prevOverflow;
+  if (kopScroll && savedKS) {
+    kopScroll.style.height = savedKS.height;
+    kopScroll.style.overflow = savedKS.overflow;
+    kopScroll.style.flex = savedKS.flex;
+    kopScroll.style.minHeight = savedKS.minHeight;
+  }
   return Math.max(nominalH, naturalH);
+}
+
+/* ─── Buka sementara semua panel scroll internal kop (mis. #peta-kop-scroll)
+   agar isi Keterangan/legenda yang lebih tinggi dari kolom kop tidak
+   terpotong saat capture (baik utk PNG maupun PDF). Kembalikan fungsi
+   restore untuk mengembalikan gaya semula setelah capture selesai. ─── */
+function _genUnclipKopScroll(sheet) {
+  var saved = [];
+  var scrollables = sheet ? sheet.querySelectorAll('#peta-kop-scroll, [id^="peta-kop-scroll"]') : [];
+  scrollables.forEach(function(el){
+    saved.push({ el: el, height: el.style.height, overflow: el.style.overflow, flex: el.style.flex });
+    el.style.overflow = 'visible';
+    el.style.height = 'auto';
+    el.style.flex = 'none';
+  });
+  return function restore(){
+    saved.forEach(function(s){
+      s.el.style.height = s.height;
+      s.el.style.overflow = s.overflow;
+      s.el.style.flex = s.flex;
+    });
+  };
 }
 
 /* ─── Sembunyikan kontrol Leaflet (zoom, layer switcher, atribusi) selama capture
@@ -14152,172 +15540,368 @@ function _genRestoreSignatureInputs(saved) {
   });
 }
 
+/* Snapshot satu container map via _genRasterizeMapCanvas (canvas-native).
+   -------------------------------------------------------------------------
+   Pendekatan ini TIDAK memakai html2canvas untuk me-render map container
+   sehingga 100% bebas dari masalah bake-transform yang menjadi akar
+   ketidakcocokan posisi antara tile basemap dan layer vektor/SHP:
+
+     Tile basemap  -> ctx.drawImage(img) dengan posisi getBoundingClientRect()
+                      dinormalisasi ke sistem koordinat Leaflet (size.x / rect.w).
+     Layer vektor  -> latLngToContainerPoint() — sistem koordinat yang sama.
+     Satu origin   -> tidak ada offset / shift antar layer.
+
+   Return Promise<{restore}|null>. Fallback resolve(null) jika gagal — html2canvas
+   akan menangkap keseluruhan sheet tanpa snapshot overlay. */
+function _genSnapshotContainer(containerId, _retryCount) {
+  _retryCount = _retryCount || 0;
+  return new Promise(function(resolve) {
+    var container = document.getElementById(containerId);
+    if (!container) { resolve(null); return; }
+
+    var targetMap = null;
+    if (containerId === 'peta-gen-map')   targetMap = typeof _genMap      !== 'undefined' ? _genMap      : null;
+    if (containerId === 'peta-gen-inset') targetMap = typeof _genInsetMap !== 'undefined' ? _genInsetMap : null;
+    if (!targetMap) { resolve(null); return; }
+
+    var drawFn = (containerId === 'peta-gen-map') ? _genMainMapVectorDraw
+               : (containerId === 'peta-gen-inset') ? _genInsetVectorDraw : null;
+
+    try {
+      var canvas = _genRasterizeMapCanvas(targetMap, drawFn);
+      if (!canvas || canvas.width === 0) { resolve(null); return; }
+
+      // ── Validasi: pastikan basemap benar-benar tergambar sebelum menutupi
+      //    peta Leaflet asli dengan canvas ini. html2canvas historically GAGAL
+      //    menangkap tile Leaflet langsung (makanya snapshot canvas ini dibuat
+      //    sejak awal) — jadi kalau overlay dibatalkan, hasil akan tetap polos,
+      //    bukan lebih baik. Solusi yang benar: kalau tile belum ready saat
+      //    snapshot pertama, TUNGGU sebentar & retry (bukan langsung menyerah),
+      //    supaya tile besar/berat (banyak layer TIF+kontur) sempat termuat.
+      var mc = targetMap.getContainer();
+      var _imgs = mc ? mc.querySelectorAll('.leaflet-tile-pane img.leaflet-tile') : [];
+      var loadedTileCount = _imgs.length;
+      var visibleCount = 0;
+      for (var _ti = 0; _ti < _imgs.length; _ti++) {
+        if (_imgs[_ti].complete && _imgs[_ti].naturalWidth > 0) visibleCount++;
+      }
+      var MAX_RETRY = 10; // ~10 x 500ms = 5 detik tambahan toleransi utk peta berat
+      if (loadedTileCount === 0 && _retryCount < MAX_RETRY) {
+        // Belum ada elemen <img> tile SAMA SEKALI di DOM — biasanya karena
+        // capture terjadi sesaat setelah user zoom/pan dan Leaflet masih di
+        // tengah proses mengganti tile pane secara async (tile lama sudah
+        // dibuang, tile baru belum sempat di-append ke DOM).
+        //
+        // PENTING: JANGAN panggil invalidateSize()/setView()/fire('moveend')
+        // di sini. Memanggil itu memaksa Leaflet MENGHITUNG ULANG pixel
+        // origin & tile grid saat ini — kalau perhitungan ulang itu terjadi
+        // di tengah transisi zoom yang belum stabil, hasilnya sedikit
+        // berbeda dari apa yang sudah ter-render di layar (pratinjau), dan
+        // basemap pada gambar unduhan jadi tampak bergeser/berubah ukuran
+        // padahal pratinjau di layar sudah benar. Cukup TUNGGU pasif —
+        // Leaflet akan mengisi tile pane sendiri tanpa campur tangan kita.
+        console.warn('[GenPeta] Belum ada tile di DOM (' + containerId + '), menunggu (tanpa memicu redraw) — retry ' + (_retryCount+1) + '/' + MAX_RETRY + '...');
+        setTimeout(function() {
+          _genSnapshotContainer(containerId, _retryCount + 1).then(resolve);
+        }, 500);
+        return;
+      }
+      // PENTING: validasi RASIO tile yang berhasil, bukan cuma "minimal 1 tile
+      // termuat". Sebelumnya begitu ada 1 tile saja yang selesai load, retry
+      // langsung dihentikan walau viewport butuh puluhan tile (mis. zoom besar
+      // atau skala 1:9.xxx pada area luas) — akibatnya sebagian besar tile
+      // masih kosong/abu-abu di hasil akhir karena masih dalam proses fetch.
+      var loadRatio = loadedTileCount > 0 ? (visibleCount / loadedTileCount) : 0;
+      var RATIO_THRESHOLD = 0.9; // minimal 90% tile viewport harus sudah termuat
+      if (loadedTileCount > 0 && loadRatio < RATIO_THRESHOLD && _retryCount < MAX_RETRY) {
+        console.warn('[GenPeta] Tile basemap (' + containerId + ') baru ' + visibleCount + '/' + loadedTileCount + ' termuat, retry ' + (_retryCount+1) + '/' + MAX_RETRY + '...');
+        setTimeout(function() {
+          _genSnapshotContainer(containerId, _retryCount + 1).then(resolve);
+        }, 400);
+        return;
+      }
+      if (visibleCount === 0) {
+        // Sudah retry maksimal & tetap tidak ada tile yang termuat — kemungkinan
+        // gagal jaringan/CORS sungguhan, bukan sekadar timing. Tetap pasang
+        // canvas apa adanya (walau basemap kosong) supaya vector/kontur/label
+        // yang berhasil digambar tidak ikut hilang gara-gara overlay dibatalkan.
+        console.warn('[GenPeta] Tile basemap (' + containerId + ') gagal termuat setelah retry maksimal — melanjutkan tanpa basemap.');
+      } else if (loadRatio < RATIO_THRESHOLD) {
+        console.warn('[GenPeta] Tile basemap (' + containerId + ') hanya ' + Math.round(loadRatio*100) + '% termuat setelah retry maksimal — melanjutkan dgn basemap sebagian.');
+      }
+
+      canvas.className = 'gen-print-snapshot';
+      var mapSize = targetMap.getSize();
+      canvas.style.cssText = 'position:absolute;top:0;left:0;width:' + mapSize.x + 'px;height:' + mapSize.y + 'px;z-index:440;display:block;pointer-events:none';
+      if (getComputedStyle(container).position === 'static') container.style.position = 'relative';
+      container.appendChild(canvas);
+      resolve({ restore: function(){ if (canvas.parentNode) canvas.parentNode.removeChild(canvas); } });
+    } catch(e) {
+      console.warn('_genSnapshotContainer (canvas-native) failed:', e);
+      resolve(null);
+    }
+  });
+}
+
 function genPrint() {
   var swaps = [];
   var ctrlSaveMain = _genHideMapControls(_genMap);
   var ctrlSaveInset = _genHideMapControls(_genInsetMap);
 
-  // Paksa tile coverage + tunggu semua tile decode sebelum capture
-  _genForceViewportTiles(_genMap);
-  _genForceViewportTiles(_genInsetMap);
-  Promise.all([_genWaitTiles(_genMap), _genWaitTiles(_genInsetMap)]).then(function(){
+  var sheet = document.getElementById('peta-print-sheet');
+  var savedTransform = sheet ? sheet.style.transform : '';
+  var savedOverflow  = sheet ? sheet.style.overflow  : '';
+  var savedHeight    = sheet ? sheet.style.height    : '';
+  var savedWidth     = sheet ? sheet.style.width     : '';
 
-  var mainSwap = _genSwapToSnapshot('peta-gen-map', _genMap, _genMainMapVectorDraw);
-  if (mainSwap) swaps.push(mainSwap);
-
-  if (_genInsetMap) {
-    var insetSwap = _genSwapToSnapshot('peta-gen-inset', _genInsetMap, _genInsetVectorDraw);
-    if (insetSwap) swaps.push(insetSwap);
+  function restoreSheetOnly() {
+    if (!sheet) return;
+    sheet.style.transform = savedTransform;
+    sheet.style.overflow  = savedOverflow;
+    sheet.style.height    = savedHeight;
+    sheet.style.width     = savedWidth;
   }
 
-  setTimeout(function(){
+  if (!sheet) { return; }
+  var fullW = parseInt(sheet.dataset.fullW) || sheet.offsetWidth;
+  var fullH = parseInt(sheet.dataset.fullH) || sheet.offsetHeight;
+  // Samakan dengan genDownloadImage: perbesar fullH bila konten kop lebih
+  // tinggi dari kertas nominal, agar bingkai/koordinat/tanda tangan di
+  // bagian bawah lembar tidak terpotong saat overflow dikunci 'hidden'.
+  fullH = _genComputeExportHeight(sheet, fullH) || fullH;
+
+  // ══════════════════════════════════════════════════════════════
+  // Urutan disiplin sama seperti genDownloadImage — lepas scale,
+  // tunggu reflow, paksa redraw Leaflet total, tunggu tile, baru snapshot.
+  // ══════════════════════════════════════════════════════════════
+  sheet.style.transform = 'none';
+  sheet.style.overflow  = 'visible';
+  sheet.style.width  = fullW + 'px';
+  sheet.style.height = fullH + 'px';
+  void sheet.offsetWidth;
+
+  _genWaitForSize(sheet, fullW, fullH, 1000).then(function() {
+    return Promise.all([
+      _genForceFullRedraw(_genMap),
+      _genForceFullRedraw(_genInsetMap)
+    ]);
+  }).then(function() {
+    if (_genMap) _genMap.invalidateSize(true);
+    /* PENTING: invalidateSize() memicu event 'moveend' secara ASINKRON
+       (dikonfirmasi di dokumentasi resmi Leaflet — bukan langsung/sync).
+       'moveend' sudah di-bind ke genRenderGraticule (lihat _genMap.on(
+       'zoomend moveend', genRenderGraticule)), jadi ada DUA pemanggilan
+       genRenderGraticule yang saling balapan: satu eksplisit di sini
+       (sinkron), satu lagi dari event asinkron invalidateSize yang
+       menyusul beberapa saat kemudian. Kalau keduanya sempat menghasilkan
+       posisi grid yang sedikit berbeda (karena reflow belum stabil),
+       hasilnya dua label DMS ter-render tumpang-tindih pada posisi
+       berbeda — muncul sebagai "bayangan ganda"/terlihat menebal di
+       hasil unduhan. Perbaikan: tunda pemanggilan eksplisit lewat
+       setTimeout(0) supaya event asinkron invalidateSize SELALU selesai
+       & merender ulang duluan, baru render "final" ini yang menang. */
+    return new Promise(function(res){ setTimeout(res, 50); });
+  }).then(function() {
+    genRenderGraticule();
+    /* PENTING: label kontur (angka elevasi) di-mirror sebagai Leaflet marker
+       terpisah oleh _genMirrorContourLabels(), tapi sebelumnya fungsi ini
+       HANYA terpasang di event 'zoomend moveend' — tidak pernah dipanggil
+       ulang secara eksplisit di alur cetak/unduh seperti genRenderGraticule().
+       Akibatnya jika invalidateSize/moveend terakhir belum sempat memicu
+       refresh label sebelum tombol unduh ditekan, label kontur bisa hilang/
+       stale saat snapshot diambil. Dipanggil eksplisit di sini supaya selalu
+       sinkron sesaat sebelum snapshot final, sama seperti graticule. */
+    if (typeof window._genMirrorContourLabels === 'function') window._genMirrorContourLabels();
+    return Promise.all([_genWaitTiles(_genMap), _genWaitTiles(_genInsetMap)]);
+  }).then(function() {
+    return new Promise(function(res){ setTimeout(res, 500); });
+  }).then(function() {
+    // Preload tile jadi blob URL DULU sebelum snapshot — mencegah canvas
+    // tainted saat halaman dibuka via file:// (lihat _genPreloadTileBlobs).
+    return Promise.all([
+      _genPreloadTileBlobs(_genMap),
+      _genInsetMap ? _genPreloadTileBlobs(_genInsetMap) : Promise.resolve()
+    ]);
+  }).then(function() {
+    return Promise.all([
+      _genSnapshotContainer('peta-gen-map'),
+      _genInsetMap ? _genSnapshotContainer('peta-gen-inset') : Promise.resolve(null)
+    ]);
+  }).then(function(results) {
+    results.forEach(function(s){ if (s) swaps.push(s); });
+
     // Pindahkan node lembar peta (bukan klon) ke #print-root agar konteks render
     // saat cetak bersih dari grid/flex/display:none milik wizard.
-    var sheet = document.getElementById('peta-print-sheet');
-    var originalParent = sheet ? sheet.parentNode : null;
-    var originalNext = sheet ? sheet.nextSibling : null;
-    var savedTransform = sheet ? sheet.style.transform : '';
-    var savedOverflow = sheet ? sheet.style.overflow : '';
-    var savedHeight = sheet ? sheet.style.height : '';
-    if (sheet) sheet.style.transform = 'none'; // cetak ukuran asli, bukan versi yang diskalakan utk pratinjau
-    if (sheet) sheet.style.overflow = 'visible'; // jangan potong kop/tanda tangan yang sedikit lebih tinggi dari lembar
+    var originalParent = sheet.parentNode;
+    var originalNext = sheet.nextSibling;
     var printRoot = document.getElementById('print-root');
     if (!printRoot) {
       printRoot = document.createElement('div');
       printRoot.id = 'print-root';
       document.body.appendChild(printRoot);
     }
-    if (sheet) printRoot.appendChild(sheet);
-    if (sheet) {
-      var neededH = _genComputeExportHeight(sheet);
-      if (neededH > sheet.offsetHeight) sheet.style.height = neededH + 'px';
-    }
+    printRoot.appendChild(sheet);
+    var restoreKopScroll = function(){}; // tanpa unclip — layout kop = preview
 
-    window.print();
-
-    setTimeout(function(){
-      if (sheet) sheet.style.transform = savedTransform;
-      if (sheet) sheet.style.overflow = savedOverflow;
-      if (sheet) sheet.style.height = savedHeight;
-      if (sheet && originalParent) {
-        if (originalNext) originalParent.insertBefore(sheet, originalNext);
-        else originalParent.appendChild(sheet);
-      }
-      swaps.forEach(function(s){ s.restore(); });
-      _genRestoreMapControls(ctrlSaveMain);
-      _genRestoreMapControls(ctrlSaveInset);
-      if (_genMap) _genMap.invalidateSize(true);
-      if (_genInsetMap) _genInsetMap.invalidateSize(true);
-    }, 500);
-  }, 150);
-  }); // end Promise.all tile wait
+    setTimeout(function() {
+      window.print();
+      setTimeout(function(){
+        restoreKopScroll();
+        restoreSheetOnly();
+        if (originalParent) {
+          if (originalNext) originalParent.insertBefore(sheet, originalNext);
+          else originalParent.appendChild(sheet);
+        }
+        swaps.forEach(function(s){ s.restore(); });
+        _genRestoreMapControls(ctrlSaveMain);
+        _genRestoreMapControls(ctrlSaveInset);
+        if (_genMap) _genMap.invalidateSize(true);
+        if (_genInsetMap) _genInsetMap.invalidateSize(true);
+      }, 500);
+    }, 150);
+  }).catch(function(err) {
+    console.error('genPrint:', err);
+    restoreSheetOnly();
+    _genRestoreMapControls(ctrlSaveMain);
+    _genRestoreMapControls(ctrlSaveInset);
+    if (_genMap) _genMap.invalidateSize(true);
+    if (_genInsetMap) _genInsetMap.invalidateSize(true);
+    toast('⚠ Gagal mencetak.', 'err');
+  });
 }
 
-/* ─── Unduh lembar peta sebagai gambar (PNG) resolusi tinggi ─────────
-   Strategi: sama dengan genPrint —
-   1. Swap peta & inset ke canvas snapshot (di live DOM) agar tile peta yg
-      bertransform (sering gagal di-screenshot) diganti gambar statis yg pasti tertangkap
-   2. Pindahkan sheet ke kontainer khusus di luar layar (ukuran penuh, tanpa scale)
-   3. Tangkap dengan html2canvas, lalu unduh sebagai PNG
-   4. Kembalikan sheet ke posisi semula & bersihkan semua
-──────────────────────────────────────────────────────────────────────── */
+/* ─── Unduh lembar peta sebagai gambar (PNG) ──────────────────────────
+   CATATAN PENTING (jangan diulang lagi): html2canvas TIDAK BISA memotret
+   tile basemap Leaflet secara langsung dengan andal — sudah dicoba dan
+   hasilnya basemap kosong/abu-abu serta elemen SVG manual (garis/panah)
+   meleset jauh dari posisi aslinya. Sebabnya: html2canvas bekerja dengan
+   MENG-CLONE seluruh dokumen lalu me-render ulang clone itu sendiri
+   (bukan memotret piksel asli di layar) — pada clone itu, tile <img>
+   Leaflet sering gagal termuat/re-fetch, dan elemen SVG dengan transform
+   CSS kompleks dari Leaflet ikut diinterpretasi ulang secara keliru.
+
+   Solusi yang benar: gambar basemap + vector ke SATU canvas native
+   (_genRasterizeMapCanvas, dipakai lewat _genSnapshotContainer) dengan
+   membaca posisi tile & vector LANGSUNG dari DOM yang sudah ada di layar
+   (offsetLeft/offsetTop & latLngToContainerPoint — sistem koordinat yang
+   sama), lalu tumpuk sebagai <canvas> flat di atas peta SEBELUM
+   html2canvas berjalan — sehingga html2canvas tinggal memotret gambar
+   datar itu, bukan menerka ulang tile/SVG Leaflet.
+
+   SYARAT KETAT supaya hasil unduhan == pratinjau (lihat perbaikan
+   _genSnapshotContainer): proses ini TIDAK BOLEH memanggil
+   invalidateSize()/setView()/fire('moveend') atau apa pun yang memaksa
+   Leaflet menghitung ulang tile grid — itu yang dulu menyebabkan basemap
+   bergeser/resize di hasil unduhan walau pratinjau sudah benar. Kalau
+   tile belum siap saat snapshot diambil, cukup TUNGGU pasif (retry),
+   jangan pernah mengubah state peta. ─────────────────*/
 function genDownloadImage() {
-  if (typeof html2canvas === 'undefined') {
-    toast('⚠ Library ekspor gambar belum termuat. Coba muat ulang halaman.', 'err');
-    return;
-  }
+  if (typeof html2canvas === 'undefined') { toast('⚠ Library ekspor belum termuat.', 'err'); return; }
+
   var btn = document.getElementById('gen-download-img-btn');
   var btnOldHtml = btn ? btn.innerHTML : '';
   if (btn) { btn.disabled = true; btn.style.opacity = '0.6'; btn.innerHTML = '⏳ Memproses...'; }
 
   var sheet = document.getElementById('peta-print-sheet');
-  if (!sheet) { if (btn) { btn.disabled = false; btn.style.opacity=''; btn.innerHTML = btnOldHtml; } return; }
-
-  var ctrlSaveMain = _genHideMapControls(_genMap);
-  var ctrlSaveInset = _genHideMapControls(_genInsetMap);
-  var sigSave = _genSwapSignatureInputs();
-
-  var swaps = [];
-
-  // Paksa tile coverage + tunggu decode sebelum snapshot
-  _genForceViewportTiles(_genMap);
-  _genForceViewportTiles(_genInsetMap);
-  Promise.all([_genWaitTiles(_genMap), _genWaitTiles(_genInsetMap)]).then(function(){
-
-  var mainSwap = _genSwapToSnapshot('peta-gen-map', _genMap, _genMainMapVectorDraw);
-  if (mainSwap) swaps.push(mainSwap);
-  if (_genInsetMap) {
-    var insetSwap = _genSwapToSnapshot('peta-gen-inset', _genInsetMap, _genInsetVectorDraw);
-    if (insetSwap) swaps.push(insetSwap);
+  var stage = document.getElementById('peta-print-stage');
+  if (!sheet || !stage) {
+    if (btn) { btn.disabled = false; btn.style.opacity = ''; btn.innerHTML = btnOldHtml; }
+    return;
   }
 
-  var originalParent = sheet.parentNode;
-  var originalNext = sheet.nextSibling;
-  var savedTransform = sheet.style.transform;
-  var savedOverflow = sheet.style.overflow;
-  var savedHeight = sheet.style.height;
+  // Scale pratinjau aktif (k) — dibaca dari computed transform sheet,
+  // dipakai untuk mengompensasi supaya ukuran output tetap 2x ukuran
+  // kertas asli terlepas dari seberapa di-zoom pratinjau di layar saat ini.
+  var _k = 1;
+  try {
+    var tf = getComputedStyle(sheet).transform;
+    var mm = tf && tf !== 'none' ? tf.match(/matrix\(([^)]+)\)/) : null;
+    if (mm) { var vv = mm[1].split(',').map(parseFloat); if (vv[0] > 0) _k = vv[0]; }
+  } catch(e) {}
 
-  var stage = document.getElementById('img-export-stage');
-  if (!stage) {
-    stage = document.createElement('div');
-    stage.id = 'img-export-stage';
-    stage.style.position = 'fixed';
-    stage.style.left = '-99999px';
-    stage.style.top = '0';
-    stage.style.zIndex = '-1';
-    document.body.appendChild(stage);
-  }
+  var ctrlMain  = _genHideMapControls(_genMap);
+  var ctrlInset = _genHideMapControls(_genInsetMap);
+  var sigSave   = _genSwapSignatureInputs();
+  var mapSnapshots = []; // hasil _genSnapshotContainer, perlu di-restore (dihapus) di akhir
 
-  function restore() {
-    sheet.style.transform = savedTransform;
-    sheet.style.overflow = savedOverflow;
-    sheet.style.height = savedHeight;
-    if (originalNext) originalParent.insertBefore(sheet, originalNext);
-    else originalParent.appendChild(sheet);
-    swaps.forEach(function(s){ s.restore(); });
-    _genRestoreMapControls(ctrlSaveMain);
-    _genRestoreMapControls(ctrlSaveInset);
+  function _restore() {
+    mapSnapshots.forEach(function(s){ if (s) s.restore(); });
+    _genRestoreMapControls(ctrlMain);
+    _genRestoreMapControls(ctrlInset);
     _genRestoreSignatureInputs(sigSave);
-    if (_genMap) _genMap.invalidateSize(true);
-    if (_genInsetMap) _genInsetMap.invalidateSize(true);
     if (btn) { btn.disabled = false; btn.style.opacity = ''; btn.innerHTML = btnOldHtml; }
   }
 
-  setTimeout(function(){
-    sheet.style.transform = 'none'; // ukuran asli penuh, bukan versi yang diskalakan utk pratinjau
-    sheet.style.overflow = 'visible'; // jangan potong kop/tanda tangan yang sedikit lebih tinggi dari lembar
-    stage.appendChild(sheet);
-    var neededH = _genComputeExportHeight(sheet);
-    if (neededH > sheet.offsetHeight) sheet.style.height = neededH + 'px';
-    var captureW = sheet.offsetWidth, captureH = sheet.offsetHeight;
+  // Sinkronkan SEKALI di awal, SEBELUM apa pun lain dibaca/digambar: kalau
+  // ukuran container map di DOM sudah berubah sejak Leaflet terakhir kali
+  // tahu (mis. karena panel baru saja ditampilkan/resize window) tapi belum
+  // pernah invalidateSize(), maka map.getSize() yang dipakai rasterizer utk
+  // ukuran canvas bisa salah — menyebabkan vector (garis/panah) digambar
+  // dengan asumsi ukuran viewport yang berbeda dari tile yang sungguh ada.
+  // AMAN dilakukan di sini (berbeda dari retry di _genSnapshotContainer yang
+  // sudah diperbaiki agar TIDAK melakukan ini): dipanggil hanya SEKALI, di
+  // awal, sebelum ada pembacaan ukuran apa pun — bukan reaktif di tengah
+  // proses snapshot saat tile sedang dalam transisi zoom/pan yang belum
+  // stabil. Karena center & zoom tidak diubah, ini tidak menggeser basemap.
+  try { if (_genMap) _genMap.invalidateSize({animate:false, pan:false}); } catch(e) {}
+  try { if (_genInsetMap) _genInsetMap.invalidateSize({animate:false, pan:false}); } catch(e) {}
 
-    setTimeout(function(){
-      html2canvas(sheet, { scale: 2, useCORS: true, backgroundColor: '#ffffff', logging: false, width: captureW, height: captureH, windowWidth: captureW, windowHeight: captureH }).then(function(canvas) {
-        var fname = 'Peta_' + ((_genState.judul || 'Generate').replace(/[^a-zA-Z0-9]+/g, '_').slice(0, 40)) + '_' + Date.now() + '.png';
-        canvas.toBlob(function(blob) {
-          if (!blob) {
-            toast('⚠ Gagal membuat gambar', 'err');
-            restore();
-            return;
-          }
-          var url = URL.createObjectURL(blob);
-          var link = document.createElement('a');
-          link.href = url; link.download = fname;
-          document.body.appendChild(link);
-          link.click();
-          setTimeout(function(){ document.body.removeChild(link); URL.revokeObjectURL(url); }, 300);
-          toast('✅ Gambar peta berhasil diunduh', 'ok');
-          restore();
-        }, 'image/png');
-      }).catch(function(err) {
-        console.error('genDownloadImage:', err);
-        toast('⚠ Gagal mengunduh gambar (kemungkinan dibatasi CORS oleh basemap). Coba "Cetak / Simpan PDF" sbg alternatif.', 'err');
-        restore();
-      });
-    }, 80);
-  }, 100);
-  }); // end Promise.all tile wait
+  var fontsReady = (document.fonts && document.fonts.ready) ? document.fonts.ready : Promise.resolve();
+
+  fontsReady.then(function() {
+    // Beri waktu 1 frame utk reflow dari invalidateSize di atas selesai
+    // sebelum lanjut membaca ukuran/menggambar apa pun.
+    return new Promise(function(res){ requestAnimationFrame(res); });
+  }).then(function() {
+    // Preload tile jadi blob (menghindari taint canvas / tile gagal drawImage
+    // akibat CORS di beberapa provider) — TIDAK menyentuh state peta, cuma fetch.
+    return Promise.all([
+      (typeof _genPreloadTileBlobs === 'function' && _genMap) ? _genPreloadTileBlobs(_genMap) : Promise.resolve(),
+      (typeof _genPreloadTileBlobs === 'function' && _genInsetMap) ? _genPreloadTileBlobs(_genInsetMap) : Promise.resolve()
+    ]);
+  }).then(function() {
+    // Rasterisasi tile + vector (SHP, garis manual, panah, polygon, titik)
+    // ke canvas tunggal yang sejajar sempurna dengan yang tampil di layar
+    // — lalu tumpuk di atas peta. TIDAK menyentuh state Leaflet (lihat
+    // catatan di atas & perbaikan _genSnapshotContainer).
+    return Promise.all([
+      _genSnapshotContainer('peta-gen-map'),
+      _genInsetMap ? _genSnapshotContainer('peta-gen-inset') : Promise.resolve(null)
+    ]);
+  }).then(function(results) {
+    results.forEach(function(s){ if (s) mapSnapshots.push(s); });
+    // 2 frame agar repaint (kontrol tersembunyi, snapshot canvas yang baru
+    // ditambahkan) selesai sebelum html2canvas mulai memotret.
+    return new Promise(function(res){ requestAnimationFrame(function(){ requestAnimationFrame(res); }); });
+  }).then(function() {
+    return html2canvas(stage, {
+      scale:           2 / _k,   // kompensasi scale pratinjau → output 2× ukuran kertas
+      useCORS:         true,
+      allowTaint:      false,
+      backgroundColor: '#ffffff',
+      logging:         false
+    });
+  }).then(function(canvas) {
+    _restore();
+    var fname = 'Peta_' + ((_genState.judul || 'Generate').replace(/[^a-zA-Z0-9]+/g, '_').slice(0, 40)) + '_' + Date.now() + '.png';
+    canvas.toBlob(function(blob) {
+      if (!blob) { toast('⚠ Gagal membuat gambar.', 'err'); return; }
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = url; a.download = fname;
+      document.body.appendChild(a); a.click();
+      setTimeout(function(){ document.body.removeChild(a); URL.revokeObjectURL(url); }, 300);
+      toast('✅ Gambar peta berhasil diunduh', 'ok');
+    }, 'image/png');
+  }).catch(function(err) {
+    _restore();
+    console.error('genDownloadImage:', err);
+    toast('⚠ Gagal mengunduh gambar.', 'err');
+  });
 }
+
+
+
 
 /* ─── Ukuran kertas (mempengaruhi proporsi lembar & rule @page saat cetak) ─── */
 var GEN_PAPER_SIZES = {
@@ -14342,7 +15926,59 @@ var GEN_PAPER_SIZES = {
 };
 var MM_TO_PX = 96 / 25.4; // 1 inch = 25.4mm, referensi 96 CSS px/inch (sama dgn asumsi DPI utk hitung skala)
 
+/* ── Preview scale slider ── */
+var _genUserScale = null; // null = auto-fit
+
+function genPreviewFit() {
+  _genUserScale = null;
+  genOnPaperChange();
+}
+
+function genPreviewScaleChange(val) {
+  _genUserScale = parseFloat(val) / 100;
+  var slider = document.getElementById('gen-preview-scale-slider');
+  var valEl  = document.getElementById('gen-preview-scale-val');
+  if (valEl) valEl.textContent = val + '%';
+  _genApplyPreviewScale(_genUserScale);
+}
+
+function _genApplyPreviewScale(scaleFactor) {
+  var sheet = document.getElementById('peta-print-sheet');
+  var stage = document.getElementById('peta-print-stage');
+  if (!sheet || !stage) return;
+  var fullW = parseInt(sheet.dataset.fullW) || sheet.offsetWidth;
+  var fullH = parseInt(sheet.dataset.fullH) || sheet.offsetHeight;
+  if (!fullW || !fullH) return;
+  var previewW = Math.round(fullW * scaleFactor);
+  var previewH = Math.round(fullH * scaleFactor);
+  sheet.style.transform = 'scale(' + scaleFactor + ')';
+  sheet.style.transformOrigin = 'top left';
+  stage.style.width  = previewW + 'px';
+  stage.style.height = (previewH + 2) + 'px';
+  /* Border overlay: resize mengikuti stage, selalu tampil di atas semua konten */
+  var borderOvl = document.getElementById('peta-border-overlay');
+  if (borderOvl) {
+    borderOvl.style.display = 'block';
+    borderOvl.style.width   = previewW + 'px';
+    borderOvl.style.height  = (previewH + 2) + 'px';
+  }
+  var slider = document.getElementById('gen-preview-scale-slider');
+  var valEl  = document.getElementById('gen-preview-scale-val');
+  var pct = Math.round(scaleFactor * 100);
+  if (slider) slider.value = Math.max(20, Math.min(150, pct));
+  if (valEl)  valEl.textContent = pct + '%';
+}
+
 function genOnPaperChange() {
+  // Setiap kali ukuran kertas diganti, kembalikan pratinjau ke auto-fit
+  // (bukan mempertahankan persentase zoom manual dari ukuran kertas
+  // sebelumnya). Tanpa ini, mis. user zoom manual saat di A0 lalu pindah
+  // ke A4, pratinjau A4 tetap memakai skala zoom bekas A0 — ukuran lembar
+  // di layar jadi tidak sesuai walau dimensi A4 sendiri (wpx/hpx) sudah
+  // benar. Baris ini TIDAK mengubah dimensi kertas standar itu sendiri,
+  // hanya skala tampilan pratinjau di layar.
+  _genUserScale = null;
+
   var sizeSel = document.getElementById('gen-paper-size');
   var key  = sizeSel ? sizeSel.value : 'A4';
   var customWrap = document.getElementById('gen-paper-custom-wrap');
@@ -14371,29 +16007,54 @@ function genOnPaperChange() {
 
   // Simpan dimensi asli (96 DPI) ke dataset agar genPrint bisa pakai ukuran penuh saat cetak
   if (sheet) {
+    sheet.style.gridTemplateColumns = '1fr ' + KOP_PX + 'px';
+    // Set lebar dulu SEBELUM mengukur tinggi kop, supaya scrollHeight kop
+    // diukur pada lebar kolom yang benar (bukan lebar preview lama yang
+    // mungkin masih ter-scale kecil dari render sebelumnya).
+    sheet.style.width = wpx + 'px';
+    // PENTING: kosongkan/reset height sheet ke 'auto' SEBELUM mengukur —
+    // sheet adalah CSS grid (align-items default: stretch), jadi selama
+    // sheet.style.height masih menyimpan nilai px dari ukuran kertas
+    // SEBELUMNYA (mis. A3 yang lebih tinggi), kolom kop ikut "stretch"
+    // ke tinggi lama itu walau kop.style.height sendiri sudah diset
+    // 'auto' di _genComputeExportHeight — hasilnya scrollHeight kop yang
+    // terukur ikut membengkak mengikuti sisa tinggi kertas sebelumnya,
+    // sehingga hpx final untuk kertas yang baru dipilih (mis. balik ke
+    // A4) menjadi lebih besar dari 297mm yang seharusnya.
+    sheet.style.height = 'auto';
+    // Kertas nominal (mis. A4) bisa lebih pendek dari isi kop yang sebenarnya
+    // (Keterangan/Dasar/Sumber Peta panjang) — perbesar hpx SEBELUM menghitung
+    // skala Fit, supaya pratinjau (dan tombol Fit) memperhitungkan tinggi
+    // lembar yang sesungguhnya, bukan cuma ukuran kertas nominal. Tanpa ini,
+    // Fit menghitung skala berdasarkan hpx yang terlalu pendek sehingga
+    // bagian bawah lembar terlihat terpotong walau sudah menekan Fit.
+    hpx = _genComputeExportHeight(sheet, hpx) || hpx;
     sheet.dataset.fullW = wpx;
     sheet.dataset.fullH = hpx;
-    sheet.style.gridTemplateColumns = '1fr ' + KOP_PX + 'px';
   }
 
-  // Pratinjau layar: sheet SELALU mengisi lebar container (stage parent), tinggi proporsional
+  // Pratinjau layar: sheet di-scale agar MUAT SEMPURNA di stage — baik lebar maupun tinggi.
+  // Batasi scale oleh lebar container DAN tinggi viewport yang tersedia,
+  // sehingga pengguna tidak perlu zoom-out browser untuk melihat peta penuh.
   if (sheet && stage) {
-    var availPx = stage.parentElement ? stage.parentElement.clientWidth : 900;
-    if (availPx < 200) availPx = 900; // fallback jika belum terrender
-    var aspectRatio = hpx / wpx;
-    var previewW = availPx;
-    var previewH = Math.round(previewW * aspectRatio) + 2; // +2px buffer anti-clipping
+    var availW = stage.parentElement ? stage.parentElement.clientWidth : 900;
+    if (availW < 200) availW = 900;
 
-    // Sheet di-scale dari ukuran penuh (wpx) ke ukuran preview
-    var scaleFactor = previewW / wpx;
+    // Estimasi tinggi viewport yang tersedia untuk stage
+    // (kurangi navbar ~46px + padding ~32px + panel atas ~0px)
+    var availH = Math.max(300, window.innerHeight - 46 - 32);
+
+    // Scale dibatasi agar sheet muat secara lebar DAN tinggi
+    var scaleByW = availW / wpx;
+    var scaleByH = availH / hpx;
+    var autoScale = Math.min(scaleByW, scaleByH);
+
+    // Pakai user scale jika ada, fallback ke auto-fit
+    var scaleFactor = (_genUserScale !== null) ? _genUserScale : autoScale;
+
     sheet.style.width   = wpx + 'px';
     sheet.style.height  = hpx + 'px';
-    sheet.style.transform = 'scale(' + scaleFactor + ')';
-    sheet.style.transformOrigin = 'top left';
-
-    // Stage mengikuti ukuran visual (setelah scale)
-    stage.style.width  = previewW + 'px';
-    stage.style.height = previewH + 'px';
+    _genApplyPreviewScale(scaleFactor);
   }
 
   var styleEl = document.getElementById('gen-page-size-style');
@@ -14402,7 +16063,19 @@ function genOnPaperChange() {
     styleEl.id = 'gen-page-size-style';
     document.head.appendChild(styleEl);
   }
-  styleEl.textContent = '@media print { @page { size: ' + wmm.toFixed(1) + 'mm ' + hmm.toFixed(1) + 'mm; margin: 0; } }';
+  styleEl.textContent =
+    '@media print { ' +
+      '@page { size: ' + wmm.toFixed(1) + 'mm ' + hmm.toFixed(1) + 'mm; margin: 0; } ' +
+      // Paksa sheet PERSIS ukuran halaman (mm) saat cetak — apapun ukuran px-nya,
+      // browser menskalakan ke mm ini sehingga tidak pernah terpotong/overflow.
+      '#print-root #peta-print-sheet { ' +
+        'width: '  + wmm.toFixed(1) + 'mm !important; ' +
+        'height: ' + hmm.toFixed(1) + 'mm !important; ' +
+        'transform: none !important; ' +
+        'overflow: hidden !important; ' +
+        'page-break-inside: avoid !important; ' +
+      '} ' +
+    '}';
 
   _genState.paperSize = key;
   if (key === 'CUSTOM') { _genState.paperCustomW = wmm; _genState.paperCustomH = hmm; }
@@ -14413,7 +16086,10 @@ function genOnPaperChange() {
     if (_genInsetMap) _genInsetMap.invalidateSize(true);
     genUpdateScale();
     genUpdateInset();
-    genRenderGraticule();
+    /* Tunda sedikit supaya event 'moveend' asinkron dari invalidateSize
+       (lihat catatan di genPrint) sudah selesai duluan sebelum render
+       "final" ini — mencegah dua render graticule saling tumpang tindih. */
+    setTimeout(genRenderGraticule, 50);
   }, 220);
 }
 
