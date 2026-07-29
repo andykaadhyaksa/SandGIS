@@ -1482,10 +1482,21 @@ body{
   padding:7px 12px!important;flex-wrap:wrap;gap:5px;
   position:relative;z-index:1; /* jangan sampai overlay elemen lain */
 }
-#peta-mode-bar[style*="flex"]{display:flex!important}
+#peta-mode-bar[data-open="1"]{display:flex!important}
 /* Sembunyikan mode bar name-wrap kecuali saat aktif */
 #peta-mode-name-wrap{display:none!important}
-#peta-mode-name-wrap[style*="flex"]{display:flex!important}
+#peta-mode-name-wrap[data-open="1"]{display:flex!important}
+/* Coord inputs highlight on focus */
+#peta-coord-lat:focus, #peta-coord-lng:focus {
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 0 2px rgba(26,176,166,0.18);
+}
+/* Remove number spinners for coord inputs */
+#peta-coord-lat::-webkit-outer-spin-button,
+#peta-coord-lat::-webkit-inner-spin-button,
+#peta-coord-lng::-webkit-outer-spin-button,
+#peta-coord-lng::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+#peta-coord-lat, #peta-coord-lng { -moz-appearance: textfield; }
 .sg-pw{padding:0 8px;display:flex;flex-direction:column;gap:8px;margin-top:2px}
 /* ── Custom layer panes — prevent CSS scale during zoom animation ──
    Leaflet zoom-animation menggunakan CSS transform:scale pada .leaflet-zoom-animated
@@ -1653,8 +1664,7 @@ body{
 /* GENERATE */
 #sg-gen-panel{display:none;flex:1;overflow-y:hidden;overflow-x:hidden;padding:0;background:var(--bg);height:100%;min-height:0;min-width:0;pointer-events:none}
 #sg-gen-panel[style*="block"]{pointer-events:auto}
-#sg-sr{display:none!important}
-#peta-mode-bar{display:none!important}
+/* (Aturan display #peta-mode-bar sudah didefinisikan di atas dgn data-open) */
 
 #sg-map,#sg-gen-panel{order:2}
 #sg-sr[style*="block"]{pointer-events:auto}
@@ -2190,7 +2200,54 @@ body{
     </div>
     <div id="sg-mbar">
 <!-- Mode bar -->
+<div id="peta-mode-bar" style="display:none">
+  <span id="peta-mode-txt" style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span>
+  <span id="peta-mode-live" style="color:var(--mute);font-size:9px;white-space:nowrap"></span>
+  <button id="peta-mode-finish-btn" onclick="petaFinishShape()" style="display:none;padding:3px 10px;font-family:Arial,sans-serif;font-size:9.5px;font-weight:700;border-radius:var(--rs);border:1px solid var(--accent);background:rgba(26,176,166,0.12);color:var(--accent);cursor:pointer;white-space:nowrap">✓ Selesai</button>
+  <button id="peta-mode-undo-btn" onclick="petaUndoLastPoint()" style="display:none;padding:3px 8px;font-family:Arial,sans-serif;font-size:9.5px;border-radius:var(--rs);border:1px solid var(--brd);background:transparent;color:var(--mute);cursor:pointer;white-space:nowrap">↩ Undo</button>
+  <button onclick="petaCancelMode()" style="padding:3px 8px;font-family:Arial,sans-serif;font-size:9.5px;border-radius:var(--rs);border:1px solid rgba(239,77,94,0.35);background:rgba(239,77,94,0.08);color:var(--red);cursor:pointer;white-space:nowrap">✕ Batal</button>
+</div>
+<!-- Name + koordinat input wrap -->
+<div id="peta-mode-name-wrap" style="display:none;align-items:center;gap:6px;padding:6px 12px;background:var(--sg3);border-top:1px solid var(--brd2);flex-wrap:wrap">
+  <input id="peta-mode-name-input" type="text" placeholder="Nama titik (opsional)…"
+    style="flex:1;min-width:120px;padding:4px 8px;font-family:Arial,sans-serif;font-size:11px;background:var(--inp);border:1px solid var(--brd);border-radius:var(--rs);color:var(--txt);outline:none"
+    onkeydown="if(event.key==='Enter'&&document.getElementById('peta-coord-lat').value.trim())petaAddMarkerFromCoord()">
 
+  <!-- Separator -->
+  <div style="height:22px;width:1px;background:var(--brd);flex-shrink:0"></div>
+
+  <!-- Label koordinat -->
+  <span style="font-family:Arial,sans-serif;font-size:9px;color:var(--mute);white-space:nowrap;flex-shrink:0">📍 Koordinat:</span>
+
+  <!-- Lintang -->
+  <div style="display:flex;align-items:center;gap:3px;flex-shrink:0">
+    <span style="font-family:Arial,sans-serif;font-size:9px;color:var(--mute)">Lat</span>
+    <input id="peta-coord-lat" type="number" step="0.000001" placeholder="-7.250000"
+      style="width:92px;padding:4px 6px;font-family:Arial,sans-serif;font-size:11px;background:var(--inp);border:1px solid var(--brd);border-radius:var(--rs);color:var(--txt);outline:none"
+      title="Lintang (Decimal Degree) — negatif = Selatan"
+      oninput="petaCoordPreview()"
+      onkeydown="if(event.key==='Enter')petaAddMarkerFromCoord()">
+  </div>
+
+  <!-- Bujur -->
+  <div style="display:flex;align-items:center;gap:3px;flex-shrink:0">
+    <span style="font-family:Arial,sans-serif;font-size:9px;color:var(--mute)">Lon</span>
+    <input id="peta-coord-lng" type="number" step="0.000001" placeholder="110.416500"
+      style="width:100px;padding:4px 6px;font-family:Arial,sans-serif;font-size:11px;background:var(--inp);border:1px solid var(--brd);border-radius:var(--rs);color:var(--txt);outline:none"
+      title="Bujur (Decimal Degree) — positif = Timur"
+      oninput="petaCoordPreview()"
+      onkeydown="if(event.key==='Enter')petaAddMarkerFromCoord()">
+  </div>
+
+  <!-- Preview DMS kecil -->
+  <span id="peta-coord-preview" style="font-family:Arial,sans-serif;font-size:8.5px;color:var(--mute);white-space:nowrap;font-style:italic"></span>
+
+  <!-- Tombol tambah dari koordinat -->
+  <button onclick="petaAddMarkerFromCoord()"
+    style="padding:4px 12px;font-family:Arial,sans-serif;font-size:10px;font-weight:700;border-radius:var(--rs);border:1px solid rgba(26,176,166,0.45);background:rgba(26,176,166,0.12);color:var(--accent);cursor:pointer;white-space:nowrap;flex-shrink:0">
+    ➕ Tambahkan
+  </button>
+</div>
     </div>
   </div>
 
@@ -3000,7 +3057,9 @@ function mmQuickHillshade(){sgHsKontur();}
 /* Pastikan mode bar tidak aktif saat init */
 document.addEventListener('DOMContentLoaded', function(){
   var mb = document.getElementById('peta-mode-bar');
-  if (mb) { mb.style.display = 'none'; mb.style.removeProperty('display'); }
+  if (mb) { mb.style.display = 'none'; mb.style.removeProperty('display'); mb.removeAttribute('data-open'); }
+  var nw0 = document.getElementById('peta-mode-name-wrap');
+  if (nw0) { nw0.style.display = 'none'; nw0.removeAttribute('data-open'); }
 });
 </script>
 
@@ -4218,6 +4277,7 @@ function petaAddMode(mode) {
   var label = customLabel[mode] || _ptType(mode).label;
   var bg = customColor[mode] ? _hexToRgba(customColor[mode], 0.12) : _hexToRgba(_ptType(mode).color, 0.12);
   bar.style.cssText = 'display:flex;align-items:center;gap:10px;margin-bottom:14px;padding:9px 16px;border-radius:var(--rs);font-family:Arial,sans-serif;font-size:10.5px;font-weight:600;background:'+bg+';border:1px solid var(--brd)';
+  bar.setAttribute('data-open', '1');
   var hint = {
     sungai:   'klik titik-titik alur, lalu konfirmasi',
     garis:    'klik titik-titik garis (min. 2), lalu klik "Selesai" (Enter)',
@@ -4235,9 +4295,118 @@ function petaAddMode(mode) {
   // Tampilkan input nama hanya untuk mode titik
   var nameWrap = document.getElementById('peta-mode-name-wrap');
   var nameInput = document.getElementById('peta-mode-name-input');
-  if (nameWrap) nameWrap.style.display = isPointMode ? 'flex' : 'none';
+  if (nameWrap) {
+    nameWrap.style.display = isPointMode ? 'flex' : 'none';
+    if (isPointMode) nameWrap.setAttribute('data-open', '1');
+    else nameWrap.removeAttribute('data-open');
+  }
   if (nameInput) { nameInput.value = ''; setTimeout(function(){ nameInput.focus(); }, 80); }
+  // Reset coord inputs
+  var cLat = document.getElementById('peta-coord-lat');
+  var cLng = document.getElementById('peta-coord-lng');
+  var cPrv = document.getElementById('peta-coord-preview');
+  if (cLat) cLat.value = '';
+  if (cLng) cLng.value = '';
+  if (cPrv) cPrv.textContent = '';
   _map.getContainer().style.cursor = 'crosshair';
+}
+
+/* ─── Preview DMS saat isi koordinat ────────────────────────── */
+function petaCoordPreview() {
+  var latEl = document.getElementById('peta-coord-lat');
+  var lngEl = document.getElementById('peta-coord-lng');
+  var prvEl = document.getElementById('peta-coord-preview');
+  if (!latEl || !lngEl || !prvEl) return;
+  var lat = parseFloat(latEl.value);
+  var lng = parseFloat(lngEl.value);
+  if (isNaN(lat) && isNaN(lng)) { prvEl.textContent = ''; prvEl.style.color = 'var(--mute)'; return; }
+  if (isNaN(lat) || isNaN(lng)) { prvEl.textContent = ''; return; }
+  if (lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+    prvEl.textContent = '\u26a0 di luar batas';
+    prvEl.style.color = 'var(--red)';
+    return;
+  }
+  prvEl.style.color = 'var(--mute)';
+  if (typeof _ddToDMS === 'function') {
+    prvEl.textContent = _ddToDMS(lat, true) + '  /  ' + _ddToDMS(lng, false);
+  } else {
+    function _toD(dd, p, n) {
+      var s = dd < 0 ? n : p, a = Math.abs(dd), d = Math.floor(a),
+          mA = (a-d)*60, m = Math.floor(mA), sec = ((mA-m)*60).toFixed(1);
+      return d + '\u00b0' + m + "'" + sec + '" ' + s;
+    }
+    prvEl.textContent = _toD(lat,'N','S') + '  /  ' + _toD(lng,'E','W');
+  }
+}
+
+/* --- Tambah titik dari input koordinat manual (DD) ----------- */
+function petaAddMarkerFromCoord() {
+  if (!_mode) { toast('\u26a0 Pilih jenis titik dari sidebar terlebih dahulu', 'err'); return; }
+
+  var latEl  = document.getElementById('peta-coord-lat');
+  var lngEl  = document.getElementById('peta-coord-lng');
+  var nameEl = document.getElementById('peta-mode-name-input');
+
+  var latVal = latEl ? latEl.value.trim() : '';
+  var lngVal = lngEl ? lngEl.value.trim() : '';
+
+  // Validasi: kedua field harus diisi
+  if (!latVal || !lngVal) {
+    toast('\u26a0 Isi nilai Lat dan Lon terlebih dahulu', 'err');
+    if (latEl) { latEl.style.borderColor = !latVal ? 'var(--red)' : ''; if (!latVal) latEl.focus(); }
+    if (lngEl) { lngEl.style.borderColor = !lngVal ? 'var(--red)' : ''; if (latVal && !lngVal) lngEl.focus(); }
+    return;
+  }
+  var lat = parseFloat(latVal);
+  var lng = parseFloat(lngVal);
+  if (isNaN(lat) || isNaN(lng)) {
+    toast('\u26a0 Nilai koordinat tidak valid', 'err');
+    if (latEl) latEl.style.borderColor = isNaN(lat) ? 'var(--red)' : '';
+    if (lngEl) lngEl.style.borderColor = isNaN(lng) ? 'var(--red)' : '';
+    return;
+  }
+  if (lat < -90 || lat > 90)   { toast('\u26a0 Lat harus antara -90 dan 90', 'err');  if(latEl){latEl.style.borderColor='var(--red)';latEl.focus();} return; }
+  if (lng < -180 || lng > 180) { toast('\u26a0 Lon harus antara -180 dan 180', 'err'); if(lngEl){lngEl.style.borderColor='var(--red)';lngEl.focus();} return; }
+
+  // Reset border error
+  if (latEl) latEl.style.borderColor = '';
+  if (lngEl) lngEl.style.borderColor = '';
+
+  lat = Math.round(lat * 1e6) / 1e6;
+  lng = Math.round(lng * 1e6) / 1e6;
+
+  var name = nameEl ? nameEl.value.trim() : '';
+  var type = _mode;
+
+  if (name) {
+    /* Nama sudah diisi -> simpan langsung, mode tetap aktif utk titik berikutnya */
+    var mk = {
+      id: 'mk_' + (_uid++),
+      type: type,
+      name: name,
+      lat: lat, lng: lng,
+      note: ''
+    };
+    _markers.push(mk);
+    _addLeafletMarker(mk);
+    _renderList(); _renderTable(); _persist();
+    _map.setView([lat, lng], Math.max(_map.getZoom(), 14), { animate: true });
+    toast('\ud83d\udccd ' + name + ' ditambahkan');
+    /* Reset field koordinat & nama, siap input titik berikutnya */
+    if (nameEl) nameEl.value = '';
+    if (latEl)  { latEl.value = ''; latEl.focus(); }
+    if (lngEl)  lngEl.value = '';
+    var prvEl = document.getElementById('peta-coord-preview');
+    if (prvEl) prvEl.textContent = '';
+  } else {
+    /* Nama kosong -> fly to lalu buka popup _addPopup yang sudah terbukti bekerja */
+    var savedMode = type;
+    _map.setView([lat, lng], Math.max(_map.getZoom(), 14), { animate: true });
+    setTimeout(function() {
+      _mode = savedMode; /* pastikan mode masih aktif */
+      _addPopup(L.latLng(lat, lng), savedMode);
+    }, 350);
+  }
 }
 
 function petaCancelMode() {
@@ -4249,11 +4418,18 @@ function petaCancelMode() {
   if (_tempVertices) { _map.removeLayer(_tempVertices); _tempVertices = null; }
   _rulerClear();
   var bar = document.getElementById('peta-mode-bar');
-  if (bar) bar.style.display = 'none';
+  if (bar) { bar.style.display = 'none'; bar.removeAttribute('data-open'); }
   var nameInput = document.getElementById('peta-mode-name-input');
   var nameWrap  = document.getElementById('peta-mode-name-wrap');
   if (nameInput) nameInput.value = '';
-  if (nameWrap)  nameWrap.style.display = 'none';
+  if (nameWrap)  { nameWrap.style.display = 'none'; nameWrap.removeAttribute('data-open'); }
+  // Reset coord inputs
+  var cLat2 = document.getElementById('peta-coord-lat');
+  var cLng2 = document.getElementById('peta-coord-lng');
+  var cPrv2 = document.getElementById('peta-coord-preview');
+  if (cLat2) { cLat2.value = ''; cLat2.style.borderColor = ''; }
+  if (cLng2) { cLng2.value = ''; cLng2.style.borderColor = ''; }
+  if (cPrv2) cPrv2.textContent = '';
   if (_map) _map.getContainer().style.cursor = '';
 }
 
@@ -4508,6 +4684,21 @@ function shpLoadFiles() {
   if (!valid.length) return;
   if (!_map) { toast('Peta belum terbuka — buka tab Pemetaan dulu', 'err'); return; }
 
+  // Peringatan untuk file .shp berukuran besar — parsing shp.js bersifat sinkron
+  // per-file, jadi file yang sangat besar tetap bisa membuat tab terasa berat sesaat.
+  var totalSizeMB = valid.reduce(function(s, e) {
+    var f = (e.type === 'buffer') ? null : e.shp;
+    return s + (f && f.size ? f.size : 0) / (1024*1024);
+  }, 0);
+  if (totalSizeMB > 80) {
+    var proceedShp = confirm(
+      'Total ukuran file SHP yang akan diproses sekitar ' + totalSizeMB.toFixed(0) + ' MB — cukup besar dan bisa membuat tab terasa berat sesaat saat memproses tiap file.\n\n' +
+      'Disarankan: sederhanakan geometri (simplify) atau pecah menjadi beberapa file lebih kecil di QGIS.\n\n' +
+      'Tetap lanjutkan?'
+    );
+    if (!proceedShp) return;
+  }
+
   var btn = document.getElementById('shp-load-btn');
   if (btn) { btn.disabled = true; btn.textContent = '⏳ Memproses ' + valid.length + ' SHP...'; }
   shpSetStatus('Memproses antrian...', 'var(--mute)');
@@ -4529,15 +4720,19 @@ function shpLoadFiles() {
     var entry = valid[i];
     shpSetStatus('(' + (i+1) + '/' + total + ') Membaca ' + entry.baseName + '...', 'var(--mute)');
     shpSetProgress(5 + (i / total) * 90);
-    shpReadEntry(entry).then(function(buffers) {
-      shpParseAndRender(buffers, entry.baseName, function() {
-        done++;
+    // setTimeout(0) memberi browser satu frame untuk repaint progress bar
+    // sebelum parsing sinkron (shp.parseShp/parseDbf) yang berat dijalankan.
+    setTimeout(function() {
+      shpReadEntry(entry).then(function(buffers) {
+        shpParseAndRender(buffers, entry.baseName, function() {
+          done++;
+          processNext(i + 1);
+        });
+      }).catch(function(err) {
+        toast('❌ ' + entry.baseName + ': ' + err.message, 'err');
         processNext(i + 1);
       });
-    }).catch(function(err) {
-      toast('❌ ' + entry.baseName + ': ' + err.message, 'err');
-      processNext(i + 1);
-    });
+    }, 20);
   }
   processNext(0);
 }
@@ -5685,89 +5880,119 @@ function gpkgLoadSelectedLayers() {
   if (!checked.length) { toast('Pilih minimal satu layer', 'err'); return; }
   var selectedTables = checked.map(function(cb){ return _gpkgParsedTables[parseInt(cb.value,10)]; });
 
+  // Peringatan untuk total fitur yang sangat besar — proses tetap async & chunked,
+  // tapi user perlu tahu ini bisa makan waktu cukup lama.
+  var totalFeatEstimate = selectedTables.reduce(function(s,t){ return s + (t.featCount||0); }, 0);
+  if (totalFeatEstimate > 100000) {
+    var proceedGpkg = confirm(
+      'Layer terpilih memiliki total sekitar ' + totalFeatEstimate.toLocaleString() + ' fitur — ini cukup besar dan proses bisa memakan waktu beberapa menit.\n\n' +
+      'App akan tetap responsif (progress bar akan berjalan), tapi disarankan untuk memilih layer yang benar-benar diperlukan saja, atau clip area di QGIS terlebih dulu.\n\n' +
+      'Tetap lanjutkan?'
+    );
+    if (!proceedGpkg) return;
+  }
+
   var btn = document.getElementById('gpkg-load-btn');
   if (btn) { btn.disabled = true; btn.textContent = '⏳ Memuat layer...'; }
   gpkgSetStatus('Membaca fitur & mengurai geometri...', 'var(--mute)');
   gpkgSetProgress(20);
 
+  var allBounds = [];
+  var loadedCount = 0;
+  var db = null;
+
   _gpkgLoadSqlJs().then(function(SQL) {
     return _gpkgFile.arrayBuffer().then(function(buf) {
-      var db = new SQL.Database(new Uint8Array(buf));
-      var allBounds = [];
-      var loadedCount = 0;
+      db = new SQL.Database(new Uint8Array(buf));
 
-      selectedTables.forEach(function(t) {
-        try {
-          var geojson = _gpkgTableToGeoJSON(db, t);
-          if (!geojson.features.length) return;
+      // Proses tabel satu-per-satu secara berurutan (chained promises),
+      // masing-masing tabel dipecah lagi jadi chunk baris (lihat _gpkgTableToGeoJSONAsync).
+      var tableIdx = 0;
+      function processNextTable() {
+        if (tableIdx >= selectedTables.length) return Promise.resolve();
+        var t = selectedTables[tableIdx];
+        tableIdx++;
 
-          var layerName = t.label || t.tableName;
-          var color = _gpkgColorPalette[_gpkgColorIdx % _gpkgColorPalette.length];
-          _gpkgColorIdx++;
-          var layerId = 'gpkg_' + Date.now() + '_' + loadedCount;
-          var layerObj = {
-            id: layerId, name: layerName, color: color, layer: null, count: geojson.features.length,
-            features: geojson.features,
-            fillStyle: 'solid', fillOpacity: 22, fillBaseColor: color,
-            lineStyle: 'solid', weight: 2.2, opacity: 85,
-            outlineColorMode: 'single', outlineColorField: null, outlineStyleMap: {},
-            fillColorMode: 'single', fillColorField: null, fillStyleMap: {},
-            labelField: null, labelFontSize: 11, labelColor: '#1a1a1a', labelVisible: true, labelLayer: null,
-            sourceType: 'gpkg'
-          };
-          layerObj.layer = _shpBuildLeafletLayer(geojson, layerObj, layerName);
-          layerObj.layer.addTo(_map);
+        gpkgSetStatus('Memuat layer "' + (t.label||t.tableName) + '" (' + tableIdx + '/' + selectedTables.length + ')...', 'var(--mute)');
 
-          try {
-            var b = L.geoJSON(geojson).getBounds();
-            if (b.isValid()) allBounds.push(b);
-          } catch(e) {}
+        return _gpkgTableToGeoJSONAsync(db, t, function(done, total) {
+          // Update progress bar granular: 20% awal + porsi per-tabel + porsi baris dalam tabel
+          var tableFrac = (tableIdx - 1) / selectedTables.length;
+          var rowFrac = total > 0 ? (done / total) / selectedTables.length : 0;
+          gpkgSetProgress(20 + Math.round((tableFrac + rowFrac) * 70));
+        }).then(function(geojson) {
+          if (geojson.features.length) {
+            var layerName = t.label || t.tableName;
+            var color = _gpkgColorPalette[_gpkgColorIdx % _gpkgColorPalette.length];
+            _gpkgColorIdx++;
+            var layerId = 'gpkg_' + Date.now() + '_' + loadedCount;
+            var layerObj = {
+              id: layerId, name: layerName, color: color, layer: null, count: geojson.features.length,
+              features: geojson.features,
+              fillStyle: 'solid', fillOpacity: 22, fillBaseColor: color,
+              lineStyle: 'solid', weight: 2.2, opacity: 85,
+              outlineColorMode: 'single', outlineColorField: null, outlineStyleMap: {},
+              fillColorMode: 'single', fillColorField: null, fillStyleMap: {},
+              labelField: null, labelFontSize: 11, labelColor: '#1a1a1a', labelVisible: true, labelLayer: null,
+              sourceType: 'gpkg'
+            };
+            layerObj.layer = _shpBuildLeafletLayer(geojson, layerObj, layerName);
+            layerObj.layer.addTo(_map);
 
-          _shpLayers.push(layerObj);
-          _gpkgLayers.push(layerObj);
-          loadedCount++;
-        } catch(errLayer) {
+            try {
+              var b = L.geoJSON(geojson).getBounds();
+              if (b.isValid()) allBounds.push(b);
+            } catch(e) {}
+
+            _shpLayers.push(layerObj);
+            _gpkgLayers.push(layerObj);
+            loadedCount++;
+          }
+        }).catch(function(errLayer) {
           console.error('Gagal memuat layer GPKG "' + t.tableName + '":', errLayer);
           toast('Layer "' + (t.label||t.tableName) + '" dilewati: ' + errLayer.message, 'warn');
-        }
-      });
+        }).then(function() {
+          return processNextTable();
+        });
+      }
 
-      db.close();
-
-      if (loadedCount === 0) throw new Error('Tidak ada layer yang berhasil dimuat (mungkin sistem koordinat tidak didukung atau geometri kosong).');
-
-      // Fit bounds gabungan semua layer yang baru dimuat
-      try {
-        if (allBounds.length) {
-          var combined = allBounds[0];
-          for (var i=1;i<allBounds.length;i++) combined = combined.extend(allBounds[i]);
-          _map.fitBounds(combined, { padding: [30,30] });
-        }
-      } catch(e) {}
-
-      if (typeof _layerOrderSync === 'function') _layerOrderSync();
-      if (typeof shpUpdateLayerList === 'function') shpUpdateLayerList();
-      gpkgUpdateLayerList();
-      if (typeof _persist === 'function') _persist();
-
-      gpkgSetProgress(100);
-      gpkgSetStatus('✓ ' + loadedCount + ' layer berhasil ditampilkan', '#34d399');
-      toast(loadedCount + ' layer GeoPackage dimuat ke peta', 'ok');
-
-      // Reset picker & slot untuk upload berikutnya
-      var picker = document.getElementById('gpkg-layer-picker');
-      if (picker) picker.style.display = 'none';
-      _gpkgFile = null; _gpkgParsedTables = null;
-      var nameEl = document.getElementById('gpkg-name-file');
-      var iconEl = document.getElementById('gpkg-icon-file');
-      var slotEl = document.getElementById('gpkg-slot-file');
-      if (nameEl) nameEl.textContent = 'Belum dipilih';
-      if (iconEl) { iconEl.textContent = '○'; iconEl.className = 'slot-miss'; }
-      if (slotEl) slotEl.classList.remove('has-file');
-      if (btn) { btn.disabled = true; btn.textContent = '⚡ Tampilkan di Peta'; btn.style.opacity = '0.4'; btn.onclick = gpkgLoadFile; }
+      return processNextTable();
     });
+  }).then(function() {
+    if (db) { try { db.close(); } catch(e){} }
+
+    if (loadedCount === 0) throw new Error('Tidak ada layer yang berhasil dimuat (mungkin sistem koordinat tidak didukung atau geometri kosong).');
+
+    try {
+      if (allBounds.length) {
+        var combined = allBounds[0];
+        for (var i=1;i<allBounds.length;i++) combined = combined.extend(allBounds[i]);
+        _map.fitBounds(combined, { padding: [30,30] });
+      }
+    } catch(e) {}
+
+    if (typeof _layerOrderSync === 'function') _layerOrderSync();
+    if (typeof shpUpdateLayerList === 'function') shpUpdateLayerList();
+    gpkgUpdateLayerList();
+    if (typeof _persist === 'function') _persist();
+
+    gpkgSetProgress(100);
+    gpkgSetStatus('✓ ' + loadedCount + ' layer berhasil ditampilkan', '#34d399');
+    toast(loadedCount + ' layer GeoPackage dimuat ke peta', 'ok');
+
+    var picker = document.getElementById('gpkg-layer-picker');
+    if (picker) picker.style.display = 'none';
+    _gpkgFile = null; _gpkgParsedTables = null;
+    var nameEl = document.getElementById('gpkg-name-file');
+    var iconEl = document.getElementById('gpkg-icon-file');
+    var slotEl = document.getElementById('gpkg-slot-file');
+    if (nameEl) nameEl.textContent = 'Belum dipilih';
+    if (iconEl) { iconEl.textContent = '○'; iconEl.className = 'slot-miss'; }
+    if (slotEl) slotEl.classList.remove('has-file');
+    if (btn) { btn.disabled = true; btn.textContent = '⚡ Tampilkan di Peta'; btn.style.opacity = '0.4'; btn.onclick = gpkgLoadFile; }
   }).catch(function(err) {
     console.error('GPKG load error:', err);
+    if (db) { try { db.close(); } catch(e){} }
     gpkgSetStatus('❌ Gagal memuat layer: ' + err.message, 'var(--red)');
     gpkgSetProgress(0);
     if (btn) { btn.disabled = false; btn.textContent = '⚡ Tampilkan di Peta'; btn.style.opacity = '1'; }
@@ -5776,6 +6001,7 @@ function gpkgLoadSelectedLayers() {
 }
 
 /* ── Convert satu tabel GeoPackage (SQL.Database) → FeatureCollection GeoJSON ── */
+/* Versi SINKRON (dipertahankan untuk kompatibilitas, dipakai hanya utk tabel kecil) */
 function _gpkgTableToGeoJSON(db, t) {
   var features = [];
   var tblQ = '"' + t.tableName.replace(/"/g,'""') + '"';
@@ -5786,7 +6012,6 @@ function _gpkgTableToGeoJSON(db, t) {
   var geomIdx = cols.indexOf(t.geomCol);
   if (geomIdx < 0) return { type:'FeatureCollection', features: features };
 
-  // Siapkan definisi proj4 sekali di awal (bukan per-fitur) demi performa
   var srcDef = null;
   var crs = t.crsInfo;
   if (crs && crs.needsReproject) {
@@ -5804,7 +6029,7 @@ function _gpkgTableToGeoJSON(db, t) {
       geometry = _gpkgParseGeometry(geomBlob);
       if (geometry && srcDef) geometry = _gpkgReprojectGeometry(geometry, srcDef);
     } catch(e) {
-      return; // lewati fitur dengan geometri korup/tidak didukung
+      return;
     }
     if (!geometry) return;
 
@@ -5818,6 +6043,75 @@ function _gpkgTableToGeoJSON(db, t) {
   });
 
   return { type:'FeatureCollection', features: features };
+}
+
+/* ── Versi ASYNC (chunked) — dipakai untuk tabel besar agar browser tidak freeze.
+   Memecah proses parsing baris menjadi potongan-potongan kecil, dengan jeda
+   setTimeout(0) di antara potongan supaya browser sempat render UI/animasi
+   dan tab tidak masuk status "Not Responding". ── */
+function _gpkgTableToGeoJSONAsync(db, t, onProgress) {
+  return new Promise(function(resolve, reject) {
+    try {
+      var tblQ = '"' + t.tableName.replace(/"/g,'""') + '"';
+      var res = db.exec('SELECT * FROM ' + tblQ);
+      if (!res.length) return resolve({ type:'FeatureCollection', features: [] });
+
+      var cols = res[0].columns;
+      var geomIdx = cols.indexOf(t.geomCol);
+      if (geomIdx < 0) return resolve({ type:'FeatureCollection', features: [] });
+
+      var srcDef = null;
+      var crs = t.crsInfo;
+      if (crs && crs.needsReproject) {
+        srcDef = _gpkgGetProj4Def(crs.epsg);
+        if (!srcDef) {
+          return reject(new Error('Sistem koordinat layer ini (EPSG:' + (crs.epsg || t.srsId || '?') + ') tidak dikenali — reproject dulu ke EPSG:4326 (WGS84) di QGIS sebelum upload.'));
+        }
+      }
+
+      var rows = res[0].values;
+      var total = rows.length;
+      var features = [];
+      var i = 0;
+      var CHUNK = 500; // jumlah baris diproses per "tick" sebelum kasih napas ke browser
+
+      function processChunk() {
+        var end = Math.min(i + CHUNK, total);
+        for (; i < end; i++) {
+          var row = rows[i];
+          var geomBlob = row[geomIdx];
+          if (!geomBlob) continue;
+          var geometry;
+          try {
+            geometry = _gpkgParseGeometry(geomBlob);
+            if (geometry && srcDef) geometry = _gpkgReprojectGeometry(geometry, srcDef);
+          } catch(e) {
+            continue; // lewati fitur dengan geometri korup/tidak didukung
+          }
+          if (!geometry) continue;
+
+          var props = {};
+          for (var ci = 0; ci < cols.length; ci++) {
+            if (ci === geomIdx) continue;
+            props[cols[ci]] = row[ci];
+          }
+          features.push({ type:'Feature', geometry: geometry, properties: props });
+        }
+
+        if (typeof onProgress === 'function') onProgress(i, total);
+
+        if (i < total) {
+          setTimeout(processChunk, 0); // kasih browser kesempatan render sebelum lanjut
+        } else {
+          resolve({ type:'FeatureCollection', features: features });
+        }
+      }
+
+      processChunk();
+    } catch (err) {
+      reject(err);
+    }
+  });
 }
 
 /* ── Parser GeoPackage Binary geometry format (OGC GeoPackage §3.1.2.1) ──
@@ -6126,6 +6420,16 @@ function _dxfEntityToFeatures(entity, xform) {
     if (!v) return xform(0, 0);
     return xform(+v.x || 0, +v.y || 0);
   }
+  /* pt3: seperti pt() tapi menyertakan Z per-vertex sebagai koordinat ke-3
+     [lon, lat, z]. PENTING untuk polyline 3D (mis. garis batas terrain /
+     breakline) yang Z-nya BERVARIASI sepanjang garis — kalau hanya disimpan
+     satu elevasi rata-rata per garis, interpolasi raster menyuntikkan
+     "dinding" elevasi salah di sepanjang garis itu (sumber duri/tirai di 3D). */
+  function pt3(v) {
+    var xy = pt(v);
+    if (v && typeof v.z === 'number' && isFinite(v.z)) return [xy[0], xy[1], v.z];
+    return xy;
+  }
   function zOf(v) {
     if (v && typeof v.z === 'number' && isFinite(v.z)) return v.z;
     if (entity && typeof entity.elevation === 'number' && isFinite(entity.elevation)) return entity.elevation;
@@ -6140,6 +6444,27 @@ function _dxfEntityToFeatures(entity, xform) {
   }
   function props(extra) {
     var base = { layer: (entity.layer || ''), type: entity.type || '' };
+    // Atribut CAD mentah dari parser — ditampilkan apa adanya di tabel/popup atribut.
+    // Warna: colorIndex (ACI, 0=ByBlock 256=ByLayer) + color (nilai RGB terurai dari ACI/true color).
+    if (entity.colorIndex !== undefined && entity.colorIndex !== null) base.colorIndex = entity.colorIndex;
+    if (entity.color !== undefined && entity.color !== null) base.color = entity.color;
+    if (entity.lineType) base.lineType = entity.lineType;
+    if (entity.lineTypeScale !== undefined && entity.lineTypeScale !== null) base.lineTypeScale = entity.lineTypeScale;
+    if (entity.lineweight !== undefined && entity.lineweight !== null) base.lineweight = entity.lineweight;
+    if (entity.handle !== undefined && entity.handle !== null) base.handle = entity.handle;
+    if (entity.ownerHandle) base.ownerHandle = entity.ownerHandle;
+    if (entity.materialObjectHandle) base.materialObjectHandle = entity.materialObjectHandle;
+    if (entity.visible !== undefined) base.visible = entity.visible;
+    if (entity.inPaperSpace !== undefined) base.inPaperSpace = entity.inPaperSpace;
+    // XDATA / extended data kustom (mis. atribut tambang: kode blok, ID, dsb — jika ada di file)
+    if (entity.extendedData) {
+      try {
+        if (entity.extendedData.applicationName) base.xdataApp = entity.extendedData.applicationName;
+        if (Array.isArray(entity.extendedData.customStrings) && entity.extendedData.customStrings.length) {
+          base.xdata = entity.extendedData.customStrings.join(' | ');
+        }
+      } catch(e) { /* abaikan XDATA yang tidak terbaca */ }
+    }
     Object.keys(extra || {}).forEach(function(k){ base[k] = extra[k]; });
     return base;
   }
@@ -6156,14 +6481,14 @@ function _dxfEntityToFeatures(entity, xform) {
       if (vv.length >= 2) {
         var zl = zList(vv);
         feats.push({ type:'Feature', properties: props({ elevation: avg(zl) }),
-          geometry:{ type:'LineString', coordinates: vv.map(pt) } });
+          geometry:{ type:'LineString', coordinates: vv.map(pt3) } });
       }
 
     /* LWPOLYLINE */
     } else if (t === 'LWPOLYLINE') {
       var lv = safeArr(entity.vertices);
       if (lv.length >= 2) {
-        var lcoords = lv.map(pt);
+        var lcoords = lv.map(pt3);
         var lElev = avg(zList(lv));
         if (lElev === null && typeof entity.elevation === 'number') lElev = entity.elevation;
         var lclosed = !!(entity.shape || entity.closed);
@@ -6183,7 +6508,7 @@ function _dxfEntityToFeatures(entity, xform) {
         return v && !v.curveFitTangent && !v.splineControlPoint && !v.skipped;
       });
       if (pv.length >= 2) {
-        var pcoords = pv.map(pt);
+        var pcoords = pv.map(pt3);
         var pElev = avg(zList(pv));
         if (pElev === null && typeof entity.elevation === 'number') pElev = entity.elevation;
         var pclosed = !!(entity.shape || entity.closed || entity.periodic);
@@ -6201,7 +6526,7 @@ function _dxfEntityToFeatures(entity, xform) {
     } else if (t === '3DFACE') {
       var vf = ['vertex1','vertex2','vertex3','vertex4'].map(function(k){ return entity[k]; }).filter(Boolean);
       if (vf.length >= 3) {
-        var fcoords = vf.map(pt); fcoords.push(fcoords[0]);
+        var fcoords = vf.map(pt3); fcoords.push(fcoords[0]);
         feats.push({ type:'Feature', properties: props({ elevation: avg(zList(vf)) }),
           geometry:{ type:'Polygon', coordinates:[fcoords] } });
       }
@@ -6326,32 +6651,87 @@ function _dxfHasElevationData(features) {
    Dipakai baik oleh convert-ke-TIF maupun oleh index elevasi (profil elevasi garis). */
 function _dxfExtractElevPoints(layerObj) {
   var pts = [];
+  // Batas total titik supaya Delaunay (Bowyer-Watson) tetap kencang di browser.
+  var MAX_PTS = 10000;
+
   (layerObj.features || []).forEach(function(f) {
     var g = f.geometry, p = f.properties || {};
     if (!g) return;
     var elev = (typeof p.elevation === 'number' && isFinite(p.elevation)) ? p.elevation : null;
-    if (elev === null) return; // butuh nilai Z untuk jadi titik elevasi
+
+    // Z per-vertex (koordinat ke-3) lebih akurat daripada elevasi rata-rata
+    // per-feature — wajib untuk polyline 3D yang Z-nya bervariasi (breakline,
+    // garis batas terrain). Fallback ke elevasi feature bila vertex tanpa Z.
+    function zAt(c) {
+      if (c && c.length > 2 && isFinite(+c[2])) return +c[2];
+      return elev;
+    }
 
     function addCoord(c) {
       if (!c || c.length < 2) return;
       var lon = +c[0], lat = +c[1];
       if (!isFinite(lon) || !isFinite(lat)) return;
-      pts.push({ lon: lon, lat: lat, elev: elev });
+      var z = zAt(c);
+      if (z === null) return;
+      pts.push({ lon: lon, lat: lat, elev: z });
+    }
+
+    /* DENSIFIKASI: tambahkan titik antara di segmen garis yang panjang.
+       Tanpa ini, segmen lurus panjang (vertex jarang) membuat triangle
+       Delaunay "memotong" lintasan garis kontur — permukaan hasil TIF
+       melenceng dari bentuk garis DXF asli. Target jarak antar titik
+       ~2.5 m (dalam derajat, dikonversi kasar di lintang lokal). */
+    function addLine(coords) {
+      if (!coords || !coords.length) return;
+      var prev = null, prevZ = null;
+      for (var i = 0; i < coords.length; i++) {
+        var c = coords[i];
+        if (!c || c.length < 2) continue;
+        var lon = +c[0], lat = +c[1];
+        if (!isFinite(lon) || !isFinite(lat)) continue;
+        var z = zAt(c);
+        if (z === null) { prev = null; prevZ = null; continue; }
+        if (prev && pts.length < MAX_PTS) {
+          var mLat = 111320, mLon = 111320 * Math.cos(lat * Math.PI / 180);
+          var dxm = (lon - prev.lon) * mLon, dym = (lat - prev.lat) * mLat;
+          var distM = Math.sqrt(dxm * dxm + dym * dym);
+          var step = 3.5; // meter
+          if (distM > step * 1.5) {
+            var nSub = Math.min(200, Math.floor(distM / step));
+            for (var s = 1; s < nSub; s++) {
+              var t = s / nSub;
+              // Z ikut diinterpolasi linear antar vertex — penting untuk
+              // polyline 3D miring (batas terrain/breakline dengan Z bervariasi)
+              pts.push({ lon: prev.lon + (lon - prev.lon) * t, lat: prev.lat + (lat - prev.lat) * t, elev: prevZ + (z - prevZ) * t });
+              if (pts.length >= MAX_PTS) break;
+            }
+          }
+        }
+        pts.push({ lon: lon, lat: lat, elev: z });
+        prev = { lon: lon, lat: lat };
+        prevZ = z;
+      }
     }
 
     if (g.type === 'Point') {
       addCoord(g.coordinates);
     } else if (g.type === 'LineString') {
-      (g.coordinates || []).forEach(addCoord);
+      addLine(g.coordinates || []);
     } else if (g.type === 'Polygon') {
-      (g.coordinates || []).forEach(function(ring) { (ring || []).forEach(addCoord); });
+      (g.coordinates || []).forEach(function(ring) { addLine(ring || []); });
     } else if (g.type === 'MultiLineString' || g.type === 'MultiPolygon') {
       (g.coordinates || []).forEach(function(part) {
-        if (g.type === 'MultiLineString') part.forEach(addCoord);
-        else (part || []).forEach(function(ring) { (ring || []).forEach(addCoord); });
+        if (g.type === 'MultiLineString') addLine(part);
+        else (part || []).forEach(function(ring) { addLine(ring || []); });
       });
     }
   });
+
+  // Kalau kebanyakan titik (file sangat padat), thin merata supaya Delaunay tetap jalan
+  if (pts.length > MAX_PTS) {
+    var keepEvery = Math.ceil(pts.length / MAX_PTS);
+    pts = pts.filter(function(_, i) { return i % keepEvery === 0; });
+  }
   return pts;
 }
 
@@ -6385,10 +6765,213 @@ function _dxfBuildElevIndex(layerObj) {
   return { pts: pts, xmin: xmin, xmax: xmax, ymin: ymin, ymax: ymax, cells: cells, cw: cw, ch: ch, buckets: buckets };
 }
 
+/* ============================================================
+   DELAUNAY TRIANGULATION + BARYCENTRIC LINEAR INTERPOLATION
+   ------------------------------------------------------------
+   IDW titik-ke-titik ternyata BURUK untuk data kontur padat/bench
+   (lereng bertingkat): titik-titik dari kontur elevasi berbeda yang
+   berdekatan secara horizontal saling "tarik-menarik" dalam radius
+   pencarian, menghasilkan permukaan bergelombang/noise alih-alih
+   mengikuti bentuk bench yang tajam & rapi seperti pada DXF asli.
+
+   Solusi: triangulasi Delaunay dari titik-titik elevasi (metode
+   standar untuk "Topo to Raster" / TIN interpolation di GIS), lalu
+   tiap sel grid diisi lewat interpolasi linear barycentric di dalam
+   triangle yang menaunginya. Ini mengikuti garis kontur asli dengan
+   jauh lebih presisi, termasuk undakan/bench tajam, karena tidak
+   pernah "mencampur" elevasi dari dua sisi kontur berbeda kecuali
+   memang bertetangga langsung dalam triangulasi.
+
+   Implementasi: Bowyer-Watson incremental Delaunay, ringan & tanpa
+   dependency eksternal (supaya SandGIS tetap single-file HTML).
+   ============================================================ */
+
+function _dxfDelaunay(pts) {
+  var n = pts.length;
+  if (n < 3) return null;
+
+  var xmin = Infinity, xmax = -Infinity, ymin = Infinity, ymax = -Infinity;
+  for (var i = 0; i < n; i++) {
+    if (pts[i].lon < xmin) xmin = pts[i].lon;
+    if (pts[i].lon > xmax) xmax = pts[i].lon;
+    if (pts[i].lat < ymin) ymin = pts[i].lat;
+    if (pts[i].lat > ymax) ymax = pts[i].lat;
+  }
+  var dx = xmax - xmin, dy = ymax - ymin;
+  var dmax = Math.max(dx, dy) || 1e-9;
+  var midx = (xmin + xmax) / 2, midy = (ymin + ymax) / 2;
+
+  var P = pts.slice();
+  var siA = n, siB = n + 1, siC = n + 2;
+  P.push({ lon: midx - 20 * dmax, lat: midy - dmax });
+  P.push({ lon: midx,            lat: midy + 20 * dmax });
+  P.push({ lon: midx + 20 * dmax, lat: midy - dmax });
+
+  function circumcircle(a, b, c) {
+    var ax = a.lon, ay = a.lat, bx = b.lon, by = b.lat, cx = c.lon, cy = c.lat;
+    var d = 2 * (ax * (by - cy) + bx * (cy - ay) + cx * (ay - by));
+    if (Math.abs(d) < 1e-14) return null;
+    var ux = ((ax*ax+ay*ay)*(by-cy) + (bx*bx+by*by)*(cy-ay) + (cx*cx+cy*cy)*(ay-by)) / d;
+    var uy = ((ax*ax+ay*ay)*(cx-bx) + (bx*bx+by*by)*(ax-cx) + (cx*cx+cy*cy)*(bx-ax)) / d;
+    var r2 = (ax-ux)*(ax-ux) + (ay-uy)*(ay-uy);
+    return { x: ux, y: uy, r2: r2 };
+  }
+
+  /* OPTIMASI KRITIS: circumcircle di-cache SEKALI saat triangle dibuat
+     (properti .cc), bukan dihitung ulang untuk semua triangle pada setiap
+     penyisipan titik. Tanpa cache ini, versi sebelumnya menghitung
+     circumcircle O(n × jumlah_triangle) kali — untuk ribuan titik hasil
+     densifikasi itu miliaran operasi float dan browser tampak "stuck". */
+  function mkTri(a, b, c) {
+    return { v: [a, b, c], cc: circumcircle(P[a], P[b], P[c]) };
+  }
+
+  var triangles = [mkTri(siA, siB, siC)];
+
+  for (var pi = 0; pi < n; pi++) {
+    var p = P[pi];
+    var px = p.lon, py = p.lat;
+    var badTriangles = [];
+    for (var t = 0; t < triangles.length; t++) {
+      var cc = triangles[t].cc;
+      if (!cc) continue;
+      var ddx = px - cc.x, ddy = py - cc.y;
+      if (ddx*ddx + ddy*ddy <= cc.r2 * 1.0000001) badTriangles.push(t);
+    }
+
+    var edgeCount = {};
+    function edgeKey(a, b) { return a < b ? a + '_' + b : b + '_' + a; }
+    badTriangles.forEach(function(ti) {
+      var tri = triangles[ti].v;
+      var edges = [[tri[0],tri[1]],[tri[1],tri[2]],[tri[2],tri[0]]];
+      edges.forEach(function(e) {
+        var k = edgeKey(e[0], e[1]);
+        if (!edgeCount[k]) edgeCount[k] = { e: e, cnt: 0 };
+        edgeCount[k].cnt++;
+      });
+    });
+    var boundary = [];
+    for (var k in edgeCount) if (edgeCount[k].cnt === 1) boundary.push(edgeCount[k].e);
+
+    badTriangles.sort(function(a,b){return b-a;}).forEach(function(ti) { triangles.splice(ti, 1); });
+    boundary.forEach(function(e) { triangles.push(mkTri(e[0], e[1], pi)); });
+  }
+
+  var outTris = [];
+  triangles.forEach(function(t) {
+    var tri = t.v;
+    if (tri[0] < n && tri[1] < n && tri[2] < n) outTris.push(tri);
+  });
+  var triangles2 = outTris;
+
+  /* ALPHA-SHAPE TRIM: Delaunay standar selalu mengisi seluruh convex hull,
+     termasuk "jembatan" kosong di antara kolam-kolam terpisah dan cekungan
+     di tepi area. Triangle jembatan ini menghasilkan permukaan karangan
+     yang membuat kontur TIF melebar jauh keluar dari garis DXF asli.
+     Solusi: buang triangle yang sisi terpanjangnya jauh melebihi jarak
+     antar titik data tipikal (threshold = median panjang sisi × faktor). */
+  if (triangles2.length > 4) {
+    function edgeLen2(a, b) {
+      var mLat = 111320, mLon = 111320 * Math.cos(((a.lat + b.lat) / 2) * Math.PI / 180);
+      var dxm = (a.lon - b.lon) * mLon, dym = (a.lat - b.lat) * mLat;
+      return dxm * dxm + dym * dym;
+    }
+    var maxEdges = triangles2.map(function(tri) {
+      var a = P[tri[0]], b = P[tri[1]], c = P[tri[2]];
+      return Math.max(edgeLen2(a, b), edgeLen2(b, c), edgeLen2(c, a));
+    });
+
+    /* Ambang trim dihitung dari JARAK ANTAR GARIS KONTUR (edge yang
+       menghubungkan dua elevasi BERBEDA), BUKAN jarak titik sepanjang garis.
+       Di lereng landai, kontur bisa berjarak puluhan meter — triangle yang
+       menjembataninya adalah permukaan sah dan tidak boleh dibuang (kalau
+       dibuang, permukaan bolong & 3D-nya berduri seperti kasus sebelumnya).
+       Yang tetap dibuang hanya triangle yang JAUH lebih panjang dari jarak
+       antar kontur tipikal (jembatan antar area terpisah / tepi convex hull). */
+    var crossLens = [];
+    triangles2.forEach(function(tri) {
+      var pa = P[tri[0]], pb = P[tri[1]], pc = P[tri[2]];
+      [[pa, pb], [pb, pc], [pc, pa]].forEach(function(e) {
+        if (Math.abs((e[0].elev || 0) - (e[1].elev || 0)) > 1e-6) crossLens.push(edgeLen2(e[0], e[1]));
+      });
+    });
+    var thr;
+    if (crossLens.length > 10) {
+      crossLens.sort(function(x, y) { return x - y; });
+      var p85 = Math.sqrt(crossLens[Math.floor(crossLens.length * 0.85)]);
+      thr = Math.max(25, p85 * 2.0);
+    } else {
+      // fallback lama: dari median sisi terpanjang triangle
+      var sorted = maxEdges.slice().sort(function(x, y) { return x - y; });
+      thr = Math.max(25, Math.sqrt(sorted[Math.floor(sorted.length / 2)] || 1) * 6);
+    }
+    var thr2 = thr * thr;
+    triangles2 = triangles2.filter(function(tri, ti) { return maxEdges[ti] <= thr2; });
+  }
+
+  return { points: P, triangles: triangles2, n: n };
+}
+
+function _dxfBuildTriIndex(del) {
+  var P = del.points, tris = del.triangles;
+  var xmin = Infinity, xmax = -Infinity, ymin = Infinity, ymax = -Infinity;
+  for (var i = 0; i < del.n; i++) {
+    if (P[i].lon < xmin) xmin = P[i].lon;
+    if (P[i].lon > xmax) xmax = P[i].lon;
+    if (P[i].lat < ymin) ymin = P[i].lat;
+    if (P[i].lat > ymax) ymax = P[i].lat;
+  }
+  var cells = 96;
+  var cw = (xmax - xmin) / cells || 1e-9;
+  var ch = (ymax - ymin) / cells || 1e-9;
+  var buckets = {};
+  function cellOf(x, y) {
+    return { cx: Math.min(cells-1, Math.max(0, Math.floor((x - xmin)/cw))), cy: Math.min(cells-1, Math.max(0, Math.floor((y - ymin)/ch))) };
+  }
+  tris.forEach(function(tri, ti) {
+    var a = P[tri[0]], b = P[tri[1]], c = P[tri[2]];
+    var txmin = Math.min(a.lon,b.lon,c.lon), txmax = Math.max(a.lon,b.lon,c.lon);
+    var tymin = Math.min(a.lat,b.lat,c.lat), tymax = Math.max(a.lat,b.lat,c.lat);
+    var c0 = cellOf(txmin, tymin), c1 = cellOf(txmax, tymax);
+    for (var cx = c0.cx; cx <= c1.cx; cx++) {
+      for (var cy = c0.cy; cy <= c1.cy; cy++) {
+        var k = cx + '_' + cy;
+        if (!buckets[k]) buckets[k] = [];
+        buckets[k].push(ti);
+      }
+    }
+  });
+  return { points: P, triangles: tris, xmin: xmin, xmax: xmax, ymin: ymin, ymax: ymax, cells: cells, cw: cw, ch: ch, buckets: buckets };
+}
+
+function _dxfSampleTriIndex(triIdx, lon, lat) {
+  var cx = Math.floor((lon - triIdx.xmin) / triIdx.cw);
+  var cy = Math.floor((lat - triIdx.ymin) / triIdx.ch);
+  cx = Math.min(triIdx.cells - 1, Math.max(0, cx));
+  cy = Math.min(triIdx.cells - 1, Math.max(0, cy));
+  var b = triIdx.buckets[cx + '_' + cy];
+  if (!b) return null;
+  var P = triIdx.points, tris = triIdx.triangles;
+  for (var i = 0; i < b.length; i++) {
+    var tri = tris[b[i]];
+    var a = P[tri[0]], v1 = P[tri[1]], v2 = P[tri[2]];
+    var denom = (v1.lat - v2.lat) * (a.lon - v2.lon) + (v2.lon - v1.lon) * (a.lat - v2.lat);
+    if (Math.abs(denom) < 1e-16) continue;
+    var w0 = ((v1.lat - v2.lat) * (lon - v2.lon) + (v2.lon - v1.lon) * (lat - v2.lat)) / denom;
+    var w1 = ((v2.lat - a.lat) * (lon - v2.lon) + (a.lon - v2.lon) * (lat - v2.lat)) / denom;
+    var w2 = 1 - w0 - w1;
+    var eps = -1e-9;
+    if (w0 >= eps && w1 >= eps && w2 >= eps) {
+      return w0 * a.elev + w1 * v1.elev + w2 * v2.elev;
+    }
+  }
+  return null;
+}
+
 /* Sample elevasi pada satu titik (lon,lat) memakai IDW dari index di atas.
    Mencari tetangga di sel bucket sekitar (memperluas radius pencarian bertahap
    kalau sel terdekat kosong), lalu inverse-distance-weighted average. */
-function _dxfSampleElevIndex(idx, lon, lat, maxNeighbors) {
+function _dxfSampleElevIndex(idx, lon, lat, maxNeighbors, maxDistM) {
   if (!idx) return null;
   maxNeighbors = maxNeighbors || 12;
   var cx = Math.min(idx.cells - 1, Math.max(0, Math.floor((lon - idx.xmin) / idx.cw)));
@@ -6419,6 +7002,18 @@ function _dxfSampleElevIndex(idx, lon, lat, maxNeighbors) {
   var exact = withDist.find(function(w) { return w.d2 < 1e-14; });
   if (exact) return exact.elev;
 
+  /* BATAS CAKUPAN: kalau maxDistM di-set dan titik data terdekat lebih jauh
+     dari itu, kembalikan null (di luar cakupan). Tanpa batas ini IDW
+     "mengarang" nilai di mana saja — di mozaik profil elevasi, sumber DXF
+     akan menutupi seluruh garis dan sumber lain tak pernah kebagian. */
+  if (maxDistM && withDist.length) {
+    var mLat = 111320, mLon = 111320 * Math.cos(lat * Math.PI / 180);
+    var nd = Math.sqrt(withDist[0].d2);
+    // konversi kasar derajat→meter (pakai rata-rata skala lon/lat)
+    var ndM = nd * (mLat + mLon) / 2;
+    if (ndM > maxDistM) return null;
+  }
+
   var wsum = 0, vsum = 0;
   withDist.forEach(function(w) {
     var wt = 1 / w.d2;
@@ -6442,14 +7037,17 @@ function _dxfAutoGridSize(idx) {
   // Jarak rata-rata antar titik (perkiraan dari kerapatan titik / luas)
   var areaM2 = Math.max(widthM * heightM, 1);
   var avgSpacing = Math.sqrt(areaM2 / Math.max(idx.pts.length, 1));
-  // Jangan lebih rapat dari ~1/2 jarak titik asli (hindari "mengada-ada" detail)
-  var targetRes = Math.max(0.25, avgSpacing * 0.5);
+  // Jangan lebih rapat dari ~1/4 jarak titik asli. Untuk data kontur DXF hasil
+  // densifikasi (jarak titik ~4 m), ini menghasilkan grid ~1-2 m — cukup halus
+  // agar bench/undakan tidak bergerigi (aliasing) di tampilan 3D, tapi tetap
+  // dibatasi maxPixels di bawah supaya tidak berat.
+  var targetRes = Math.max(1.25, avgSpacing * 0.15);
 
   var width  = Math.round(widthM / targetRes);
   var height = Math.round(heightM / targetRes);
 
   // Batasi total pixel supaya browser tidak berat (maks ~4 juta pixel)
-  var maxPixels = 4000000;
+  var maxPixels = 2500000;
   var totalPixels = width * height;
   if (totalPixels > maxPixels) {
     var scale = Math.sqrt(maxPixels / totalPixels);
@@ -6472,6 +7070,15 @@ function _dxfBuildGeorasterFromIndex(idx) {
   var pixelWidth = (xmax - xmin) / width;
   var pixelHeight = (ymax - ymin) / height;
 
+  // Metode utama: Delaunay triangulation + interpolasi linear barycentric.
+  // Jauh lebih akurat daripada IDW murni untuk data kontur padat/bench —
+  // permukaan mengikuti bentuk kontur asli alih-alih "bergelombang" karena
+  // titik dari kontur elevasi tetangga saling tarik-menarik (lihat catatan
+  // di atas _dxfDelaunay). IDW dipakai HANYA sebagai fallback untuk piksel
+  // di luar convex hull triangulasi (area tepi tanpa titik di sekelilingnya).
+  var del = _dxfDelaunay(idx.pts);
+  var triIdx = del ? _dxfBuildTriIndex(del) : null;
+
   var values2D = new Array(height);
   var min = Infinity, max = -Infinity;
   for (var r = 0; r < height; r++) {
@@ -6479,8 +7086,16 @@ function _dxfBuildGeorasterFromIndex(idx) {
     var row = new Array(width);
     for (var c = 0; c < width; c++) {
       var lon = xmin + (c + 0.5) * pixelWidth;
-      var v = _dxfSampleElevIndex(idx, lon, lat, 10);
-      row[c] = v;
+      var v = triIdx ? _dxfSampleTriIndex(triIdx, lon, lat) : null;
+      if ((v === null || v === undefined) && !triIdx) {
+        // Fallback IDW HANYA kalau triangulasi gagal total (data < 3 titik valid).
+        v = _dxfSampleElevIndex(idx, lon, lat, 10);
+      }
+      // Piksel di luar area triangulasi (di luar cakupan garis DXF) sengaja
+      // dibiarkan null = noData = transparan, TIDAK diisi IDW. Ini yang membuat
+      // hasil TIF & konturnya menempel persis di area garis DXF asli, bukan
+      // melebar mengisi seluruh bounding box.
+      row[c] = (v === undefined ? null : v);
       if (v !== null && v !== undefined && isFinite(v)) {
         if (v < min) min = v;
         if (v > max) max = v;
@@ -6529,6 +7144,76 @@ function dxfConvertToTif(layerId) {
       // terintegrasi penuh dengan sistem TIF/mozaik yang sudah ada.
       tifRenderLayer(georaster, layerObj.name + '_kontur.tif', colorScheme);
 
+      /* ═══ KONTUR EKSAK DARI DXF ═══
+         Untuk TIF hasil konversi DXF, garis kontur TIDAK digambar ulang dari
+         raster (marching squares selalu punya deviasi kecil) melainkan diambil
+         LANGSUNG dari geometri garis DXF aslinya — hasilnya 100% identik
+         dengan gambar DXF. Interval & mayor juga dideteksi otomatis dari
+         selisih elevasi kontur DXF itu sendiri. */
+      var newTifLayer = _tifLayers[_tifLayers.length - 1];
+      if (newTifLayer) {
+        var exact = [];       // per-elevasi: { elev, lines: [ [[lat,lng],...], ... ] }
+        var byElev = {};
+        (layerObj.features || []).forEach(function(f) {
+          var g2 = f.geometry, p2 = f.properties || {};
+          if (!g2) return;
+          var ev = (typeof p2.elevation === 'number' && isFinite(p2.elevation)) ? p2.elevation : null;
+          if (ev === null) return;
+
+          /* Garis dengan Z BERVARIASI per-vertex (polyline 3D: batas terrain,
+             breakline) BUKAN garis kontur — jangan digambar sebagai kontur di
+             elevasi rata-ratanya. Hanya garis ber-Z konstan yang masuk daftar
+             kontur eksak; garis Z-variasi tetap dipakai untuk interpolasi raster. */
+          function zVaries(coords) {
+            var zmin = Infinity, zmax = -Infinity, found = false;
+            (coords || []).forEach(function(c) {
+              if (c && c.length > 2 && isFinite(+c[2])) {
+                found = true;
+                if (+c[2] < zmin) zmin = +c[2];
+                if (+c[2] > zmax) zmax = +c[2];
+              }
+            });
+            return found && (zmax - zmin) > 0.01;
+          }
+          var anyVaries = false;
+          if (g2.type === 'LineString') anyVaries = zVaries(g2.coordinates);
+          else if (g2.type === 'Polygon') (g2.coordinates || []).forEach(function(r) { if (zVaries(r)) anyVaries = true; });
+          else if (g2.type === 'MultiLineString') (g2.coordinates || []).forEach(function(pl) { if (zVaries(pl)) anyVaries = true; });
+          else if (g2.type === 'MultiPolygon') (g2.coordinates || []).forEach(function(poly) { (poly || []).forEach(function(r) { if (zVaries(r)) anyVaries = true; }); });
+          if (anyVaries) return;
+
+          function pushLine(coords) {
+            if (!coords || coords.length < 2) return;
+            var ll = [];
+            coords.forEach(function(c) {
+              if (c && isFinite(+c[0]) && isFinite(+c[1])) ll.push([+c[1], +c[0]]); // [lon,lat] → [lat,lng]
+            });
+            if (ll.length < 2) return;
+            var k = ev.toFixed(4);
+            if (!byElev[k]) { byElev[k] = { elev: ev, lines: [] }; exact.push(byElev[k]); }
+            byElev[k].lines.push(ll);
+          }
+          if (g2.type === 'LineString') pushLine(g2.coordinates);
+          else if (g2.type === 'Polygon') (g2.coordinates || []).forEach(pushLine);
+          else if (g2.type === 'MultiLineString') (g2.coordinates || []).forEach(pushLine);
+          else if (g2.type === 'MultiPolygon') (g2.coordinates || []).forEach(function(poly) { (poly || []).forEach(pushLine); });
+        });
+        if (exact.length) {
+          exact.sort(function(a, b) { return a.elev - b.elev; });
+          newTifLayer.dxfExactContours = exact;
+          // Deteksi interval = selisih terkecil (>0) antar elevasi berurutan
+          var minDiff = Infinity;
+          for (var di = 1; di < exact.length; di++) {
+            var dd = exact[di].elev - exact[di - 1].elev;
+            if (dd > 1e-6 && dd < minDiff) minDiff = dd;
+          }
+          if (isFinite(minDiff)) {
+            newTifLayer.contourInterval = Math.round(minDiff * 100) / 100;
+          }
+          if (newTifLayer.contourMajor == null) newTifLayer.contourMajor = 5;
+        }
+      }
+
       toast('✓ "' + layerObj.name + '" berhasil dikonversi ke layer TIF (grid ' + georaster.width + '×' + georaster.height + ', elevasi ' +
         georaster.mins[0].toFixed(2) + '–' + georaster.maxs[0].toFixed(2) + 'm)', 'ok');
     } catch (err) {
@@ -6543,13 +7228,57 @@ function dxfLoadFile() {
   if (!_map) { toast('Peta belum terbuka — buka tab Pemetaan dulu', 'err'); return; }
   if (typeof DxfParser === 'undefined') { toast('Pustaka DXF gagal dimuat — cek koneksi internet', 'err'); return; }
 
+  var fileSizeMB = _dxfFile.size / (1024*1024);
+
+  // Perkiraan kebutuhan memory: file teks DXF di-load 2x (string UTF-16 + AST parser)
+  // sebelum sempat dikonversi ke GeoJSON, jadi kasarnya ~4-5x ukuran file di puncak.
+  var estPeakMB = fileSizeMB * 5;
+  var deviceMemGB = navigator.deviceMemory || null; // hanya tersedia di Chrome/Edge, null di browser lain
+
+  if (fileSizeMB > 30) {
+    var warnLines = [
+      'File DXF berukuran ' + fileSizeMB.toFixed(0) + ' MB.',
+      'Perkiraan kebutuhan memory browser saat proses puncak: ~' + estPeakMB.toFixed(0) + ' MB.'
+    ];
+    if (deviceMemGB) {
+      warnLines.push('Memory perangkat terdeteksi: ~' + deviceMemGB + ' GB.');
+      if (estPeakMB > deviceMemGB * 1024 * 0.6) {
+        warnLines.push('⚠️ Perkiraan kebutuhan memory ini mendekati/melebihi kapasitas aman tab browser — risiko tab crash cukup tinggi.');
+      }
+    } else {
+      warnLines.push('(Info memory perangkat tidak tersedia di browser ini — Chrome/Edge desktop bisa menampilkan estimasi lebih akurat.)');
+    }
+    if (fileSizeMB > 300) {
+      warnLines.push('\n⚠️ File di atas 300 MB punya risiko TINGGI membuat tab browser crash sepenuhnya (bukan cuma lambat), karena keterbatasan memory JavaScript di browser — ini bukan sesuatu yang bisa sepenuhnya dihindari untuk file CAD sebesar ini.');
+      warnLines.push('Sangat disarankan: purge/audit file di AutoCAD, filter layer yang tidak perlu, atau pecah file per area sebelum upload.');
+    } else {
+      warnLines.push('\nDisarankan: hapus layer yang tidak perlu atau purge file di AutoCAD/QGIS sebelum upload.');
+    }
+    warnLines.push('\nTetap lanjutkan?');
+    var proceedDxf = confirm(warnLines.join('\n'));
+    if (!proceedDxf) return;
+  }
+
   var btn = document.getElementById('dxf-load-btn');
   if (btn) { btn.disabled = true; btn.textContent = '⏳ Memproses...'; }
   dxfSetStatus('Membaca file...', 'var(--mute)');
   dxfSetProgress(15);
 
+  var watchdogDxfDone = false;
+  // Timeout diskalakan lebih longgar untuk file sangat besar (hingga 10 menit)
+  var watchdogDxf = setTimeout(function() {
+    watchdogDxfDone = true;
+    dxfSetStatus('❌ Proses terlalu lama — file mungkin terlalu besar/kompleks untuk diproses di browser.', 'var(--red)');
+    dxfSetProgress(0);
+    if (btn) { btn.disabled = false; btn.textContent = '⚡ Tampilkan di Peta'; btn.style.opacity = '1'; }
+    toast('Proses DXF timeout — coba file yang lebih kecil atau sederhanakan gambar CAD-nya', 'err');
+  }, Math.max(45000, Math.min(fileSizeMB * 2500, 600000)));
+
   var reader = new FileReader();
   reader.onload = function(e) {
+    // Beri browser satu frame untuk repaint status/progress sebelum parseSync (sinkron & berat) dijalankan
+    setTimeout(function() {
+    if (watchdogDxfDone) return;
     try {
       dxfSetStatus('Mengurai entitas DXF...', 'var(--mute)');
       dxfSetProgress(45);
@@ -6579,9 +7308,21 @@ function dxfLoadFile() {
       });
       if (skipped > 0) console.info('[DXF] ' + skipped + ' entity dilewati karena error');
 
+      // Simpan info tipe entitas dulu (untuk pesan error jika perlu) SEBELUM
+      // membebaskan referensi dxf/entities mentah dari memory.
+      var entityTypesForError = features.length ? null : [...new Set(entities.map(function(e){return e.type;}))].join(', ');
+
+      // Bebaskan hasil parse mentah (AST DXF + entities) sesegera mungkin —
+      // untuk file besar ini bisa berupa ratusan MB yang tidak lagi diperlukan
+      // setelah dikonversi jadi GeoJSON features, biar garbage collector bisa
+      // membebaskannya sebelum tahap render (yang juga butuh memory besar).
+      dxf = null; entities = null;
+
+      clearTimeout(watchdogDxf);
+
       if (!features.length) {
-        dxfSetStatus('❌ Tidak ada entitas yang bisa dibaca. Tipe entitas di file: ' +
-          [...new Set((dxf.entities||[]).map(function(e){return e.type;}))] .join(', '), 'var(--red)');
+        clearTimeout(watchdogDxf);
+        dxfSetStatus('❌ Tidak ada entitas yang bisa dibaca. Tipe entitas di file: ' + entityTypesForError, 'var(--red)');
         dxfSetProgress(0);
         if (btn) { btn.disabled = false; btn.textContent = '⚡ Tampilkan di Peta'; btn.style.opacity = '1'; }
         toast('DXF tidak berisi entitas yang didukung', 'err');
@@ -6631,6 +7372,18 @@ function dxfLoadFile() {
         labelVisible: false, labelLayer: null,
         sourceType: 'dxf', hasElevation: hasElev
       };
+
+      // Untuk layer dengan sangat banyak fitur (khas file DXF besar), pakai Canvas
+      // renderer alih-alih SVG default Leaflet. SVG membuat satu elemen DOM per
+      // fitur — untuk ratusan ribu+ fitur ini sangat mahal (memory & lag render).
+      // Canvas menggambar semua fitur ke satu <canvas>, jauh lebih hemat.
+      if (features.length > 5000) {
+        try {
+          layerObj._forceRenderer = L.canvas({ padding: 0.5 });
+          console.info('[DXF] Memakai Canvas renderer (features: ' + features.length.toLocaleString() + ')');
+        } catch(e) { console.warn('[DXF] Gagal membuat Canvas renderer, fallback ke default', e); }
+      }
+
       try {
         layerObj.layer = _shpBuildLeafletLayer(geojson, layerObj, layerName);
         layerObj.layer.addTo(_map);
@@ -6638,6 +7391,7 @@ function dxfLoadFile() {
         console.error('[DXF] _shpBuildLeafletLayer error:', buildErr);
         // Fallback: render langsung via L.geoJSON
         layerObj.layer = L.geoJSON(geojson, {
+          renderer: layerObj._forceRenderer || undefined,
           style: { color: color, weight: 1.5, opacity: 0.85, fillOpacity: 0.15 },
           pointToLayer: function(f,ll){ return L.circleMarker(ll,{radius:4,color:color,fillOpacity:0.8}); }
         });
@@ -6669,12 +7423,21 @@ function dxfLoadFile() {
 
       toast('✓ ' + layerName + ' — ' + features.length.toLocaleString() + ' entitas dimuat', 'ok');
     } catch(err) {
+      clearTimeout(watchdogDxf);
       console.error('DXF parse error:', err);
       dxfSetStatus('❌ Gagal membaca file: ' + err.message, 'var(--red)');
       dxfSetProgress(0);
       if (btn) { btn.disabled = false; btn.textContent = '⚡ Tampilkan di Peta'; btn.style.opacity = '1'; }
       toast('Gagal membaca DXF — pastikan file valid dan berisi koordinat', 'err');
     }
+    }, 20);
+  };
+  reader.onerror = function() {
+    clearTimeout(watchdogDxf);
+    dxfSetStatus('❌ Gagal membaca file dari disk.', 'var(--red)');
+    dxfSetProgress(0);
+    if (btn) { btn.disabled = false; btn.textContent = '⚡ Tampilkan di Peta'; btn.style.opacity = '1'; }
+    toast('Gagal membaca file DXF dari disk', 'err');
   };
   reader.readAsText(_dxfFile);
 }
@@ -7527,9 +8290,71 @@ function _markerPopupHTML(m) {
     + '<div style="display:flex;justify-content:space-between;margin-bottom:'+(m.note?'8':'2')+'px;font-size:10px"><span style="color:#8bb8b0">DMS-Lng</span><span style="color:#a0c8b8">'+dmsLng+'</span></div>'
     + (m.note?'<div style="padding:6px 8px;background:rgba(26,176,166,0.05);border-radius:3px;color:#8bb8b0;font-size:10.5px;line-height:1.5;margin-bottom:8px">'+_e(m.note)+'</div>':'')
     + '<div style="display:flex;gap:6px;margin-top:8px">'
+    + '<button onclick="_markerCheckDxfElevation(\''+m.id+'\')" title="Cek elevasi Z dari layer TIF/DEMNAS atau DXF aktif di lokasi titik ini" style="flex:1;padding:5px 0;background:rgba(167,139,250,0.08);border:1px solid rgba(167,139,250,0.3);border-radius:3px;color:#a78bfa;cursor:pointer;font-family:\'Arial\',sans-serif;font-size:10px;font-weight:700">📐 CEK ELEVASI Z</button>'
+    + '</div>'
+    + '<div style="display:flex;gap:6px;margin-top:6px">'
     + '<button onclick="_editMarker(\''+m.id+'\')" style="flex:1;padding:5px 0;background:rgba(26,176,166,0.08);border:1px solid rgba(26,176,166,0.25);border-radius:3px;color:#1ab0a6;cursor:pointer;font-family:\'Arial\',sans-serif;font-size:10px;font-weight:700">✎ EDIT</button>'
     + '<button onclick="_delMarker(\''+m.id+'\')" style="flex:1;padding:5px 0;background:rgba(255,68,68,0.08);border:1px solid rgba(255,68,68,0.25);border-radius:3px;color:#ff4444;cursor:pointer;font-family:\'Arial\',sans-serif;font-size:10px;font-weight:700">✕ HAPUS</button>'
     + '</div></div>';
+}
+
+/* Cek elevasi Z pada lokasi sebuah marker, disampling dari SEMUA layer DXF aktif
+   yang punya data elevasi (pakai IDW index yang sama dipakai untuk profil elevasi garis).
+   Berguna untuk membandingkan Z mentah dari DXF dengan elevasi asli (MDPL) yang diketahui
+   user di titik tsb — supaya bisa dihitung offset/koreksi datum secara manual. */
+function _markerCheckDxfElevation(id) {
+  var m = _markers.find(function(x){ return x.id === id; });
+  if (!m) return;
+
+  var sources = _elevAvailableSources(); // gabungan layer TIF + layer DXF berelevasi (fungsi sudah ada, dipakai juga oleh profil elevasi garis)
+  if (!sources.length) {
+    toast('⚠ Belum ada layer TIF/DEMNAS atau DXF berelevasi aktif. Upload salah satunya dulu.', 'err');
+    return;
+  }
+
+  var results = sources.map(function(s) {
+    var z = null;
+    if (s.kind === 'tif') {
+      var tl = _tifLayers.find(function(x){ return x.id === s.id; });
+      if (tl && tl.georaster) {
+        try { z = _elevSampleGeoraster(tl.georaster, m.lat, m.lng); } catch(e) { z = null; }
+      }
+    } else if (s.kind === 'dxf') {
+      var dl = _shpLayers.find(function(x){ return x.id === s.id; });
+      if (dl) {
+        try {
+          var idx = _dxfBuildElevIndex(dl);
+          z = idx ? _dxfSampleElevIndex(idx, m.lng, m.lat, 12) : null;
+        } catch(e) { z = null; }
+      }
+    }
+    return { name: s.name, kind: s.kind, z: z };
+  });
+
+  var rows = results.map(function(r) {
+    var icon = r.kind === 'tif' ? '🏔️' : '📐';
+    var zTxt = (r.z === null || r.z === undefined || isNaN(r.z))
+      ? '<span style="color:var(--mute)">tidak terjangkau</span>'
+      : '<b style="color:' + (r.kind === 'tif' ? '#60aef0' : '#a78bfa') + '">' + r.z.toFixed(3) + '</b>';
+    return '<tr><td style="padding:4px 10px 4px 0;color:var(--txt2);font-size:10.5px;white-space:nowrap">' + icon + ' ' + _e(r.name) + '</td>' +
+           '<td style="padding:4px 0;font-size:11px;text-align:right">' + zTxt + '</td></tr>';
+  }).join('');
+
+  var html =
+    '<div style="font-family:\'Arial\',sans-serif;font-size:12px;min-width:240px">' +
+    '<div style="font-weight:700;font-size:12.5px;color:#a78bfa;margin-bottom:2px">📐 Cek Elevasi Z</div>' +
+    '<div style="color:var(--txt2);font-size:9.5px;margin-bottom:8px">di lokasi titik "' + _e(m.name) + '" — dari semua sumber TIF/DEMNAS 🏔️ &amp; DXF 📐 yang aktif</div>' +
+    '<table style="border-collapse:collapse;width:100%;margin-bottom:8px">' + rows + '</table>' +
+    '<div style="font-size:9px;color:var(--mute);line-height:1.5;border-top:1px solid var(--brd2);padding-top:6px">' +
+    'Bandingkan nilai antar sumber (mis. DXF vs DEMNAS/kontur RBI) untuk cek offset/koreksi datum. ' +
+    'Selisih konstan di beberapa titik cek → tinggal geser semua Z DXF dengan offset itu.' +
+    '</div>' +
+    '</div>';
+
+  L.popup({ minWidth: 260, closeButton: true })
+    .setLatLng([m.lat, m.lng])
+    .setContent(html)
+    .openOn(_map);
 }
 
 /* ─── Edit / hapus ───────────────────────────────────────────── */
@@ -10044,7 +10869,8 @@ function tifContourRebuild(l) {
       var levels = [];
       for (var lv = startLevel; lv <= max; lv += interval) levels.push(lv);
       // batasi jumlah level agar tidak macet di raster besar/interval kecil
-      if (levels.length > 400) {
+      // (tidak berlaku untuk mode kontur eksak DXF — jumlah garisnya sudah tetap)
+      if (levels.length > 400 && !(l.dxfExactContours && l.dxfExactContours.length)) {
         tifSetStatus('', '');
         toast('Interval kontur terlalu kecil untuk rentang elevasi ini (>400 garis) — perbesar interval.', 'err');
         l.contourBuilding = false;
@@ -10063,6 +10889,52 @@ function tifContourRebuild(l) {
       // Simpan semua data garis major beserta koordinatnya untuk dynamic labeling
       // _contourLines: [{level, lines:[[lat,lng],...], isMajor}]
       var contourLinesData = [];
+
+      /* ═══ MODE EKSAK (TIF hasil konversi DXF) ═══
+         Kalau layer punya geometri kontur asli dari DXF, gambar POLYLINE
+         ASLINYA langsung — bukan hasil marching squares dari raster — supaya
+         garis kontur 100% identik dengan gambar DXF sumber. Interval dipakai
+         sebagai filter level (kelipatan interval saja yang tampil), mayor
+         mengikuti pengaturan "mayor tiap N" seperti biasa. */
+      if (l.dxfExactContours && l.dxfExactContours.length) {
+        var shown = l.dxfExactContours.filter(function(ec) {
+          // tampilkan elevasi yang (mendekati) kelipatan interval dari elevasi terendah
+          var rel = (ec.elev - l.dxfExactContours[0].elev) / interval;
+          return Math.abs(rel - Math.round(rel)) < 0.02;
+        });
+        if (!shown.length) shown = l.dxfExactContours; // interval tidak cocok → tampilkan semua
+        shown.forEach(function(ec, i) {
+          var isMajor = (i % majorEvery) === 0;
+          var _wMinor = l.contourWeightMinor != null ? l.contourWeightMinor : 0.8;
+          var _wMajor = l.contourWeightMajor != null ? l.contourWeightMajor : 2.0;
+          var _opBase = l.contourOpacity    != null ? l.contourOpacity / 100 : 0.70;
+          var majorLines = [];
+          ec.lines.forEach(function(line) {
+            if (line.length < 2) return;
+            var pl = L.polyline(line, {
+              color: l.contourColor || '#e0a020',
+              weight:  isMajor ? _wMajor : _wMinor,
+              opacity: isMajor ? Math.min(1, _opBase * 1.25) : _opBase,
+              pane: 'tifContourPane',
+              _isMajor: isMajor
+            });
+            group.addLayer(pl);
+            if (isMajor) majorLines.push(line);
+          });
+          if (isMajor && majorLines.length) contourLinesData.push({ level: ec.elev, lines: majorLines });
+        });
+
+        l.contourLayerGroup = group;
+        l._contourLinesData = contourLinesData;
+        l.contourCount = shown.length;
+        l.contourBuilding = false;
+        if (_map) group.addTo(_map);
+        _tifContourEnsureMapListener();
+        setTimeout(function(){ tifContourLabelRefresh(l); }, 80);
+        tifUpdateLayerList();
+        _persist();
+        return; // selesai — tidak perlu marching squares
+      }
 
       levels.forEach(function(level, i) {
         var isMajor = (i % majorEvery) === 0;
@@ -10231,13 +11103,116 @@ function close3DMap() {
   _map3d.geo = null; _map3d.kmzGroup = null;
 }
 
+/* ═══ MOZAIK 3D — gabungkan semua layer TIF menjadi satu georaster virtual ═══
+   Prioritas: layer dengan cakupan geografis LEBIH KECIL dicoba duluan (biasanya
+   TIF desain hasil konversi DXF menimpa DEMNAS di area rancangannya), lalu
+   layer yang lebih luas jadi fallback — sama seperti logika mozaik profil
+   elevasi. Piksel di luar semua cakupan tetap noData/transparan. */
+function _map3dBuildMosaicGeoraster(focusMode) {
+  if (_tifLayers.length < 2) return null;
+
+  // Cache: mozaik hanya dihitung ulang jika susunan layer TIF berubah —
+  // ganti eksagerasi/skema warna/wireframe cukup pakai hasil yang sama.
+  var sig = (focusMode ? 'focus:' : 'full:') + _tifLayers.map(function(l){ return l.id; }).join('|');
+  if (_map3d._mosaicCache && _map3d._mosaicCache.sig === sig) return _map3d._mosaicCache.data;
+
+  // Urutkan prioritas: bbox terkecil → terbesar
+  var ordered = _tifLayers.slice().sort(function(a, b) {
+    var ga = a.georaster, gb = b.georaster;
+    var areaA = Math.abs((ga.xmax - ga.xmin) * (ga.ymax - ga.ymin));
+    var areaB = Math.abs((gb.xmax - gb.xmin) * (gb.ymax - gb.ymin));
+    return areaA - areaB;
+  });
+
+  // Union bbox semua layer
+  var xmin = Infinity, xmax = -Infinity, ymin = Infinity, ymax = -Infinity;
+  ordered.forEach(function(l) {
+    var g = l.georaster;
+    if (g.xmin < xmin) xmin = g.xmin;
+    if (g.xmax > xmax) xmax = g.xmax;
+    if (g.ymin < ymin) ymin = g.ymin;
+    if (g.ymax > ymax) ymax = g.ymax;
+  });
+  if (!isFinite(xmin)) return null;
+
+  /* MODE FOKUS: crop bbox ke sekitar layer TERKECIL (biasanya TIF desain
+     hasil konversi DXF) + margin 75% di tiap sisi sebagai konteks terrain
+     DEMNAS di sekelilingnya. Tanpa ini, area desain ~1-2 km "tenggelam"
+     kalau bbox mozaik seluas ubin DEMNAS puluhan km — hanya kebagian
+     belasan piksel sehingga tak terlihat di mesh 3D. */
+  if (focusMode) {
+    var gs = ordered[0].georaster; // ordered[0] = bbox terkecil
+    var fw = gs.xmax - gs.xmin, fh = gs.ymax - gs.ymin;
+    var mx = fw * 0.75, my = fh * 0.75;
+    xmin = Math.max(xmin, gs.xmin - mx);
+    xmax = Math.min(xmax, gs.xmax + mx);
+    ymin = Math.max(ymin, gs.ymin - my);
+    ymax = Math.min(ymax, gs.ymax + my);
+  }
+
+  // Resolusi grid gabungan: maks ~700×700 (≈490 ribu piksel — ringan tapi
+  // masih lebih rapat dari mesh 3D 300×300, jadi tidak ada detail terbuang)
+  var maxDim = 700;
+  var aspect = (xmax - xmin) / ((ymax - ymin) || 1e-12);
+  var width, height;
+  if (aspect >= 1) { width = maxDim; height = Math.max(10, Math.round(maxDim / aspect)); }
+  else { height = maxDim; width = Math.max(10, Math.round(maxDim * aspect)); }
+  var pixelWidth = (xmax - xmin) / width;
+  var pixelHeight = (ymax - ymin) / height;
+
+  var values2D = new Array(height);
+  var min = Infinity, max = -Infinity;
+  for (var r = 0; r < height; r++) {
+    var lat = ymax - (r + 0.5) * pixelHeight;
+    var row = new Array(width);
+    for (var c = 0; c < width; c++) {
+      var lng = xmin + (c + 0.5) * pixelWidth;
+      var v = null;
+      for (var i = 0; i < ordered.length; i++) {
+        v = _elevSampleGeoraster(ordered[i].georaster, lat, lng);
+        if (v !== null) break;
+      }
+      row[c] = v;
+      if (v !== null && isFinite(v)) {
+        if (v < min) min = v;
+        if (v > max) max = v;
+      }
+    }
+    values2D[r] = row;
+  }
+  if (!isFinite(min) || !isFinite(max)) return null;
+
+  var result = {
+    georaster: {
+      width: width, height: height,
+      xmin: xmin, xmax: xmax, ymin: ymin, ymax: ymax,
+      pixelWidth: pixelWidth, pixelHeight: pixelHeight,
+      projection: 4326, noDataValue: null, numberOfRasters: 1,
+      mins: [min], maxs: [max], values: [values2D]
+    },
+    min: min, max: max,
+    name: (focusMode ? 'Mozaik Fokus Desain (' : 'Mozaik (') + ordered.map(function(l){ return l.name; }).join(' + ') + ')',
+    id: focusMode ? '__mosaic_focus__' : '__mosaic__'
+  };
+  _map3d._mosaicCache = { sig: sig, data: result };
+  return result;
+}
+
 function map3dPopulateLayerSelect() {
   var sel = document.getElementById('map3d-layer-select');
   if (!sel) return;
-  sel.innerHTML = _tifLayers.map(function(l) {
+  var opts = _tifLayers.map(function(l) {
     return '<option value="'+l.id+'">'+_e(l.name)+' ('+Math.round(l.min)+'–'+Math.round(l.max)+' m)</option>';
-  }).join('');
-  if (_map3d.activeLayerId && _tifLayers.find(function(l){return l.id===_map3d.activeLayerId;})) {
+  });
+  // Opsi mozaik gabungan hanya relevan jika ada ≥2 layer TIF
+  if (_tifLayers.length >= 2) {
+    opts.unshift('<option value="__mosaic__">🌐 Mozaik — gabungan semua TIF ('+_tifLayers.length+' layer)</option>');
+    opts.unshift('<option value="__mosaic_focus__">🎯 Mozaik Fokus — area desain + terrain sekitar</option>');
+  }
+  sel.innerHTML = opts.join('');
+  if ((_map3d.activeLayerId === '__mosaic__' || _map3d.activeLayerId === '__mosaic_focus__') && _tifLayers.length >= 2) {
+    sel.value = _map3d.activeLayerId;
+  } else if (_map3d.activeLayerId && _tifLayers.find(function(l){return l.id===_map3d.activeLayerId;})) {
     sel.value = _map3d.activeLayerId;
   }
 }
@@ -10314,7 +11289,15 @@ function map3dInitScene() {
 }
 
 function map3dBuildTerrain(layerId) {
-  var l = _tifLayers.find(function(x){ return x.id === layerId; });
+  var l;
+  if (layerId === '__mosaic__' || layerId === '__mosaic_focus__') {
+    var statusEl0 = document.getElementById('map3d-status');
+    if (statusEl0) statusEl0.textContent = 'Menggabungkan ' + _tifLayers.length + ' layer TIF...';
+    l = _map3dBuildMosaicGeoraster(layerId === '__mosaic_focus__');
+    if (!l) { toast('Mozaik butuh minimal 2 layer TIF dengan data valid', 'err'); return; }
+  } else {
+    l = _tifLayers.find(function(x){ return x.id === layerId; });
+  }
   if (!l || !_map3d.scene) return;
   _map3d.activeLayerId = layerId;
 
@@ -10336,7 +11319,7 @@ function map3dBuildTerrain(layerId) {
   var noData = g.noDataValue;
 
   // Downsample supaya jumlah vertex tetap ringan di browser (maks ~200x200 grid)
-  var maxGrid = 200;
+  var maxGrid = 400;
   var stepX = Math.max(1, Math.ceil(srcW / maxGrid));
   var stepY = Math.max(1, Math.ceil(srcH / maxGrid));
   var gridW = Math.ceil(srcW / stepX);
@@ -10350,11 +11333,17 @@ function map3dBuildTerrain(layerId) {
   var worldW = 300;
   var worldD = worldW / (geoAspect || 1);
 
-  var geometry = new THREE.PlaneGeometry(worldW, worldD, gridW - 1, gridH - 1);
-  geometry.rotateX(-Math.PI / 2); // jadikan horizontal (Y = atas)
+  /* Geometri dibangun manual (bukan PlaneGeometry penuh) supaya FACE yang
+     menyentuh vertex noData bisa DILEWATI — area di luar cakupan data (mis.
+     hasil konversi DXF yang tepiannya noData/transparan di 2D) tidak lagi
+     digambar sebagai dinding/tebing palsu turun ke elevasi minimum. Bentuk
+     3D jadi konsisten dengan tampilan 2D: hanya area berdata yang bermesh. */
+  var geometry = new THREE.BufferGeometry();
 
-  var pos = geometry.attributes.position;
+  var pos = { count: gridW * gridH };
+  var positions = new Float32Array(pos.count * 3);
   var colors = new Float32Array(pos.count * 3);
+  var validMask = new Uint8Array(pos.count);
   var exag = _map3d.exaggeration;
 
   // Hitung skala dunia dalam satuan riil (meter) supaya eksagerasi 1× ≈ tinggi:lebar sungguhan (1:1),
@@ -10370,16 +11359,40 @@ function map3dBuildTerrain(layerId) {
   var vi = 0;
   for (var ry = 0; ry < gridH; ry++) {
     var srcRow = Math.min(ry * stepY, srcH - 1);
-    var row = values2D[srcRow];
+    var zPos = -worldD / 2 + (gridH > 1 ? (ry / (gridH - 1)) * worldD : 0);
     for (var rx = 0; rx < gridW; rx++) {
       var srcCol = Math.min(rx * stepX, srcW - 1);
-      var v = row[srcCol];
-      var valid = !(v === null || v === undefined || isNaN(v) || v === noData);
+
+      /* Downsampling RATA-RATA BLOK (bukan ambil 1 piksel terdekat):
+         piksel terdekat saja membuat vertex "loncat-loncat" di tepian
+         data — sumber gerigi/duri vertikal di 3D. Vertex dianggap valid
+         kalau piksel PUSAT-nya valid (supaya batas area data tidak melebar),
+         tingginya = rata-rata piksel valid dalam blok step×step. */
+      var vc = values2D[srcRow][srcCol];
+      var valid = !(vc === null || vc === undefined || isNaN(vc) || vc === noData);
+      var v = vc;
+      if (valid && (stepX > 1 || stepY > 1)) {
+        var sum = 0, cnt = 0;
+        var r1 = Math.min(srcRow + stepY, srcH), c1 = Math.min(srcCol + stepX, srcW);
+        for (var br = srcRow; br < r1; br++) {
+          var brow = values2D[br];
+          for (var bc = srcCol; bc < c1; bc++) {
+            var bv = brow[bc];
+            if (bv === null || bv === undefined || isNaN(bv) || bv === noData) continue;
+            sum += bv; cnt++;
+          }
+        }
+        if (cnt > 0) v = sum / cnt;
+      }
+
+      validMask[vi] = valid ? 1 : 0;
       var vClamped = valid ? Math.max(min, Math.min(max, v)) : min;
       var t = (vClamped - min) / range;
       var yPos = t * heightScale;
 
-      pos.setY(vi, yPos);
+      positions[vi*3]   = -worldW / 2 + (gridW > 1 ? (rx / (gridW - 1)) * worldW : 0);
+      positions[vi*3+1] = yPos;
+      positions[vi*3+2] = zPos;
 
       var rgb = _tifColorAt(_map3d.colorScheme, valid ? t : 0);
       colors[vi*3]   = rgb[0] / 255;
@@ -10388,6 +11401,21 @@ function map3dBuildTerrain(layerId) {
       vi++;
     }
   }
+
+  // Index face: hanya quad yang KEEMPAT sudutnya berdata valid yang digambar.
+  var indices = [];
+  for (var qy = 0; qy < gridH - 1; qy++) {
+    for (var qx = 0; qx < gridW - 1; qx++) {
+      var i00 = qy * gridW + qx,     i01 = i00 + 1;
+      var i10 = i00 + gridW,         i11 = i10 + 1;
+      if (validMask[i00] && validMask[i01] && validMask[i10] && validMask[i11]) {
+        indices.push(i00, i10, i01,  i01, i10, i11);
+      }
+    }
+  }
+
+  geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+  geometry.setIndex(indices);
   geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
   geometry.computeVertexNormals();
 
@@ -10994,11 +12022,15 @@ function _elevRenderSourceList() {
     var isChecked = selectedKeys.indexOf(_elevSourceKey(s)) !== -1;
     var prioNum = isChecked ? (selectedKeys.indexOf(_elevSourceKey(s)) + 1) : null;
     var key = _elevSourceKey(s);
-    var icon = s.kind === 'dxf' ? '📐' : '🏔️';
-    return '<div style="display:flex;align-items:center;gap:6px;padding:4px 6px;background:' + (isChecked ? 'rgba(96,174,240,0.08)' : 'transparent') + ';border-radius:5px;border:1px solid ' + (isChecked ? 'rgba(96,174,240,0.25)' : 'transparent') + '">' +
+    var dispName = s.name || ('Layer ' + (s.kind === 'dxf' ? 'DXF' : 'TIF') + ' tanpa nama');
+    var chip = s.kind === 'dxf'
+      ? '<span style="font-family:Arial,sans-serif;font-size:7.5px;font-weight:700;color:#b07820;background:rgba(245,192,48,0.18);border:1px solid rgba(245,192,48,0.4);border-radius:3px;padding:1px 4px;flex-shrink:0">DXF</span>'
+      : '<span style="font-family:Arial,sans-serif;font-size:7.5px;font-weight:700;color:#3a7fc0;background:rgba(96,174,240,0.15);border:1px solid rgba(96,174,240,0.4);border-radius:3px;padding:1px 4px;flex-shrink:0">TIF</span>';
+    return '<div title="' + _e(dispName) + '" style="display:flex;align-items:center;gap:6px;padding:5px 6px;background:' + (isChecked ? 'rgba(96,174,240,0.08)' : 'transparent') + ';border-radius:5px;border:1px solid ' + (isChecked ? 'rgba(96,174,240,0.25)' : 'transparent') + '">' +
       '<input type="checkbox" ' + (isChecked ? 'checked' : '') + ' onchange="_elevToggleSource(\'' + key + '\')" style="cursor:pointer;flex-shrink:0">' +
       (prioNum ? '<span style="font-family:Arial,sans-serif;font-size:8.5px;font-weight:700;color:#60aef0;background:rgba(96,174,240,0.15);border-radius:50%;width:15px;height:15px;display:flex;align-items:center;justify-content:center;flex-shrink:0">' + prioNum + '</span>' : '<span style="width:15px;flex-shrink:0"></span>') +
-      '<span style="font-family:Arial,sans-serif;font-size:9.5px;color:var(--txt);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + icon + ' ' + _e(s.name) + '</span>' +
+      chip +
+      '<span style="font-family:Arial,sans-serif;font-size:10.5px;font-weight:600;color:var(--txt,#223);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + _e(dispName) + '</span>' +
       (isChecked ? (
         '<button onclick="_elevMoveSource(\'' + key + '\',-1)" title="Naikkan prioritas" style="background:none;border:none;color:var(--mute);cursor:pointer;font-size:11px;padding:1px 3px;flex-shrink:0">▲</button>' +
         '<button onclick="_elevMoveSource(\'' + key + '\',1)" title="Turunkan prioritas" style="background:none;border:none;color:var(--mute);cursor:pointer;font-size:11px;padding:1px 3px;flex-shrink:0">▼</button>'
@@ -11143,12 +12175,34 @@ function _elevBuildSourceHandles(selectedSources) {
     } else if (s.kind === 'dxf') {
       var dobj = _shpLayers.find(function(l){ return l.id === s.id && l.sourceType === 'dxf'; });
       if (dobj) {
-        var idx = _dxfBuildElevIndex(dobj);
-        if (idx) handles.push({ kind: 'dxf', name: dobj.name, obj: dobj, index: idx });
+        // Cache index per layer (di-invalidate jika jumlah feature berubah) —
+        // penting untuk update realtime saat garis digeser: recompute berulang
+        // tidak boleh membangun ulang index 10 ribu titik setiap kali.
+        var fc = (dobj.features || []).length;
+        if (!dobj._elevIdxCache || dobj._elevIdxCache.fc !== fc) {
+          dobj._elevIdxCache = { fc: fc, idx: _dxfBuildElevIndex(dobj) };
+        }
+        if (dobj._elevIdxCache.idx) handles.push({ kind: 'dxf', name: dobj.name, obj: dobj, index: dobj._elevIdxCache.idx });
       }
     }
   });
   return handles;
+}
+
+/* ═══ UPDATE PROFIL REALTIME SAAT GARIS DIGESER ═══
+   Dipanggil dari handler edit (geser vertex, geser seluruh garis, tambah
+   titik). Kalau panel profil sedang terbuka untuk garis yang sama, profil
+   dihitung ulang — di-throttle ~180 ms supaya drag tetap mulus. */
+var _elevLiveTimer = null;
+function _elevLiveRefresh(lineId) {
+  if (!_elevCurrentLineId || _elevCurrentLineId !== lineId) return;
+  var modal = document.getElementById('elev-modal');
+  if (!modal || modal.style.display !== 'flex') return; // panel profil tidak terbuka
+  if (_elevLiveTimer) return;
+  _elevLiveTimer = setTimeout(function() {
+    _elevLiveTimer = null;
+    try { elevRecompute(); } catch (e) {}
+  }, 180);
 }
 
 /* Sampling mozaik pada satu titik: coba tiap handle sesuai urutan prioritas,
@@ -11156,8 +12210,11 @@ function _elevBuildSourceHandles(selectedSources) {
 function _elevSampleMosaic(handles, lat, lng) {
   for (var i = 0; i < handles.length; i++) {
     var h = handles[i];
+    // Sumber DXF dibatasi cakupannya: hanya valid kalau titik data kontur
+    // terdekat ≤ 30 m — di luar itu dianggap noData supaya sampling jatuh
+    // ke sumber prioritas berikutnya (mis. DEMNAS di antara dua kolam).
     var v = h.kind === 'dxf'
-      ? _dxfSampleElevIndex(h.index, lng, lat, 10)
+      ? _dxfSampleElevIndex(h.index, lng, lat, 10, 30)
       : _elevSampleGeoraster(h.obj.georaster, lat, lng);
     if (v !== null && v !== undefined && isFinite(v)) return { elev: v, source: h.name, sourceIdx: i };
   }
@@ -11219,12 +12276,20 @@ function elevRecompute() {
   var avgSlopePct = (elevDiff !== null && totalLenM > 0) ? (elevDiff / totalLenM * 100) : null;
 
   // Ringkasan kontribusi tiap sumber (berapa % panjang garis dicover masing² sumber)
+  // Diberi bulatan warna yang SAMA dengan warna titik di grafik, supaya jelas
+  // segmen mana di grafik berasal dari sumber mana.
+  var _ctrPalette = ['#60aef0', '#f5c030', '#1ab0a6', '#f4728a', '#a78bfa', '#8fd14f'];
+  var _ctrColorMap = {};
+  handles.forEach(function(h, i){ _ctrColorMap[h.name] = _ctrPalette[i % _ctrPalette.length]; });
   var sourceCounts = {};
   validSamples.forEach(function(s){ sourceCounts[s.source] = (sourceCounts[s.source]||0) + 1; });
   var sourceSummary = Object.keys(sourceCounts).map(function(name){
     var pct = (sourceCounts[name] / validSamples.length * 100).toFixed(0);
-    return _e(name) + ' (' + pct + '%)';
-  }).join(' · ');
+    var col = _ctrColorMap[name] || '#60aef0';
+    return '<span style="display:inline-flex;align-items:center;gap:4px;margin-right:8px;white-space:nowrap">' +
+      '<span style="width:8px;height:8px;border-radius:50%;background:' + col + ';display:inline-block;flex-shrink:0"></span>' +
+      _e(name) + ' (' + pct + '%)</span>';
+  }).join('');
 
   statGrid.innerHTML =
     '<div class="elev-stat-card"><div class="elev-stat-label">Panjang Garis</div><div class="elev-stat-value">'+_fmtDistance(totalLenM)+'</div></div>' +
@@ -11266,6 +12331,7 @@ function elevRecompute() {
     options: {
       responsive: true,
       maintainAspectRatio: false,
+      animation: false, // penting utk update realtime saat garis digeser — tanpa flicker
       devicePixelRatio: Math.max(2, window.devicePixelRatio || 1),
       interaction: { mode: 'index', intersect: false },
       onHover: function(evt, activeElements) {
@@ -16508,6 +17574,7 @@ function _vertexRenderMarkers() {
       it.points[idx] = [newLat, newLng];
       if (isEllipse) { it.shapeKind = 'polygon'; delete it.circleCenter; } // begitu vertex individual digeser, lepas dari model elips agar tidak snap kembali
       _vertexRebuildPreview(it);
+      if (_selKind === 'line') _elevLiveRefresh(it.id); // profil elevasi ikut update realtime
     });
     m.on('dragend', function(){
       var it = _selGetItem();
@@ -16516,6 +17583,7 @@ function _vertexRenderMarkers() {
       _selRebuildLayer(it);
       _vertexRenderMarkers();
       petaRenderShapesList(); _persist();
+      if (_selKind === 'line') _elevLiveRefresh(it.id);
     });
     _vertexMarkers.push(m);
   });
@@ -16542,6 +17610,7 @@ function _vertexRenderMarkers() {
         _selRebuildLayer(it);
         _vertexRenderMarkers();
         petaRenderShapesList(); _persist();
+        if (_selKind === 'line') _elevLiveRefresh(it.id);
         toast('＋ Titik baru ditambahkan', 'ok');
       });
       _vertexMidMarkers.push(mm);
@@ -16771,6 +17840,7 @@ function _moveOnMapMouseMove(e) {
   _vertexRebuildPreview(item);
   if (_selOutline) _selOutline.setBounds(L.latLngBounds(item.points));
   if (_selCenterMarker) _selCenterMarker.setLatLng(_selCentroid(item.points));
+  if (_selKind === 'line') _elevLiveRefresh(item.id); // profil elevasi realtime saat digeser
 }
 
 function _moveOnMapMouseUp(e) {
@@ -16788,6 +17858,7 @@ function _moveOnMapMouseUp(e) {
     _selRenderHandles();
     _ellRenderHandles();
     petaRenderShapesList(); _persist();
+    if (_selKind === 'line') _elevLiveRefresh(item.id);
     toast('✓ Objek dipindahkan', 'ok');
   }
 }
@@ -16902,9 +17973,9 @@ window.addEventListener('load', function() {
   setTimeout(function(){
     if (typeof petaCancelMode === 'function') petaCancelMode();
     var mb = document.getElementById('peta-mode-bar');
-    if (mb) mb.style.display = 'none';
+    if (mb) { mb.style.display = 'none'; mb.removeAttribute('data-open'); }
     var nw = document.getElementById('peta-mode-name-wrap');
-    if (nw) nw.style.display = 'none';
+    if (nw) { nw.style.display = 'none'; nw.removeAttribute('data-open'); }
   }, 500);
   /* invalidateSize berulang untuk pastikan tiles muncul */
   [200, 500, 1000].forEach(function(t) {
