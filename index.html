@@ -8,6 +8,16 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+/* Zoom maksimum peta: 24. Tile basemap hanya tersedia sampai zoom native (mis. 19);
+   di atas itu tile terakhir diregangkan (maxNativeZoom) agar zoom bisa lebih dalam. */
+window._SG_MAX_ZOOM = 24;
+L.TileLayer.addInitHook(function () {
+  var o = this.options, MZ = window._SG_MAX_ZOOM;
+  if (o.maxNativeZoom == null && o.maxZoom != null && o.maxZoom < MZ) o.maxNativeZoom = o.maxZoom;
+  if (o.maxZoom == null || o.maxZoom < MZ) o.maxZoom = MZ;
+});
+</script>
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/shpjs@4/dist/shp.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/dxf-parser@1.1.2/dist/dxf-parser.min.js"></script>
@@ -1792,6 +1802,21 @@ body{
 <body>
 
 
+<style id="sg-autosave-css">
+#sg-as{display:inline-flex;align-items:center;gap:7px;min-width:148px;justify-content:flex-start;overflow:visible;text-overflow:clip;font-family:Arial,sans-serif;font-size:11px;font-weight:600;padding:5px 10px;border-radius:999px;cursor:pointer;border:1px solid var(--brd);background:transparent;color:var(--txt2,var(--mute));white-space:nowrap;transition:background .15s,border-color .15s}
+#sg-as:hover{background:var(--sg3);border-color:var(--rg-line,var(--brd))}
+#sg-as .sg-as-lamp{width:10px;height:10px;border-radius:50%;flex-shrink:0;background:#8a93a0;box-shadow:0 0 0 2px rgba(138,147,160,.18);transition:background .2s,box-shadow .2s}
+#sg-as[data-st="clean"] .sg-as-lamp,#sg-as[data-st="ready"] .sg-as-lamp{background:#22c55e;box-shadow:0 0 0 2px rgba(34,197,94,.22),0 0 8px rgba(34,197,94,.65)}
+#sg-as[data-st="dirty"] .sg-as-lamp{background:#f5b301;box-shadow:0 0 0 2px rgba(245,179,1,.22),0 0 8px rgba(245,179,1,.6)}
+#sg-as[data-st="saving"] .sg-as-lamp{background:#f5b301;box-shadow:0 0 0 2px rgba(245,179,1,.22),0 0 8px rgba(245,179,1,.6);animation:sgAsBlink .7s ease-in-out infinite}
+#sg-as[data-st="held"] .sg-as-lamp{background:#60a5fa;box-shadow:0 0 0 2px rgba(96,165,250,.22),0 0 8px rgba(96,165,250,.55)}
+#sg-as[data-st="error"] .sg-as-lamp{background:#ef4444;box-shadow:0 0 0 2px rgba(239,68,68,.22),0 0 8px rgba(239,68,68,.65)}
+#sg-as[data-st="off"] .sg-as-lamp{background:#8a93a0;box-shadow:0 0 0 2px rgba(138,147,160,.18)}
+@keyframes sgAsBlink{0%,100%{opacity:1}50%{opacity:.25}}
+#sg-as-banner{position:fixed;top:48px;left:50%;transform:translateX(-50%);z-index:9998;display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:center;max-width:92vw;font-family:Arial,sans-serif;font-size:12px;padding:9px 14px;border-radius:10px;background:var(--card);border:1px solid rgba(63,141,90,.45);color:var(--txt);box-shadow:0 6px 24px rgba(0,0,0,.28)}
+#sg-as-banner button{font-family:Arial,sans-serif;font-size:11.5px;font-weight:600;padding:5px 12px;border-radius:6px;cursor:pointer;border:1px solid var(--brd);background:transparent;color:var(--txt2,var(--mute))}
+#sg-as-banner button.p{background:linear-gradient(135deg,#6bae4a,#3f8d5a);color:#fff;border-color:transparent}
+</style>
 <div id="sg-bar">
   <div class="sg-brand">
     <div class="sg-logo"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEgAAABICAYAAABV7bNHAAAeGklEQVR4nO2cd5hV1dX/P3ufc++duVOZwtC7UqQpIIgCalQgahRNLEETjS2xJBpbgqYYNdEUNcWaxNdEo+KrxFgQLKgoigoKSO8MDMMM0+f2c/Zevz/OvSOkCQOa9/k9Wc9zn5nnzLnnrP3dq6+1R1lr+S/9a9L/aQb+r9N/AfoUcv/TDIAgACJ7X1YKFfzyuXO0J/0HABJEBMGi0GjtBBD8MxwErBisCEoptFL/4sbPjtTnZaQFQcTiKHevNfo2E02km15Kei2TfZMBBNfJIz9cOq8gXDbd0aG9nuMbH600Sn0+QH0OAAlWLI4OhNVYj+1NH8qW3W+zo/kjGmObiacbyfgJPJNCK43r5BFy8imMVFCUPwjPjmdcv/GM7D1Sudnn+MZHa436jCXqMwVIxKK1A0BbsnbJ0m1PjFmx/VnqW9fimSRah3B1CFdHSPntzDjiHlbvfJF1ta8QcYvxTAqlMiypzmNLQynDew3ipMNOZsbhM+ZVFVdNBzDWoNVn52s+M4CsGBztkvHjk95af+/CxZv+SGtiJ67OJ+zko7QGBK0cEplmBvc4iQuOflLVNC+XB17/IppAtXK2Z8H6QurafDw/RWVRD84d/1UumXzh0Pxw/lrf+DjZjTjY9BkAJFnJcdnSsEie+/AGapqXEXGLcXUEwSJZj6WURsTgOHlcecICSvN7Kq0dXl39c5m/4jYKIhUY6+M6QkMsxNsbS3G1S9o3NCXiDOk2jFtnzOKogWOVbwxaq4OucgdZNgMPpbXLW+vvkz+8MYP61vUURrri6hCCAaTDSCulSfrtTBvxQ8oK+igRixXDsYO/U9mrbAxpL4ZWGs9XdC3yGVCZJJ4xOMqhoqCCDXVb+fLvLuOB1/8iruNkvaP8Ww73lw4eQJIDx2Huih/Kc0tvwFV5hN0CrJgs25/srtYOiUwLQ7pPZdyA85W1Plq7IOA6kYbTj7gTlbUtSik8XzG4a5KSPEPaB8/3iIaiREJRrnnyTmbN+Y042sHa/6MAWQKD/MLyW+SVj+8mGq5C0BgriKiOfc3Fg8b65IVLOXX0HVm1yIaFSmOsT9+KI9Uxg79JwmvG0S5GwNUwrHsCC1gBzxhEoLKwgp89/zDfe/p34joOxpqDtayDA1DOIC9c/weZv+Ju8sLdyVjwrYMRjbEKY4KfIgqFSyLTykmHzaKyaIAy1u+QFgCFxorlC8Oun9y9dDgZP46jHNK+pqLIo09ZirSvQMBYwTeGquIK7nz2T/z6lWfEdVzMQbKtBwyQZGOczbvfl6eX3ELIrSRjhIxRZAx4RuNbjWc0nq8xNkws1c6gqhM4atBFgWopjRXT8bzgF0vELXjrS6N/hhWLtQpjIeU5DChPEY1YfKsAwQK+EQoLu3DtY/fy9vqVWUk6cJAOECABpUh58UmPLLqRVEbhG4eMr/B8TcZX2Y/GswrPOqR9AVXEaUfckY1fAtVytBu4dO0EAaBysNZnUNVkdeSAC2lNNQEung+OFgZWJjBGgahsSpKVPKu46KF7SKRTY5RSHR7zPwKQFYtWmpc+fmjhup0r0aqYtA8ZX5Mxe34cPN/BSIjmZCsnjrie7iWDs6qlUErz7qZH5NbnjpQ75s6QmuYNolRgt0Qs00Z8/5rywkEkMkkEh4SnKSvw6FqSJp3RIAorCt8KkbxC1m/eyC9fmLPE0Rr7nwJIxKKVQ3Oi7qUXV/yJkNuFlGfxjCZjFRmj8K2Db52smoVojccYUHkMJwy9VNmsIVVKs6Fukfx16a2cdNi1lOQN4Kdzr8IzXlb1LNFI6T0zxt5GwsvgW42xmrTv0LssSThk8U3OOyqMsehoEXc9/zdqm5sOGKQDACjIsF9e9eS0Xa27gfwAHD+wNV5OvbJSlPYtRkX46lG34Wg3W+IInrW65gO6FI5j/MCz1XkTf3zG+romWhLNzyilUQRebVTvqeqogefSHG9BcPGMxtHQuzyJEYUIWFEYK7hOmNbGRh6YP2+MUuo/AZDgaIeUlxzy6urn0RSS8oS0r7IqprJSE9gjY10a462cMupK+lcMV8bunZGP6juNxRvXcN/rd8kVT1w5p6p0GOWFFWdaawMVRCFiOWf8zQ+VFvQhnkpjrCblOZREPUoLfTK+E4QQojHGosL5PLJgAYlUaoyrdadtUacAstaCUizf/v6aTXVbUURJe3wiMb4mnTXSxrq0JOIM6DqOGUdcXmCt2SMA1Bhj6Fc+RE0Zeh4/+OudvL7mI2ZNn4VWeq+UxIqlJFpx2fkTb6ItncA3Gs8EDqBbUQJHW6zRKALpdsJ5VFfX8MaKj5copehsStUpgHJ7sWjjQhIZIW2cwBCbwN4EaqVI+4pk9u+XTPkxISecENgrXwqiZJ9vHXvV0PLSkVww6RKGdT9U5coZHYyqIACcMvhL6phDTqMx3gqEyPgOShu6FiWwNucVNRqFMsJz732wF8/7S52oKAbqZazho+oViOST9gKmlAKlJIiLleBqh6Z4AxcccwXDuh+u/j7rzu1qyHVxrF77+DfupV9l1UPW2n9awshJx7eOu3np4k1LxrQlk4iESXsuRfkZCiIe7fF8tBWMESQU4e3V6zDW4jqdy/b3W4JEgl2va6tbvWV3DUrlkfEV6axaeb5Dxmh8E6I5nqRfxXAuOObKoX+/aCuC4zg4jsOrC5fKEad+VRZ8+BQVBSWXCZLN3/be9yANMVQVdx/7zeOupyWewFg3G4g6lBXF0AhiFGIF3BCbauuo2d0gnY2J9luCckxvb9oxtCEWoyivACOCEgsKjFKgBI0m4cF3p91Mfih/rTE+WgeGVERwHM27H66Su34/m6effwPyDIk3FxCOilw97QcKgh3PGeoc5aT39MO/rF5c9qosWL2QaKQLGSNox1JcGKeloQQlwb2p9jhbdtXRp6prsCn7WarthAQFANW01BPP2A5P5dkgpUj7CmNC1LW18uVxMxnff0LWngQLNtbiOJrvPvAXmXjyxTz93KuoaIRwNI/SaCV/Xvh7Lrj/DPnV3J9I0kuM0Vp/kn5ANu2wCMKsU79PJFJCwvMxVpH2HEKRJKFwBmsCO0TGsGN30168f6YA5agh3tahUp4NjHTaC0S9JZGiZ9kArj7hqvNy0TaAbywh1+GXLy+Uu2c/jxPNwy0pCmIYY/GtJhwuYXn1ch547dd87/ErluQS2RwwjnYIuSF836d/RV919UlXsrs9hhU38GrWQRfGQSxYBRYaW9s7u8zOA5TwMoG3ykpNOmuHPKNpTXncfOoNFOcX/SWnIr4xhFyHR996X65/5CnChQVYBGOCIpoVRcJz8XzBcQupKu7PKx+/yk1PXScpLzVEK43jOLy2Zp48/t7/SMgN4RvDhUefrSYMnMDu9jiGEBnj4itB5SfBBAAlM97nB9AnQupmg0KCSNloLCF2NLfylXFncNKwKSrjeVFHO1nJcXnpo1VywW8epigcxvg+QpBvKQRBU93Sjd3JLjTFHbY0tNOWjvDYoieZv+LFNQkvOenul38t1z5xHbfM+RG/nHenuI5DyHG5d+YPsTqPlB+UWMQPQcQHxwOjcJ3Op5ydbhxGwwWkrUPKaCzgKEUskaJf9/786NRvz0l7XkUkFGrIeH40HHIT72/YImf+9HcUhFzEN5hUJnDbgHKCfClZZ9jeECGvtIwphw3mhOGHMaCyipW71vLz+Wct3FS3lrKCUvLDUe55+X52NNXL2RO+Rmm0hNtnXMV1D/+ccHE38C3KByIZAEqi0c8PoJwPqCqqQCREyuhgkSLEreE7Uy7g4lkPnlHbWHfGL669iGPHjlAfb90h0268E8/3KA4XUdceo1dZKTXVu1BKYWMJVH6Ik0ZN5vyTpjDpsBE0NiX52+LFXPrIbDJF64gUJ+jeZRBt8RZSnqEw3J1nlsznmaXv0JbO4/Xr7+fYUcfxxgfvEC6owPdtUCnKM1SVdsnyvv8F/U4AFLykT5cqlJtH0oDGIZVu5+Kjz+SJR5byxtLlOHlhTr/2Tr4wboQUdylC+4aQZ6nb1cCwQX3I7G4O6tiJJGNHD+He267lyNHD1ObtdXL5HX9k7gfLOOzQbriuJdnQm0QiRrOk6FnVhy2NO4knfLQuIqQU1s/wtYdu4dbTv8mOHbvYuH0nobxiTMai8jW9u2UB6kTDY7/bPkFhXtOaiF06+JbzHmyItWFSMb4yYRrtH7rMW/AO0a5lZHyDQxAMjhrUl75du7Arlaa6sYWe5V14a+EHqLZWupQUserlPy3sVlk+xYow4pzvyOpFH6H696Q4mk+vLvmECsMk4hlifj3F/ULk51l2xVpJWx/jZyjKL6St3Sff0Vxy7FeY984ylqxcjY4UUh4tYsP/PHBZSWHhQ38fU+0L7bf1UkphrKUkWvjQ4b0HYRprOX70eErruzPvtUWUdSsj7Dpo41NaWMD4oQNZvm4bCz9cS932OqYOHUhYoLRrGWIFURDNz3sIwPf96EOzLudLZ06lQDu07qxj665Wtm5pxCZ9bLyQTYtjpOocuod6UxAvQXmFpGIOhZFiQjqPh+Y/x6RDhzBu2EhszW5G9e1HSWHhQ8aYTvXzO9U4DFy2y60vPiJPL5/HyWXT+OXv5pBfko+xQrwtDiGHCSMHs/jjDYRcl6KiKJlUijO/cBTz311OXthFOw7xxiZGDOjDwz+/Id67R1Vh7h1bduyS15es5H8XLOKtD1eRiGUoLy2gT1U5pQV5mHyf+vZWUqEkLX6CuJdBofCTPhX5pVx6/Iks+mgdJ0w8ku/P/IryfL9T+VinAMoVy3a2Nmz97i/+0PepZ94GF1QohEIY1KsbA3t1Q1mftTW7qdndTDoW55TjjmRbbROhkEN7PM3IQb1YumYTW9duomtVGd8+/wyuuegrY6P5kaV7vu/9j9fJ/U/MZdnaDTQ2t9PQ2MKE8SNos3E+3rSJXlVd8BxDTbwNJRpJGdyk4ZjDR/PkLd97rKJL6fnSCfXqNEA5kLTSfGPWL2Xths1ES0rwMh4hDfl5+by7Yh1t8QQjD+lL0vPpXllBTV0Da1dugJJCRgzqg6NdtuysJ5FM4FpDsrWVcaOH89Rvf0TvHpXKGBN1HSeRK3vc86e/yjW33QdaMXzYAEYO6k/CJHh7zXrcTAo/4pD2LQ6KeHuSicOGsOD3vwzGjzo5LtNpgIwxuK7Ly299IKddchOSFyEdTwBCtLCQRMoDaxk+uD9D+vdi7fotqFAIi7CxupYeVeV4nkcy7dPU2o5WEAqHSO2s47gTJvLqn36Ra1Bn0wyJhkNuYuaNv5DHn36JKZPG8uaiD+nZvSvHTxzF2m3VuCHN2m27aG5qhWSK5x68g1O/MFH5vo/zeZU7cuQ4DtZajptwuBoxcgjl4RATRg/lxKOO4IvHjKFbVTklpUX07lbBex+uxFeKmp31xNoTDB/Qi8K8CK1tSRqbWkAF5Q9rDOTnsW5LNb4xUZUdw3N0LpczHHP4MMKFUT5et4VQQZSa+kZmz3sbPw3EDV8/aQpDevVg6omTmD5lvMqVVTpLBzSCJyKEQi7/c+vVfO26O2hsaGJTIo3neXzx2CNpam7jzcXLSCRTsGs3OA5N7e3UNjbhaI21lvy8CJlMBuN5ZJoS5EXz+NX3LyccCiV8YzrACSbPXJYsX0OmLU6zFVyt0OEQnjHs3FVPoi2GZy1D+vbi+ovPwXUd9n7G/tMB9cW0DmrKhw0eoMYfPpREMk2vrmW0tbSxtaae5liCdDxBWWkhXUpLKIhEiETCWGNIJpKkW2Mka3dh4kl6V5Zx2QVn8MHcP3LOycepIHMP6tKe70fDoVBiwbsfyV+efQUdzUNlSxfWGKLhEG3xJDERlrz1AcMP7cfEMcOV5/sHBA4chPmgXI1FK81RZ10lixctxSktRiMcNrAP22vqsErR3NwKiRS4LqGSIvp2r+SwQX04csQQjh5zGEcMH3xGUWH0rwC+b8glaq4bqMfcN96Tr193By2JBEZrEIJ4K2CCtLXY9jiHDRvIwid+fXtpceHN0HnjnKODMkBlrUVrzbrN1TLprG/T0NxKqCCKF09AOkNelxKOHHEok8aOYNzIIQw/pD99enZVodDeA5rpdKZCKZUIh0OJ3LXN1Tvlroef5qHZL2BRiA46FEo7uBqUKHwRbCpFWVEBi565jyED+yhjzF5F/87SQZswM8biug6Ll62R6V+7lpbaevoPO4TLzj2Vs754LP379PiHrfSNwRhTARAJhxty1xOJ1Ji3Pli+5InnF/D8gndpamjBKYxiEcQKeSEHXxS+NURCIdKxOEWRMPMe/RUTxwxXvm9wDqDEsScd1BG8nOt/58NVMv+1d7j2W189r7iw4C8QSJmxNtvxCDogVqQjum1uaZu18P3lt7/4+nu88u5HbN1cHTAYzcdxNL4xIBAJOcHICyowwi1t9OheyTMP3saE0cM6HTH/KzroM4rW2r3cqucHXVSt9xagnG1YumKdPPTk8zz/+nvU7qgFY6Agn/z8fHxr8XwDEnisSMjFdV0yxuJ5Hn5LO8cccwR/vutm+vfqdkDxzr+iz2TK1VobdBD0Pw5854y675vodT97IH7vn+ZgkykoyCeUFyEv5OJ5HsYKnrForch3XVAKXyDtZSCeoLi0mOsuPZfvXz5TuY7DwVSrPelzm7TPUc5WffOH98iDv3uUSM8qQq4TXNeKsOuQ9CyZTBrXcQi7DrFUBhtPQiZDtLyUs04+lhu/NZMhA/ooEcFa+QcJPVj0+Z7VEHCcILZZs3ErFEZJN7eSlqAyjQJCLlgLvsVXkBIIFxcwesxhnHbi0Zx9yvEM7NtTAfi+j3aczwwc6IQE2aDzBx2HSzpHqVR6yIq1m9csXbWe1Ru3UVPXSGssjhVLYX4+5aXFDOjdneGH9GP00IEM7Ner42W+b4I2t86dB/p0PnINz/0tu+4zQCKCZCUgR8bYbD++E2WE/fyOSDCsqVXQA3G00/EMY30UOXsnHe3xDr755KyItcFI8r4eX9hnq6a1xnE0NbX1W1eu2Si76hvfdBzd6WDMWosxBs/38Xw/FxNhrCWdzlS0tMWuTmcyFb7vZ3tn4DoaRzu4TjDPmPISY6wNJmxzfCilszOO6hO+tYtnMtG0n67Q2tm/YwvW2n/7yTG9u7H5wdMvuUnocbRQOU7ofbRMP/9aWb95u1hr8Y3B9w0Zzwu8kDEdz/B9Q26hnufhef5efw/u8UkmU32MMTz5wgLpPmy6rN6wRUQk+K41iBV84/Hsst/L5U+cKGf9YYR87ZHxcs9rN8i2pvUiInxcs1iumD1VVtUuERGhvr32zVvmXi0n3ztWvnjvGPn27PNk0eYFYqzBWPOp6/9UI22t4Lqa795+/6XPzn6R7954KaOHDmTx8jU8NWc+iWQSpRSS9U7OHkJprEUrtZda5nZakI4upLUdkx7VAO2xBLU7dpLx/OBeERQKz2aid7787fiLKx5n/IDj+cKhZ9GU3M2cZY+ws72GO097jOZ4I4s2vc7Msc0A/OTFqyd/uH0xp42aSV4oytxVz/DXZU8yod+UjspopyXIGIPY4PBJj6PPkgHHflUke+RARGiPJaaKCNYE92zcViOPznlZnn5hgexuankwcMGWtRu3yZpN2yQeT4x56vnXZN7ri8X4BpGg9SwirFy/RR6d/aKsXLdZZr/4hqjKcbJ8zUYREdKZdFREmPPRIzL6tiJ5+J279uJjff1K2dYY3PvWhpdl7M8qZWn1OxJPx8dMuLOP/GbBbR33tyXbZrQmW2eKlX2SoE+9wfN9RISzr/qJEB0uJ1/0PXn82Vdk2/Za2XOBv31kjlA+VgqGTxd6HS3dRp0iH64MxP6kC66XLiOmy7CTLhB6TBSKRsqZV/xYMhkPEeGnDzwhVB4pdJsgkSEnyZhTLhL6TZGl2e97vo+1losePV2+dN9E8XwvC67PnkCJCAs3vCLDb62Udze/Kb7xOe3+SXLCPaPlsfcelHV1qzqA+nsV7zRAuQftqmt46dwrbxHd/1ihcKTQZ5Kcf83t0tzSdrWIsHLdZnn5zfdERNhZ17AkMmCKnHvN7SIinPbNHwhlY+S+x/4mO2rrt5537c+E4lGyfnO1bKmuFcrHynHnfEc2Ve+UpR+vk/6TzxF6HSMfrdoQLMgKyUxiyIm/niBXPHmh5CRzTe1KOeuPU+WCR06Xb/z5DKlrq33z3c1vySE/6ipvrl8gIsL7W9+Rs/4wXUbe2lsOv72vzHz4FHl380LZV5A+1QXlJrOqupZPf/y3P1TVi2Zve+Z/f8P0L0zk0fsf49bfPXp31rgw+7nXGHfaZXL2VT8eo5WmtS0GQDKVpushffjWzC+pnt0q+53zxSloa4knUry7bBU6leanN17GgN7d1RHDD1U3X/V1SCY77JW1FtcJrw3pImqa6oNrIoScMMOqjiASLmHhxvdIe5nJ4JDIKFAOgjCu71HqiQtfUH/5xgtceez3qWmp5/o5V1PXtutNpT996uxTAcp1UnfWNaxujyVm9Ozetd8Z06aouQ/fofJ692DZuk34vs/kL1/J+yvWMeuK8/jxdy6ksEsJskeMFXZdjB+cYM54BtFB5JwfiWCt0NTS1nFva1s8eyIxIN/6UVc7TBx0HIu2fMTclS+JozUDKw9RPzr5p+q8cReT8hxQOm5FkfJcfBMY9h0tNfVaa4b3GKm+MfEydfmU69i0u5btLTsmKxSWfx8H/lsvJtmIubmlbdYRX7psaDQcnnP1RV+ma3kpz7/+HqmtO5h+/cVYYyuadtRy2tRJTJs8fuj8he+v2V29E0YMBoKMPpX2OuITEUEyPu2xBFOOHHVTpFvF7Zdcfwf3/ORqaWxu4+Zf/REJh/FN4MWU0gkR4ZKjL5kzf83bZ3z9z1dxydEXyNg+o6mP7ebPi5/AM2FCTmhpyvcnNyYyaBWivr3hmWPvOqVyQr+xMmP0qfhi+e2bD1MS7UXfLv0eC4ZuPkVG9sUGpVLpivsefVYGHH2W0P0ooWq8OP2PlW/dfJckkqkhIsJNv/qjuH0mSXTwSXL8V78jR0y7UM6+6hYREc666icy6uSLJeft5r6+WLoOOl7eWLxMRIQ58xdKz7GnC5VHSuWRZ8jF3/uFdB1zmqxYuykbB5kOZ7CjuXbrpY/fID1njZEu1w2VyhuHy3G/OVNeWhXYnPlrFkrX7x0hb2x8TxLp5JA75v9Wht06RcpvGCZlNwyTMXdOl1fXvR081/gHbqRt1s3nDOOW6p2yav0WaWxuvS13Lcf89p119avWbhYRIZXxKtpj8anWWtpjiantsfhUYwzGWNKZTLS1rX2m5wURtIiQSKWHrFm3WRKJAPDm5tarPd/HWIsxNhjR28NrNcRa7lpXt0W2N9fW7+mZ0l4m2ppon5nKpCty11NeumJTQ7Vsbtguufftqxfb51zsn80aG2s/tWuwT8HYflE28/872nMWck/yjY/r7G1J9uco+T4nUkoFNeQgdwpSCeOb6MtvvCe7G1sebW2PXZpMpodsrq6VTVtrJJ5ITlq5drNYa1n0wQppjyVmtLXHZ6bTmYoVazZJLJ6Y2tYen7ljZ319Q2MQVL746jvS2ha/dNX6LfL2+8uloan1wXgiOSkWT0yt3rFLWtvjl6bTXsX2nfWxdZu2SVNL222t7bFLW9vjl7a0xm6b+9q7srOuYXVLW+zqLdU7JZFMjQkm9C2e8fBMILH7Q/skQYKwoW6zZPwMWjsY41NZXLG0PL9s8uznXo03NLURzYuQSGVIpTMM6NudLdV19OpezuTxo3jg0Wc5dGA/Qq5Dza5GupQUkBd2aY8lKCgsoLm5jTNPnhy/5/dPFZw4ZQJdSgt5acFiyruUYHyf8rJSjJcmnvLwjRCLJejVvYKMFyS65eVlDD+0DytWbySV9qiuqaN3j67samjhknNPfUznm93bG2uucZ0QgsXVLodWDVT7IkX7rGL/oCYSiPXOXQ31azduq+zZvSuRcIhI2NmmtdvQHk+OKe9SdHcoFFqKCPFk6ppIODSvvqHlppKigqVrN2wdc8iAXrsFFbXGFFSUlU6ua2heGAmHtlVVlvVrjydn7W5our0gGt0WDrtvtbXFzntj8TLGHz6MstLiNY6jt6XSmWnhUGhpQTTvbsfR1TtqGxaWFEUXJpKpyQXR6LyW1rZp/fv0KNizjdTB/j7OTB9wyfXz+icjB0IHcizzgEuu/wrgDlOq1F7/Gyh32ie4/Mn13ME3xSfR+56U2whr5Z/OGu75/dy7g8LY/4HO6v/P9N9/0fUp9F+APoX+C9Cn0P8DFvprF5bMFHYAAAAASUVORK5CYII=" alt="Sand GIS"></div>
@@ -1804,6 +1829,8 @@ body{
       <svg id="sg-theme-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
       <span id="sg-theme-txt">Dark</span>
     </button>
+    <div class="sg-sep"></div>
+    <button class="sg-btn" id="sg-as" data-st="ready" onclick="sgAutosaveToggle()" title="Autosave aktif — klik untuk mematikan/menyalakan"><span class="sg-as-lamp"></span><span id="sg-as-txt">Autosave</span></button>
     <div class="sg-sep"></div>
     <button class="sg-btn sg-btn-file" id="sg-save-project" onclick="sgSaveProject()" title="Simpan seluruh project (titik, garis, poligon, layer SHP/DXF/KMZ) ke file .sandgis">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h11l3 3v13a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/><path d="M14 3v5H7V3"/><rect x="7" y="13" width="6" height="4.5" rx="0.5"/></svg>
@@ -2727,13 +2754,13 @@ body{
             <div style="border-bottom:1px solid #1a1a1a;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:7px 12px;gap:1px;text-align:center">
               <img id="gen-logo-img" src="" style="display:none;width:60px;height:60px;object-fit:contain" />
               <div id="gen-company-name" style="font-size:12px;font-weight:900;color:#1a1a1a;line-height:1.25;letter-spacing:.3px">NAMA PERUSAHAAN</div>
+              <div id="gen-lokasi-txt" style="font-size:7.5px;font-weight:700;color:#333;line-height:1.5;text-transform:uppercase;margin-top:3px">LOKASI PROYEK</div>
             </div>
 
             <!-- ② JUDUL PETA -->
             <div style="border-bottom:1px solid #1a1a1a;padding:8px 12px;text-align:center">
               <div id="gen-title-txt" style="font-size:11px;font-weight:900;color:#1a1a1a;line-height:1.45;text-transform:uppercase;letter-spacing:.2px">PETA PEMANTAUAN KUALITAS AIR SUNGAI</div>
               <div id="gen-subjudul-txt" style="display:none;font-size:7.5px;font-weight:600;color:#333;line-height:1.5;margin-top:4px"></div>
-              <div id="gen-lokasi-txt" style="font-size:7.5px;font-weight:700;color:#333;line-height:1.65;text-transform:uppercase;margin-top:5px">LOKASI PROYEK</div>
             </div>
 
             <!-- ③ NORTH ARROW + SKALA -->
@@ -3535,7 +3562,7 @@ function _sgInitZoomWidget() {
   var wrap = document.createElement('div');
   wrap.id = 'sg-zoom-wrap';
 
-  var minZ = 3, maxZ = 19;
+  var minZ = 3, maxZ = window._SG_MAX_ZOOM || 24;
   var curZ = _map.getZoom();
 
   function zStr(z) { return Number(z).toFixed(1); }
@@ -4704,6 +4731,7 @@ function petaInit() {
     doubleClickZoom: true,
     preferCanvas: false,
     zoomSnap: 0.1,            // snap ke 0.1 level → zoom lebih granular
+    maxZoom: window._SG_MAX_ZOOM || 24,  // zoom dalam (tile diregangkan di atas zoom native)
     zoomDelta: 0.3,           // step per klik tombol +/-
     wheelPxPerZoomLevel: 120  // px scroll per 1 level zoom (default 60 → terlalu sensitif)
   });
@@ -11120,6 +11148,7 @@ function _addLeafletMarker(m) {
   });
   _layers[m.id] = lm;
   if (m.showLabel !== false) _markerBuildLabel(m);
+  if (m.hidden) { try{ _map.removeLayer(lm); }catch(e){} }
 }
 
 /* ── Label nama titik di peta (mirip label garis/poligon): bisa
@@ -11134,7 +11163,7 @@ function _markerLabelLatLng(m) {
 
 function _markerBuildLabel(m) {
   if (m._labelMarker) { try{_map.removeLayer(m._labelMarker);}catch(e){} m._labelMarker=null; }
-  if (m.showLabel === false) return;
+  if (m.showLabel === false || m.hidden) return;
   if (!_map) return;
   var ll = _markerLabelLatLng(m);
   var sz = m.labelSize || 11, col = m.labelColor || '#ffffff';
@@ -11169,6 +11198,47 @@ function markerToggleLabel(id, on) {
   _markerBuildLabel(m);
   if (_layers[id]) _layers[id].setPopupContent(_markerPopupHTML(m));
   _renderList(); _persist();
+}
+
+/* ── Tampilkan / sembunyikan titik (ceklis di panel Layer) ── */
+function _markerApplyVisibility(m) {
+  var on = !m.hidden;
+  var lm = _layers[m.id];
+  if (lm && _map) {
+    try { if (on) { if (!_map.hasLayer(lm)) lm.addTo(_map); } else { lm.closePopup(); _map.removeLayer(lm); } } catch(e) {}
+  }
+  _markerBuildLabel(m);
+  if (typeof _genMap !== 'undefined' && _genMap) {
+    try {
+      var gl = (typeof _genMarkerLayers !== 'undefined') ? _genMarkerLayers[m.id] : null;
+      if (!on) { if (gl && _genMap.hasLayer(gl)) _genMap.removeLayer(gl); }
+      else {
+        if (!gl) {
+          gl = L.marker([m.lat, m.lng], { icon: _icon(m.type, m) });
+          gl.bindTooltip(_e(m.name), { permanent:false });
+          if (typeof _genMarkerLayers !== 'undefined') _genMarkerLayers[m.id] = gl;
+        }
+        if (!_genMap.hasLayer(gl)) gl.addTo(_genMap);
+      }
+    } catch(e) {}
+  }
+}
+function _markerAfterVisibilityChange() {
+  try { _renderList(); } catch(e) {}
+  try { _persist(); } catch(e) {}
+  if (typeof symRebuildOverlay === 'function') { try { symRebuildOverlay(); } catch(e) {} }
+  if (typeof genRenderLegend === 'function') { try { genRenderLegend(true); } catch(e) {} }
+}
+function markerSetVisible(id, on) {
+  var m = _markers.find(function(x){return x.id===id;});
+  if (!m) return;
+  m.hidden = !on;
+  _markerApplyVisibility(m);
+  _markerAfterVisibilityChange();
+}
+function markerSetAllVisible(on) {
+  _markers.forEach(function(m){ m.hidden = !on; _markerApplyVisibility(m); });
+  _markerAfterVisibilityChange();
 }
 
 function markerSetLabelStyle(id, prop, val) {
@@ -12807,7 +12877,7 @@ function _rectInpApply() {
   item.layer=_buildPolygonLayer(item).addTo(_map);
   _polygons.push(item);
   if(typeof _layerOrderSync==='function') _layerOrderSync();
-  _map.fitBounds(b,{padding:[40,40],maxZoom:18});
+  _sgRevealBounds(L.latLngBounds(b), 18);   // jangan zoom-out saat sudah zoom dalam
   petaCancelMode();
   petaRenderShapesList(); _persist();
   if(typeof toast==='function') toast('✓ "'+item.name+'" dibuat ('+wM.toFixed(1)+'m × '+hM.toFixed(1)+'m)','ok');
@@ -18353,26 +18423,60 @@ function _collectProjectState() {
   };
 }
 
+/* ─── Serialisasi aman ───────────────────────────────────────────
+   PENYEBAB BUG "Simpan rusak": titik yang punya label menyimpan referensi
+   objek Leaflet (m._labelMarker -> _map -> _handlers -> ...) sehingga
+   JSON.stringify gagal "Converting circular structure to JSON".
+   Replacer ini membuang objek Leaflet / DOM / fungsi dan memutus referensi
+   melingkar apa pun, sehingga hanya data murni yang tersimpan. */
+function _sgSafeStringify(obj) {
+  var stack = [];
+  return JSON.stringify(obj, function (key, val) {
+    if (typeof val === 'function') return undefined;
+    if (val === null || typeof val !== 'object') return val;
+    try {
+      if (val._leaflet_id !== undefined) return undefined;
+      if (typeof L !== 'undefined' && (val instanceof L.Class || val instanceof L.Map)) return undefined;
+      if (typeof Node !== 'undefined' && val instanceof Node) return undefined;
+      if (typeof Event !== 'undefined' && val instanceof Event) return undefined;
+    } catch (e) {}
+    while (stack.length && stack[stack.length - 1] !== this) stack.pop();
+    if (stack.indexOf(val) >= 0) return undefined;   // referensi melingkar
+    stack.push(val);
+    return val;
+  });
+}
+
+/* Kumpulkan state + ubah ke JSON (dipakai Simpan manual & Autosave) */
+function sgSerializeProject() {
+  var state = _collectProjectState();
+  return { state: state, json: _sgSafeStringify(state) };
+}
+
 /* ─── SIMPAN: unduh seluruh project sebagai file .sandgis (JSON) ─── */
 function sgSaveProject() {
   try {
-    var state = _collectProjectState();
-    var json = JSON.stringify(state);
+    var r = sgSerializeProject();
+    var state = r.state, json = r.json;
     var blob = new Blob([json], { type: 'application/json' });
     var url = URL.createObjectURL(blob);
     var a = document.createElement('a');
     var namePart = (state.projectName || 'project').trim().replace(/[^a-z0-9\-_ ]/gi, '').replace(/\s+/g, '-') || 'project';
     a.href = url;
     a.download = 'sandgis-' + namePart + '-' + new Date().toISOString().slice(0,10) + '.sandgis';
+    a.style.display = 'none';
     document.body.appendChild(a);
     a.click();
-    document.body.removeChild(a);
-    setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
+    setTimeout(function(){ if (a.parentNode) a.parentNode.removeChild(a); URL.revokeObjectURL(url); }, 4000);
+    if (typeof window.sgAutosaveNotifyManualSave === 'function') {
+      try { window.sgAutosaveNotifyManualSave(json, state); } catch(e) {}
+    }
     if (typeof toast === 'function') {
       var note = state.hasTifLayers ? ' (layer TIF perlu diunggah ulang saat dibuka)' : '';
       toast('✅ Project berhasil disimpan' + note, 'ok');
     }
   } catch(e) {
+    console.error('[SandGIS] Gagal menyimpan project:', e);
     if (typeof toast === 'function') toast('⚠ Gagal menyimpan project: ' + e.message, 'err');
   }
 }
@@ -18901,6 +19005,7 @@ function symRebuildOverlay() {
   var fs = symState.fontSize;
 
   _markers.forEach(function(m) {
+    if (m.hidden) return;
     var p = _genMap.latLngToContainerPoint([m.lat, m.lng]);
     // Default offset: jika belum pernah di-drag, hitung arah menjauhi titik tetangga
     var off = symState.offsets[m.id];
@@ -19060,6 +19165,7 @@ function symRenderLabels(ctx, map) {
   ctx.save();
 
   _markers.forEach(function(m) {
+    if (m.hidden) return;
     var p   = map.latLngToContainerPoint([m.lat, m.lng]);
     var off = symState.offsets[m.id] || { dx: 12, dy: -22 };
     var lx  = p.x + off.dx;
@@ -19445,10 +19551,11 @@ function genInit() {
   // Titik (marker) — gunakan bentuk & warna sesuai jenis/override titik
   _genMarkerLayers = {};
   _markers.forEach(function(m) {
+    fitTargets.push([m.lat, m.lng]);
+    if (m.hidden) return;
     var mk = L.marker([m.lat, m.lng], { icon: _icon(m.type, m) }).addTo(_genMap);
     mk.bindTooltip(_e(m.name), { permanent:false });
     _genMarkerLayers[m.id] = mk;
-    fitTargets.push([m.lat, m.lng]);
   });
 
   // Alur sungai manual / dari database
@@ -20115,7 +20222,7 @@ function genRenderLegend(skipEditor) {
     Object.keys(PETA_PT_TYPES).filter(function(k){ return k.startsWith('custom_') && PETA_PT_ORDER.indexOf(k) < 0; })
   );
   var ptHtml = _allPtTypes.filter(function(t){
-    return _markers.some(function(m){ return m.type === t; }) && !hiddenPtTypes[t];
+    return _markers.some(function(m){ return m.type === t && !m.hidden; }) && !hiddenPtTypes[t];
   }).map(function(t){
     var pt = _ptType(t);
     var nm = (_genState.legendPtNames && _genState.legendPtNames[t]) || pt.label;
@@ -20133,7 +20240,7 @@ function genRenderLegend(skipEditor) {
     return '<div style="'+rowStyle+'">'+svgSym+'<span style="'+labelStyle+'" title="'+_e(nm)+'">'+_e(nm)+'</span></div>';
   }).join('');
   var ptCount = _allPtTypes.filter(function(t){
-    return _markers.some(function(m){ return m.type === t; }) && !hiddenPtTypes[t];
+    return _markers.some(function(m){ return m.type === t && !m.hidden; }) && !hiddenPtTypes[t];
   }).length;
   _genLegendApplyColumns(ptEl, ptCount);
   ptEl.innerHTML = ptHtml;
@@ -21917,6 +22024,7 @@ function _genMainMapVectorDraw(ctx, map) {
 
   // ── Titik pemantauan — selalu di atas semua layer ──
   _markers.forEach(function(m) {
+    if (m.hidden) return;
     var clr = _ptColor(m.type);
     var p = (typeof ll2c === 'function') ? ll2c(m.lat, m.lng) : (function(){
       var _mo = map.getPixelOrigin(), _mz = map.getZoom();
@@ -23008,6 +23116,20 @@ var _vertexMidMarkers = []; // marker "+" di tengah tiap segmen (utk tambah titi
 
 /* Shortcut: pilih shape lalu langsung masuk vertex edit mode.
    Dipanggil dari tombol ✏️ di panel daftar maupun popup di peta. */
+/* Tampilkan bounds TANPA PERNAH zoom-out (menjaga presisi saat user sudah zoom dalam):
+   sudah terlihat -> diam; di luar layar -> pan saja; terlalu jauh -> zoom-in secukupnya (maks maxZ). */
+function _sgRevealBounds(b, maxZ) {
+  try {
+    if (!_map) return;
+    var lb = (b && b.isValid) ? b : L.latLngBounds(b);
+    if (!lb.isValid()) return;
+    var cur = _map.getZoom();
+    var fitZ = Math.min(maxZ || 18, _map.getBoundsZoom(lb, false, L.point(60, 60)));
+    if (fitZ > cur + 0.05) _map.setView(lb.getCenter(), fitZ, { animate: true });
+    else if (!_map.getBounds().contains(lb)) _map.panTo(lb.getCenter(), { animate: true });
+  } catch (e) {}
+}
+
 function petaQuickEditVertices(kind, id) {
   // Kalau sedang di mode vertex edit shape lain, keluar dulu
   if (_vertexMode) petaExitVertexEditMode();
@@ -23018,12 +23140,24 @@ function petaQuickEditVertices(kind, id) {
   // Delay singkat agar select selesai sebelum render handles
   setTimeout(function() {
     petaEnterVertexEditMode();
-    // Zoom ke shape supaya semua titik terlihat
+    // Arahkan tampilan ke shape TANPA PERNAH zoom-out: zoom yang sedang dipakai
+    // dipertahankan (penting saat user sudah zoom dalam untuk presisi).
+    //  - shape sudah terlihat penuh  -> tidak ada perubahan tampilan
+    //  - shape di luar layar         -> hanya geser (pan) ke tengah shape
+    //  - zoom terlalu jauh (shape kecil) -> boleh zoom-in secukupnya (maks 18)
     var item = _selGetItem();
     if (item && item.points && item.points.length) {
       try {
         var b = L.latLngBounds(item.points.map(function(p){ return L.latLng(p[0], p[1]); }));
-        if (b.isValid()) _map.fitBounds(b, { padding: [60, 60], maxZoom: 18 });
+        if (b.isValid()) {
+          var cur = _map.getZoom();
+          var fitZ = Math.min(18, _map.getBoundsZoom(b, false, L.point(60, 60)));
+          if (fitZ > cur + 0.05) {
+            _map.setView(b.getCenter(), fitZ, { animate: true });
+          } else if (!_map.getBounds().contains(b)) {
+            _map.panTo(b.getCenter(), { animate: true });
+          }
+        }
       } catch(e) {}
     }
   }, 60);
@@ -29115,7 +29249,8 @@ button:focus-visible,.sg-item:focus-visible,.sg-lbl:focus-visible{outline:2px so
   function pname(){try{return document.getElementById('sg-project-name').value.trim();}catch(e){return '';}}
   function render(force){
     var L=items(),m=0; try{m=_markers.length;}catch(e){}
-    var s=pname()+'|'+m+'|'+selKey+'|'+flt.value+'|'+L.map(function(x){return x.type+x.id+'|'+x.it.name+'|'+x.it.color+'|'+(vis(x.it)?1:0);}).join(',');
+    var hc=0; try{hc=_markers.filter(function(x){return x.hidden;}).length;}catch(e){}
+    var s=pname()+'|'+m+'|'+hc+'|'+selKey+'|'+flt.value+'|'+L.map(function(x){return x.type+x.id+'|'+x.it.name+'|'+x.it.color+'|'+(vis(x.it)?1:0);}).join(',');
     if(!force&&s===lastSig) return; lastSig=s;
     var q=flt.value.trim().toLowerCase(),h='<div class="rg-row rg-root">'+MAP+'<span class="rg-name">'+esc(pname()||'Proyek SandGIS')+'</span></div>';
     L.forEach(function(x,i){
@@ -29125,13 +29260,16 @@ button:focus-visible,.sg-item:focus-visible,.sg-lbl:focus-visible{outline:2px so
         '<input type="checkbox"'+(vis(x.it)?' checked':'')+' aria-label="Tampilkan '+esc(name)+'"><span class="rg-ic">'+icon(x.type,x.it.color)+'</span><span class="rg-name" title="'+esc(name)+'">'+esc(name)+'</span>'+
         (sel?'<span class="rg-act"><button type="button" data-a="up" title="Naikkan" aria-label="Naikkan"'+(i===0?' disabled':'')+'>▲</button><button type="button" data-a="down" title="Turunkan" aria-label="Turunkan"'+(i===L.length-1?' disabled':'')+'>▼</button><button type="button" data-a="zoom" title="Zoom ke layer" aria-label="Zoom ke layer">⌕</button></span>':'')+'</div>';
     });
-    if(m&&!q) h+='<div class="rg-row rg-leaf rg-static"><span class="rg-ic"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="5" fill="#9b6bd6"/></svg></span><span class="rg-name">Titik ('+m+')</span></div>';
+    if(m&&!q) h+='<div class="rg-row rg-leaf rg-pts" data-hc="'+hc+'" data-n="'+m+'"><input type="checkbox"'+(hc===0?' checked':'')+' aria-label="Tampilkan semua titik"><span class="rg-ic"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="5" fill="#9b6bd6"/></svg></span><span class="rg-name">Titik ('+m+')</span></div>';
     if(!L.length&&!m) h+='<p class="rg-empty">Belum ada layer. Tambahkan titik atau gambar di tab Edit, atau unggah data di tab Data.</p>';
     h+='<div class="rg-row rg-base">'+MAP+'<span class="rg-name">Peta dasar</span></div>';
     tree.innerHTML=h;
+    var pr=tree.querySelector('.rg-pts input'); if(pr){var r0=pr.closest('.rg-pts'); pr.indeterminate=(+r0.dataset.hc>0&&+r0.dataset.hc<+r0.dataset.n);}
   }
   function toggle(t,id){try{if(t==='shp') shpToggleLayer(id); else if(t==='tif') tifToggleVisibility(id); else petaToggleShapeVisibility(t,id);}catch(e){}}
   tree.addEventListener('click',function(e){
+    var pr=e.target.closest('.rg-pts');
+    if(pr){ if(e.target.matches('input')){ try{markerSetAllVisible(e.target.checked);}catch(er){} render(true);} return; }
     var row=e.target.closest('.rg-leaf[data-id]'); if(!row) return;
     var t=row.dataset.type,id=row.dataset.id,b=e.target.closest('button[data-a]');
     if(b){try{if(b.dataset.a==='up') petaLayerMoveUp(t,id); else if(b.dataset.a==='down') petaLayerMoveDown(t,id); else petaLayerZoomTo(t,id);}catch(er){} render(true); return;}
@@ -30760,9 +30898,9 @@ html[lang=en] #rg-ribbon .rg-panel .sg-item .rg-lb{max-width:none;overflow:visib
       if(!m._sgGeoZ){ m._sgGeoZ=1; m.setMaxZoom(GEO_MAXZ); zoomUI(GEO_MAXZ); (window._imgOverlays||[]).forEach(function(e){ if(e.layer&&e.layer._sched) e.layer._sched(); }); }
       tileStretch(m,true);
     } else if(m._sgGeoZ){
-      m._sgGeoZ=0; tileStretch(m,false); m.options.maxZoom=undefined; m.fire('zoomlevelschange');
+      m._sgGeoZ=0; tileStretch(m,false); m.options.maxZoom=window._SG_MAX_ZOOM||24; m.fire('zoomlevelschange');
       var mz=m.getMaxZoom(); if(isFinite(mz)&&m.getZoom()>mz) m.setZoom(mz);
-      zoomUI(19);
+      zoomUI(window._SG_MAX_ZOOM||24);
     }
   }
   function bindMap(){
@@ -31155,6 +31293,15 @@ html[lang=en] #rg-ribbon .rg-panel .sg-item .rg-lb{max-width:none;overflow:visib
     window.sgSaveProject=function(){
       saving=true;
       try{ return origSave.apply(this,arguments); } finally{ saving=false; if(maps.length>1){ refreshUI(true); } render(); }
+    };
+  }
+  /* Autosave memakai sgSerializeProject — harus ikut menyertakan semua peta/layout */
+  var origSer=window.sgSerializeProject;
+  if(typeof origSer==='function'){
+    window.sgSerializeProject=function(){
+      if(saving) return origSer.apply(this,arguments);   /* sudah di dalam sgSaveProject */
+      saving=true;
+      try{ return origSer.apply(this,arguments); } finally{ saving=false; if(maps.length>1){ refreshUI(true); } render(); }
     };
   }
 
@@ -31708,6 +31855,217 @@ onmessage = function (e) {
   else if (m.t === 'abort') { cancelLoad = true; }
 };
 
+</script>
+<script id="sg-autosave-js">
+/* ══════════════════════════════════════════════════════════════════
+   AUTOSAVE SandGIS
+   • Menyimpan otomatis seluruh project ke penyimpanan browser
+     (IndexedDB) beberapa detik setelah ada perubahan.
+   • Lampu indikator di bar atas:
+       hijau = tersimpan · kuning = ada perubahan / menyimpan (berkedip)
+       biru = ditahan (menunggu keputusan pulihkan) · merah = gagal
+       abu = autosave mati
+   • Saat aplikasi dibuka lagi dan ada autosave, muncul tawaran
+     "Pulihkan" (peta tidak dipulihkan otomatis tanpa persetujuan).
+   • Klik lampu untuk menyalakan/mematikan autosave.
+   ══════════════════════════════════════════════════════════════════ */
+(function(){
+  'use strict';
+  var LS_KEY='sg_autosave_on', DB_NAME='sandgis-autosave', STORE='kv', REC_KEY='current';
+  var IDLE_MS=4000, MIN_GAP_MS=12000;
+  var enabled=true, dirty=false, saving=false, held=false, failed=false;
+  var sessionWrote=false, lastSavedAt=null, lastJson=null, lastRun=0, costMs=0, timer=null, startupRec=null;
+  try{ enabled = localStorage.getItem(LS_KEY)!=='0'; }catch(e){}
+
+  function $(id){ return document.getElementById(id); }
+  function pad(n){ return (n<10?'0':'')+n; }
+  function hms(d){ return pad(d.getHours())+':'+pad(d.getMinutes())+':'+pad(d.getSeconds()); }
+
+  /* ── Lampu ── */
+  function setState(st, txt, tip){
+    var b=$('sg-as'), t=$('sg-as-txt'); if(!b) return;
+    b.setAttribute('data-st', st);
+    var label = txt || ({off:'Autosave mati',ready:'Autosave aktif',dirty:'Perubahan…',saving:'Menyimpan…',held:'Autosave ditahan',error:'Autosave gagal',clean:'Tersimpan'})[st] || 'Autosave';
+    if(t) t.textContent = label;
+    b.title = (tip || label) + ' — klik untuk ' + (enabled?'mematikan':'menyalakan') + ' autosave (disimpan di browser ini)';
+  }
+  function refreshLamp(){
+    if(!enabled) return setState('off');
+    if(failed)   return setState('error','Autosave gagal', 'Autosave gagal. Simpan manual lewat tombol Simpan agar data aman');
+    if(saving)   return setState('saving');
+    if(held)     return setState('held','Autosave ditahan','Autosave ditahan sampai Anda memilih Pulihkan/Abaikan pada pesan di atas');
+    if(dirty)    return setState('dirty');
+    if(lastSavedAt) return setState('clean','Tersimpan '+hms(lastSavedAt),'Autosave terakhir '+lastSavedAt.toLocaleString('id-ID'));
+    return setState('ready');
+  }
+
+  /* ── IndexedDB (fallback localStorage) ── */
+  function idb(){
+    return new Promise(function(res,rej){
+      if(!window.indexedDB) return rej(new Error('IndexedDB tidak tersedia'));
+      var r; try{ r=indexedDB.open(DB_NAME,1); }catch(e){ return rej(e); }
+      r.onupgradeneeded=function(){ try{ r.result.createObjectStore(STORE); }catch(e){} };
+      r.onsuccess=function(){ res(r.result); };
+      r.onerror=function(){ rej(r.error||new Error('IndexedDB error')); };
+    });
+  }
+  function dbGet(){
+    return idb().then(function(db){ return new Promise(function(res,rej){
+      var q=db.transaction(STORE,'readonly').objectStore(STORE).get(REC_KEY);
+      q.onsuccess=function(){ db.close(); res(q.result||null); };
+      q.onerror=function(){ db.close(); rej(q.error); };
+    });}).catch(function(){ try{ var s=localStorage.getItem('sg_autosave_rec'); return s?JSON.parse(s):null; }catch(e){ return null; } });
+  }
+  function dbSet(rec){
+    return idb().then(function(db){ return new Promise(function(res,rej){
+      var tx=db.transaction(STORE,'readwrite'); tx.objectStore(STORE).put(rec,REC_KEY);
+      tx.oncomplete=function(){ db.close(); res(); };
+      tx.onerror=tx.onabort=function(){ db.close(); rej(tx.error||new Error('Gagal menulis IndexedDB')); };
+    });}).catch(function(e){
+      try{ localStorage.setItem('sg_autosave_rec', JSON.stringify(rec)); }
+      catch(e2){ throw e; }
+    });
+  }
+
+  function countObjs(st){
+    function c(s){ return !s?0:((s.markers||[]).length+(s.rivers||[]).length+(s.lines||[]).length+(s.polygons||[]).length+(s.shpLayers||[]).length+(s.imgOverlays||[]).length); }
+    var n=c(st); (st&&st.maps||[]).forEach(function(m){ n+=c(m&&m.state); });
+    return n;
+  }
+
+  /* ── Siklus simpan ── */
+  function busyUI(){
+    try{
+      if(typeof _shapePts!=='undefined' && _shapePts && _shapePts.length) return true;    // sedang menggambar
+      var multi=document.querySelectorAll('#sg-mm-bar .sg-mm-tab').length>1;
+      var ae=document.activeElement, tag=ae&&ae.tagName;
+      if(multi && (tag==='INPUT'||tag==='TEXTAREA'||tag==='SELECT')) return true;        // jangan ganggu pengetikan
+    }catch(e){}
+    return false;
+  }
+  function schedule(ms){
+    clearTimeout(timer);
+    var gap=Math.max(MIN_GAP_MS, costMs*15);
+    var wait=Math.max(ms||IDLE_MS, lastRun+gap-Date.now());
+    timer=setTimeout(function(){ doSave(false); }, wait);
+  }
+  function markDirty(){
+    if(!enabled) return;
+    dirty=true;
+    if(!saving) refreshLamp();
+    if(!held) schedule();
+  }
+  function doSave(force){
+    if(!enabled||held||saving||(!dirty&&!force)) return;
+    if(typeof window.sgSerializeProject!=='function') return;
+    if(!force && busyUI()){ schedule(2500); return; }
+    saving=true; lastRun=Date.now(); refreshLamp();
+    var t0=performance.now();
+    Promise.resolve().then(function(){
+      var r=window.sgSerializeProject();
+      costMs=performance.now()-t0;
+      dirty=false;                                   // perubahan baru setelah ini menandai dirty lagi
+      var n=countObjs(r.state);
+      if(!n && !sessionWrote) return 'skip';         // jangan menimpa autosave lama dengan peta kosong
+      if(r.json===lastJson) return 'same';
+      return dbSet({json:r.json,savedAt:Date.now(),count:n,name:(r.state.projectName||'')}).then(function(){
+        lastJson=r.json; sessionWrote=true; return 'ok';
+      });
+    }).then(function(res){
+      failed=false; saving=false;
+      if(res==='ok'||res==='same') lastSavedAt=new Date();
+      refreshLamp();
+      if(dirty) schedule();
+    }).catch(function(e){
+      console.warn('[Autosave] gagal:',e);
+      saving=false; failed=true; dirty=true; refreshLamp();
+      schedule(30000);                               // coba lagi nanti
+    });
+  }
+
+  /* ── Hook: tanda perubahan ── */
+  var origPersist=window._persist;
+  window._persist=function(){
+    try{ if(typeof origPersist==='function') origPersist.apply(this,arguments); }catch(e){}
+    markDirty();
+  };
+  ['change','input','pointerup','keyup'].forEach(function(ev){
+    document.addEventListener(ev,function(e){
+      var t=e.target; if(t && t.closest && t.closest('#sg-as,#sg-as-banner')) return;
+      markDirty();
+    },true);
+  });
+  document.addEventListener('visibilitychange',function(){ if(document.hidden && dirty) doSave(true); });
+
+  /* ── Hook: manual Simpan / Buka project ── */
+  window.sgAutosaveNotifyManualSave=function(json,state){
+    held=false; removeBanner();
+    if(!enabled){ return; }
+    var n=countObjs(state);
+    if(!n && !sessionWrote){ refreshLamp(); return; }
+    dbSet({json:json,savedAt:Date.now(),count:n,name:(state.projectName||'')}).then(function(){
+      lastJson=json; sessionWrote=true; dirty=false; failed=false; lastSavedAt=new Date(); refreshLamp();
+    }).catch(function(){ refreshLamp(); });
+  };
+  var origApply=window._applyProjectState;
+  if(typeof origApply==='function'){
+    window._applyProjectState=function(){
+      var r=origApply.apply(this,arguments);
+      held=false; removeBanner(); lastJson=null; markDirty();
+      return r;
+    };
+  }
+
+  /* ── Toggle ── */
+  window.sgAutosaveToggle=function(){
+    enabled=!enabled;
+    try{ localStorage.setItem(LS_KEY, enabled?'1':'0'); }catch(e){}
+    if(enabled){ dirty=true; refreshLamp(); schedule(800); if(typeof toast==='function') toast('🟢 Autosave dinyalakan','ok'); }
+    else { clearTimeout(timer); refreshLamp(); if(typeof toast==='function') toast('Autosave dimatikan','warn'); }
+  };
+  window.sgAutosaveNow=function(){ dirty=true; doSave(true); };
+
+  /* ── Tawaran pemulihan saat startup ── */
+  function removeBanner(){ var b=$('sg-as-banner'); if(b&&b.parentNode) b.parentNode.removeChild(b); startupRec=null; }
+  function showBanner(rec){
+    startupRec=rec; held=true; refreshLamp();
+    var d=new Date(rec.savedAt||Date.now());
+    var b=document.createElement('div'); b.id='sg-as-banner';
+    var msg=document.createElement('span');
+    msg.textContent='💾 Ditemukan autosave project'+(rec.name?(' "'+rec.name+'"'):'')+' ('+rec.count+' objek) — '+d.toLocaleString('id-ID');
+    var ok=document.createElement('button'); ok.className='p'; ok.textContent='Pulihkan';
+    var no=document.createElement('button'); no.textContent='Abaikan';
+    ok.onclick=function(){
+      var rr=startupRec; if(!rr) return;
+      try{
+        var data=JSON.parse(rr.json);
+        held=false; removeBanner();
+        window._applyProjectState(data);
+        if(typeof toast==='function') toast('✅ Autosave berhasil dipulihkan','ok');
+      }catch(e){ console.error(e); held=false; removeBanner(); refreshLamp(); if(typeof toast==='function') toast('⚠ Gagal memulihkan autosave: '+e.message,'err'); }
+    };
+    no.onclick=function(){ held=false; removeBanner(); refreshLamp(); if(dirty) schedule(); };
+    b.appendChild(msg); b.appendChild(ok); b.appendChild(no);
+    document.body.appendChild(b);
+  }
+  function init(){
+    refreshLamp();
+    if(!enabled) return;
+    dbGet().then(function(rec){
+      if(rec && rec.json && rec.count>0) showBanner(rec);
+    }).catch(function(e){ console.warn('[Autosave] baca:',e); });
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',function(){ setTimeout(init,900); });
+  else setTimeout(init,900);
+
+  /* ── Ctrl/Cmd+S = Simpan project ── */
+  document.addEventListener('keydown',function(e){
+    if((e.ctrlKey||e.metaKey) && !e.shiftKey && !e.altKey && (e.key==='s'||e.key==='S')){
+      e.preventDefault();
+      if(typeof sgSaveProject==='function') sgSaveProject();
+    }
+  });
+})();
 </script>
 </body>
 </html>
