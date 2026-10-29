@@ -22269,7 +22269,16 @@ function _genSnapshotContainer(containerId, _retryCount) {
       canvas.style.cssText = 'position:absolute;top:0;left:0;width:' + mapSize.x + 'px;height:' + mapSize.y + 'px;z-index:440;display:block;pointer-events:none';
       if (getComputedStyle(container).position === 'static') container.style.position = 'relative';
       container.appendChild(canvas);
-      resolve({ restore: function(){ if (canvas.parentNode) canvas.parentNode.removeChild(canvas); } });
+      // Label/callout titik SUDAH digambar ke dalam canvas snapshot (symRenderLabels).
+      // Overlay DOM #sym-overlay disembunyikan selama ekspor supaya tidak tertangkap
+      // html2canvas lagi (penyebab kotak keterangan & garis tampak dobel/berbayang).
+      var _ovEl = (containerId === 'peta-gen-map') ? container.querySelector('#sym-overlay') : null;
+      var _ovPrevVis = _ovEl ? _ovEl.style.visibility : '';
+      if (_ovEl) _ovEl.style.visibility = 'hidden';
+      resolve({ restore: function(){
+        if (canvas.parentNode) canvas.parentNode.removeChild(canvas);
+        if (_ovEl) _ovEl.style.visibility = _ovPrevVis;
+      } });
     } catch(e) {
       console.warn('_genSnapshotContainer (canvas-native) failed:', e);
       resolve(null);
