@@ -2348,6 +2348,12 @@ body{
           </div>
           <div id="dxf-status-txt" style="font-family:Arial,sans-serif;font-size:9.5px;color:var(--mute);text-align:center;margin-bottom:8px;min-height:14px"></div>
 
+          <!-- Mode tile: detail penuh (blok, HATCH, teks) untuk file berukuran berapa pun -->
+          <label style="display:flex;align-items:flex-start;gap:6px;font-family:Arial,sans-serif;font-size:10px;color:var(--txt2);margin:0 0 8px;cursor:pointer;line-height:1.35" title="Membuka isi blok (INSERT), menggambar HATCH dan teks CAD. Tanpa tabel atribut per-entitas.">
+            <input type="checkbox" id="dxf-force-tile" style="margin-top:2px">
+            <span>Mode detail penuh (tile): blok, HATCH &amp; teks CAD <span style="color:var(--mute)">— tanpa tabel atribut</span></span>
+          </label>
+
           <!-- Tombol load -->
           <button id="dxf-load-btn" onclick="dxfLoadFile()" disabled
             style="width:100%;font-family:Arial,sans-serif;font-size:11px;font-weight:700;padding:9px;border-radius:var(--rs);border:none;cursor:pointer;background:rgba(167,139,250,0.12);color:#a78bfa;border:1px solid rgba(167,139,250,0.3);transition:all .2s;opacity:0.4">
@@ -8837,10 +8843,89 @@ function _dxfCheckUtm(sample, zone, isSouth) {
   return res;
 }
 
+/* ── Blok CAD: buka isi INSERT jadi geometri nyata ───────────────────────── */
+function _dxfShiftZ(e, dz) {
+  if (!dz) return e;
+  var c = Object.assign({}, e);
+  ['position','start','end','center'].forEach(function(k){
+    if (c[k] && typeof c[k] === 'object') c[k] = Object.assign({}, c[k], { z: (+c[k].z || 0) + dz });
+  });
+  ['vertices','points','controlPoints','fitPoints'].forEach(function(k){
+    if (Array.isArray(c[k])) c[k] = c[k].map(function(v){ return (v && typeof v === 'object') ? Object.assign({}, v, { z: (+v.z || 0) + dz }) : v; });
+  });
+  if (typeof c.elevation === 'number') c.elevation += dz;
+  return c;
+}
+
+function _dxfExpandInsert(entity, xform, ctx) {
+  var blk = ctx.blocks && ctx.blocks[entity.name];
+  if (!blk) { ctx.stat.missing++; return null; }
+  var ents = blk.entities || [];
+  if (!ents.length) { ctx.stat.empty++; return null; }
+  if (ctx.depth >= 8) { ctx.stat.depth++; return null; }
+  if (ctx.budget.left <= 0) { ctx.stat.budget++; return null; }
+
+  var p = entity.position || { x: 0, y: 0, z: 0 };
+  var base = blk.position || { x: 0, y: 0, z: 0 };
+  var sx = +entity.xScale; if (!isFinite(sx) || sx === 0) sx = 1;
+  var sy = +entity.yScale; if (!isFinite(sy) || sy === 0) sy = 1;
+  var rot = (+entity.rotation || 0) * Math.PI / 180;
+  var cs = Math.cos(rot), sn = Math.sin(rot);
+  var cols = Math.max(1, (entity.columnCount | 0) || 1), rows = Math.max(1, (entity.rowCount | 0) || 1);
+  var cSp = +entity.columnSpacing || 0, rSp = +entity.rowSpacing || 0;
+  var dz = +p.z || 0;
+  var out = [];
+
+  for (var r = 0; r < rows; r++) {
+    for (var c = 0; c < cols; c++) {
+      var ox = (+p.x || 0) + (c * cSp) * cs - (r * rSp) * sn;
+      var oy = (+p.y || 0) + (c * cSp) * sn + (r * rSp) * cs;
+      var sub = (function(ox, oy) {
+        return function(x, y) {
+          var lx = (x - (+base.x || 0)) * sx, ly = (y - (+base.y || 0)) * sy;
+          return xform(ox + lx * cs - ly * sn, oy + lx * sn + ly * cs);
+        };
+      })(ox, oy);
+      var sctx = { blocks: ctx.blocks, depth: ctx.depth + 1, budget: ctx.budget, stat: ctx.stat };
+      for (var i = 0; i < ents.length; i++) {
+        var ce = ents[i];
+        if (!ce || !ce.type) continue;
+        if (!ce.layer || ce.layer === '0') ce = Object.assign({}, ce, { layer: entity.layer || ce.layer });
+        if (dz) ce = _dxfShiftZ(ce, dz);
+        var fs = _dxfEntityToFeatures(ce, sub, sctx);
+        for (var j = 0; j < fs.length; j++) {
+          if (fs[j].properties && fs[j].properties.block === undefined) fs[j].properties.block = entity.name || '';
+          out.push(fs[j]);
+        }
+        ctx.budget.left -= fs.length || 1;
+        if (ctx.budget.left <= 0) { ctx.stat.budget++; return out; }
+      }
+    }
+  }
+  ctx.stat.expanded++;
+  return out;
+}
+
+/* Hitung tipe entitas di section ENTITIES langsung dari teks DXF, supaya objek yang
+   tidak dikenali parser (HATCH, LEADER, dll.) bisa dilaporkan, bukan hilang diam-diam. */
+function _dxfScanEntityTypes(text) {
+  var out = {};
+  var m0 = /\r?\n[ \t]*2[ \t]*\r?\n[ \t]*ENTITIES[ \t]*\r?\n/.exec(text);
+  if (!m0) return out;
+  var start = m0.index + m0[0].length;
+  var reEnd = /\r?\n[ \t]*0[ \t]*\r?\n[ \t]*ENDSEC/g; reEnd.lastIndex = start;
+  var me = reEnd.exec(text); var end = me ? me.index : text.length;
+  var re = /\n[ \t]*0[ \t]*\r?\n[ \t]*([A-Z][A-Z0-9_]*)[ \t]*(?=\r?\n)/g; re.lastIndex = start - 1;
+  var m;
+  while ((m = re.exec(text)) && m.index < end) out[m[1]] = (out[m[1]] || 0) + 1;
+  return out;
+}
+var _DXF_CONVERTED_TYPES = { LINE:1, LWPOLYLINE:1, POLYLINE:1, VERTEX:1, SEQEND:1, '3DFACE':1, CIRCLE:1, ARC:1, ELLIPSE:1, POINT:1, SPLINE:1, TEXT:1, MTEXT:1, INSERT:1, SOLID:1, DIMENSION:1 };
+
 /* _dxfEntityToFeatures — robust multi-format parser
    Tidak mengasumsikan format array/object dari library versi manapun.
    Setiap akses property dibungkus try-catch atau null-safe. */
-function _dxfEntityToFeatures(entity, xform) {
+function _dxfEntityToFeatures(entity, xform, ctx) {
   /* ── Helpers ── */
   function safeArr(v) {
     if (!v) return [];
@@ -9055,8 +9140,21 @@ function _dxfEntityToFeatures(entity, xform) {
 
     /* INSERT (block reference) */
     } else if (t === 'INSERT' && entity.position) {
-      feats.push({ type:'Feature', properties: props({ block: entity.name||'', elevation: zOf(entity.position) }),
-        geometry:{ type:'Point', coordinates: pt(entity.position) } });
+      /* Buka isi blok (termasuk blok bersarang, skala, rotasi, array MINSERT).
+         Jika blok kosong / tidak ditemukan, tetap tampil sebagai titik seperti sebelumnya. */
+      var insFeats = ctx ? _dxfExpandInsert(entity, xform, ctx) : null;
+      if (insFeats && insFeats.length) {
+        for (var ifi = 0; ifi < insFeats.length; ifi++) feats.push(insFeats[ifi]);
+      } else {
+        feats.push({ type:'Feature', properties: props({ block: entity.name||'', elevation: zOf(entity.position) }),
+          geometry:{ type:'Point', coordinates: pt(entity.position) } });
+      }
+
+    /* DIMENSION — garis, panah & teks ukuran tersimpan di blok anonim (*D...) */
+    } else if (t === 'DIMENSION' && ctx) {
+      var dimBlk = entity.block || entity.name;
+      var dimFeats = dimBlk ? _dxfExpandInsert({ name: dimBlk, position: {x:0,y:0,z:0}, layer: entity.layer, type: 'INSERT' }, xform, ctx) : null;
+      if (dimFeats) for (var dfi = 0; dfi < dimFeats.length; dfi++) feats.push(dimFeats[dfi]);
 
     /* SOLID / TRACE */
     } else if ((t === 'SOLID' || t === 'TRACE') && entity.points) {
@@ -9836,7 +9934,8 @@ function dxfLoadFile() {
   if (!_dxfFile) return;
   if (!_map) { toast('Peta belum terbuka — buka tab Pemetaan dulu', 'err'); return; }
   if (_dxfBigJob) { dxfBigCancel(); return; }
-  if (_dxfFile.size >= DXF_BIG_THRESHOLD && typeof Worker !== 'undefined' && typeof OffscreenCanvas !== 'undefined') { dxfLoadBig(); return; }
+  var _forceTile = !!(document.getElementById('dxf-force-tile') || {}).checked;
+  if ((_dxfFile.size >= DXF_BIG_THRESHOLD || _forceTile) && typeof Worker !== 'undefined' && typeof OffscreenCanvas !== 'undefined') { dxfLoadBig(); return; }
   if (typeof DxfParser === 'undefined') { toast('Pustaka DXF gagal dimuat — cek koneksi internet', 'err'); return; }
 
   var fileSizeMB = _dxfFile.size / (1024*1024);
@@ -9913,15 +10012,34 @@ function dxfLoadFile() {
       var entities = (dxf && dxf.entities) || [];
       var features = [];
       var skipped = 0;
+      var _dxfCtx = { blocks: (dxf && dxf.blocks) || {}, depth: 0, budget: { left: 3000000 },
+                      stat: { expanded: 0, empty: 0, missing: 0, depth: 0, budget: 0 } };
+      var _dxfRawTypes = {};
+      try { _dxfRawTypes = _dxfScanEntityTypes(e.target.result); } catch (scanErr) { console.warn('[DXF] scan tipe gagal', scanErr); }
       entities.forEach(function(ent) {
         try {
-          features = features.concat(_dxfEntityToFeatures(ent, xform));
+          var _fs = _dxfEntityToFeatures(ent, xform, _dxfCtx);
+          for (var _fi = 0; _fi < _fs.length; _fi++) features.push(_fs[_fi]);
         } catch(entErr) {
           skipped++;
           console.warn('[DXF] Skip entity', ent && ent.type, entErr.message);
         }
       });
       if (skipped > 0) console.info('[DXF] ' + skipped + ' entity dilewati karena error');
+      /* Laporan: apa yang TIDAK terbaca */
+      var _dxfReportTxt = '', _dxfUnsup = [];
+      Object.keys(_dxfRawTypes).forEach(function(k) { if (!_DXF_CONVERTED_TYPES[k]) _dxfUnsup.push([k, _dxfRawTypes[k]]); });
+      _dxfUnsup.sort(function(a, b) { return b[1] - a[1]; });
+      if (_dxfUnsup.length) {
+        _dxfReportTxt = ' · ⚠ tidak terbaca (tipe belum didukung): ' + _dxfUnsup.slice(0, 6).map(function(u) { return u[0] + ' ' + u[1].toLocaleString('id-ID'); }).join(', ') + (_dxfUnsup.length > 6 ? ', …' : '');
+        console.warn('[DXF] Tipe entitas yang tidak terbaca:', _dxfUnsup);
+      }
+      if (_dxfRawTypes.HATCH) _dxfReportTxt += ' · 💡 centang "Mode detail penuh (tile)" agar HATCH & teks tampil';
+      var _st = _dxfCtx.stat;
+      if (_st.expanded) _dxfReportTxt += ' · ' + _st.expanded.toLocaleString('id-ID') + ' blok dibuka';
+      if (_st.missing) _dxfReportTxt += ' · ⚠ ' + _st.missing.toLocaleString('id-ID') + ' blok tidak ditemukan';
+      if (_st.budget) _dxfReportTxt += ' · ⚠ isi blok dipotong (terlalu banyak)';
+      console.info('[DXF] blok:', _st, 'tipe di file:', _dxfRawTypes);
 
       // Simpan info tipe entitas dulu (untuk pesan error jika perlu) SEBELUM
       // membebaskan referensi dxf/entities mentah dari memory.
@@ -10024,7 +10142,8 @@ function dxfLoadFile() {
       dxfUpdateLayerList();
 
       dxfSetProgress(100);
-      dxfSetStatus('✓ ' + features.length.toLocaleString() + ' entitas berhasil ditampilkan', '#1ab0a6');
+      dxfSetStatus('✓ ' + features.length.toLocaleString() + ' entitas berhasil ditampilkan' + _dxfReportTxt, _dxfUnsup.length ? '#f5c030' : '#1ab0a6');
+      if (_dxfUnsup.length) toast('⚠ Sebagian objek DXF tidak terbaca: ' + _dxfUnsup.slice(0, 3).map(function(u) { return u[0]; }).join(', '), 'warn');
       if (crsMode !== 'wgs84') {
         try {
           var chk = _dxfCheckUtm(_dxfRawSample, zone, isSouth);
@@ -10032,7 +10151,7 @@ function dxfLoadFile() {
             var cTxt = Math.abs(chk.centerLat).toFixed(4) + '°' + (chk.centerLat < 0 ? 'S' : 'N') + ', ' +
                        Math.abs(chk.centerLon).toFixed(4) + '°' + (chk.centerLon < 0 ? 'W' : 'E');
             dxfSetStatus('✓ ' + features.length.toLocaleString() + ' entitas · UTM ' + zone + (isSouth ? ' S' : ' N') +
-                         ' · titik tengah ' + cTxt, '#1ab0a6');
+                         ' · titik tengah ' + cTxt + _dxfReportTxt, _dxfUnsup.length ? '#f5c030' : '#1ab0a6');
           }
           if (chk && chk.msg) {
             dxfSetStatus(chk.msg, '#f5c030');
@@ -10122,7 +10241,8 @@ var _DxfBigGrid = L.GridLayer.extend({
       cad: o.cadColors !== false, color: o.color, fillColor: o.fillBaseColor || o.color,
       weight: o.weight != null ? o.weight : 1.2, opacity: (o.opacity != null ? o.opacity : 85) / 100,
       fillOpacity: (o.fillOpacity != null ? o.fillOpacity : 0) / 100,
-      dash: d ? d.split(',').map(Number) : null, vis: o.subVis, pointR: 2.2
+      dash: d ? d.split(',').map(Number) : null, vis: o.subVis, pointR: 2.2,
+      c7: (document.documentElement.getAttribute('data-theme') === 'dark') ? '#f2f2f2' : '#262626', text: o.cadText !== false
     };
   },
   createTile: function (coords, done) {
@@ -10219,7 +10339,15 @@ function dxfLoadBig() {
         shpUpdateLayerList(); dxfUpdateLayerList();
         dxfSetProgress(100);
         var base = '✓ ' + _dxfBigFmt(m.nf) + ' entitas · ' + _dxfBigFmt(m.nv) + ' titik · siap ditampilkan (' + (m.indexMs / 1000).toFixed(1) + ' dtk indeks)';
-        dxfSetStatus(base, '#1ab0a6');
+        var bk = m.blk || {};
+        if (bk.expanded) base += ' · ' + _dxfBigFmt(bk.expanded) + ' blok dibuka';
+        if (m.nhatch) base += ' · ' + _dxfBigFmt(m.nhatch) + ' hatch';
+        if (m.ntext) base += ' · ' + _dxfBigFmt(m.ntext) + ' teks (tampil saat di-zoom)';
+        if (bk.missing) base += ' · ⚠ ' + _dxfBigFmt(bk.missing) + ' blok tidak ditemukan';
+        if (bk.budget) base += ' · ⚠ isi blok dipotong (terlalu banyak)';
+        var unsupList = Object.keys(m.unsup || {}).filter(function (k) { return m.unsup[k] > 0; }).sort(function (x, y) { return m.unsup[y] - m.unsup[x]; });
+        if (unsupList.length) base += ' · ⚠ tidak digambar: ' + unsupList.slice(0, 5).map(function (k) { return k + ' ' + _dxfBigFmt(m.unsup[k]); }).join(', ');
+        dxfSetStatus(base, unsupList.length ? '#f5c030' : '#1ab0a6');
         if (crsMode !== 'wgs84') {
           try {
             var chk = _dxfCheckUtm(m.rawSample, zone, isSouth);
@@ -32575,13 +32703,14 @@ var aciCss = (function () {
 
 /* ── type ids ── */
 var T_OTHER = 1, T_SECTION = 2, T_ENDSEC = 3, T_EOF = 4, T_LINE = 10, T_LWPOLY = 11, T_POLY = 12, T_VERTEX = 13, T_SEQEND = 14,
-    T_POINT = 15, T_CIRCLE = 16, T_ARC = 17, T_ELLIPSE = 18, T_SPLINE = 19, T_SOLID = 20, T_3DFACE = 21, T_INSERT = 22, T_LAYER = 23;
+    T_POINT = 15, T_CIRCLE = 16, T_ARC = 17, T_ELLIPSE = 18, T_SPLINE = 19, T_SOLID = 20, T_3DFACE = 21, T_INSERT = 22, T_LAYER = 23, T_BLOCK = 24, T_ENDBLK = 25, T_TEXT = 26, T_MTEXT = 27, T_HATCH = 28, T_DIM = 29;
 function th(buf, a, b) { var h = b - a; for (var i = a; i < b; i++) h = (h * 31 + buf[i]) | 0; return h; }
 function strHash(s) { var h = s.length; for (var i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0; return h; }
 var TYPEMAP = new Map();
 [['SECTION', T_SECTION], ['ENDSEC', T_ENDSEC], ['EOF', T_EOF], ['LINE', T_LINE], ['LWPOLYLINE', T_LWPOLY], ['POLYLINE', T_POLY],
  ['VERTEX', T_VERTEX], ['SEQEND', T_SEQEND], ['POINT', T_POINT], ['CIRCLE', T_CIRCLE], ['ARC', T_ARC], ['ELLIPSE', T_ELLIPSE],
- ['SPLINE', T_SPLINE], ['SOLID', T_SOLID], ['TRACE', T_SOLID], ['3DFACE', T_3DFACE], ['INSERT', T_INSERT], ['LAYER', T_LAYER]
+ ['SPLINE', T_SPLINE], ['SOLID', T_SOLID], ['TRACE', T_SOLID], ['3DFACE', T_3DFACE], ['INSERT', T_INSERT], ['LAYER', T_LAYER],
+ ['BLOCK', T_BLOCK], ['ENDBLK', T_ENDBLK], ['TEXT', T_TEXT], ['ATTRIB', T_TEXT], ['MTEXT', T_MTEXT], ['HATCH', T_HATCH], ['DIMENSION', T_DIM]
 ].forEach(function (p) { TYPEMAP.set(strHash(p[0]), p[1]); });
 var TYPENAME = { 10: 'LINE', 11: 'LWPOLYLINE', 12: 'POLYLINE', 15: 'POINT', 16: 'CIRCLE', 17: 'ARC', 18: 'ELLIPSE', 19: 'SPLINE', 20: 'SOLID', 21: '3DFACE', 22: 'INSERT' };
 
@@ -32644,7 +32773,7 @@ function accPush(o, x, y, b) {
   if (o.n >= o.x.length) { var c = o.x.length * 2, nx = new Float64Array(c), ny = new Float64Array(c), nb = new Float64Array(c); nx.set(o.x); ny.set(o.y); nb.set(o.b); o.x = nx; o.y = ny; o.b = nb; }
   o.x[o.n] = x; o.y[o.n] = y; o.b[o.n] = b; o.n++;
 }
-var accL = mkAcc(), accP = mkAcc(), accC = mkAcc(), accF = mkAcc();
+var accL = mkAcc(), accP = mkAcc(), accC = mkAcc(), accF = mkAcc(), accH = mkAcc();
 
 /* sampel utk ekstensi & cek UTM */
 var sampX = [], sampY = [], sampStep = 1, sampCtr = 0;
@@ -32652,8 +32781,80 @@ var rawSample = [], rawCtr = 0;
 var gMinX = Infinity, gMinY = Infinity, gMaxX = -Infinity, gMaxY = -Infinity;
 var curLay = 0, curCol = -1;
 
+/* ── BLOK, TEKS, HATCH ── */
+var blocks = new Map(), curBlock = null, bName = '', blkStat = { expanded: 0, empty: 0, missing: 0, depth: 0, budget: 0 };
+var expBudget = 40000000;
+var TX = { x: [], y: [], h: [], r: [], s: [], l: [], c: [], ha: [], va: [] }, TXMAX = 2000000;
+var tStr = '', tStr3 = '', tHj = 0, tVj = 0, tAtt = 1;
+var insName = '', isx = 1, isy = 1, icols = 1, irows = 1, icsp = 0, irsp = 0;
+var hs = 0, hPoly = false, hOpen = false, hEdge = null, nHatch = 0;
+var TD = new TextDecoder('utf-8');
+function sdec(buf, a, b) {
+  var s = TD.decode(buf.subarray(a, b));
+  if (s.indexOf('\\U+') >= 0) s = s.replace(/\\U\+([0-9A-Fa-f]{4})/g, function (m, h) { return String.fromCharCode(parseInt(h, 16)); });
+  return s;
+}
+function cleanText(s, mtext) {
+  s = s.replace(/%%[cC]/g, '\u00D8').replace(/%%[dD]/g, '\u00B0').replace(/%%[pP]/g, '\u00B1').replace(/%%[uUoO]/g, '');
+  if (mtext) {
+    s = s.replace(/\\P/g, '\n').replace(/\\~/g, ' ').replace(/\\[fFcCHhQqWwAaTt][^;]*;/g, '').replace(/\\[LlOoKk]/g, '')
+         .replace(/\\S([^;^\\\/#]*)[\^\/#]([^;]*);/g, '$1/$2').replace(/[{}]/g, '').replace(/\\\\/g, '\\');
+  }
+  return s.trim();
+}
+function storePrim(k, n) {
+  var xs = new Float64Array(n), ys = new Float64Array(n);
+  for (var i = 0; i < n; i++) { xs[i] = vx[i]; ys[i] = vy[i]; }
+  curBlock.prims.push({ k: k, x: xs, y: ys, lay: curLay, col: curCol });
+}
+function addText(t, T, lay, col) {
+  if (TX.x.length >= TXMAX || !t.s) return;
+  var x = T[0] * t.x + T[2] * t.y + T[4], y = T[1] * t.x + T[3] * t.y + T[5];
+  var sc = Math.sqrt(T[0] * T[0] + T[1] * T[1]), rot = t.r + Math.atan2(T[1], T[0]), hm = t.h * sc;
+  if (!(hm > 0) || !toMerc(x, y)) return;
+  var mx = MX, my = MY;
+  if (!haveOrigin) { ox = MX; oy = MY; haveOrigin = true; }
+  if (!toMerc(x, y + hm)) return;
+  var h2 = MY - my; if (!(h2 > 0)) return;
+  TX.x.push(mx - ox); TX.y.push(my - oy); TX.h.push(h2); TX.r.push(rot); TX.s.push(t.s); TX.l.push(lay); TX.c.push(col); TX.ha.push(t.ha); TX.va.push(t.va);
+}
+var IDM = [1, 0, 0, 1, 0, 0];
+/* Pasang isi blok ke koordinat dunia. M = transformasi luar (affine), blok bersarang rekursif. */
+function placeInsert(ins, M, depth, oLay, oCol) {
+  var blk = blocks.get(ins.name);
+  if (!blk) { blkStat.missing++; return false; }
+  var prims = blk.prims; if (!prims.length) { blkStat.empty++; return false; }
+  if (depth > 8) { blkStat.depth++; return false; }
+  if (expBudget <= 0) { blkStat.budget = 1; return false; }
+  var cr = Math.cos(ins.rot), sr = Math.sin(ins.rot);
+  var cols = Math.min(Math.max(1, ins.cols | 0), 2000), rows = Math.min(Math.max(1, ins.rows | 0), 2000);
+  var sLay = curLay, sCol = curCol, drew = false;
+  var al = cr * ins.sx, bl = sr * ins.sx, cl = -sr * ins.sy, dl = cr * ins.sy;
+  for (var r = 0; r < rows; r++) for (var c = 0; c < cols; c++) {
+    var ox2 = ins.x + c * ins.csp * cr - r * ins.rsp * sr, oy2 = ins.y + c * ins.csp * sr + r * ins.rsp * cr;
+    var el = ox2 - al * blk.bx - cl * blk.by, fl = oy2 - bl * blk.bx - dl * blk.by;
+    var T = [M[0] * al + M[2] * bl, M[1] * al + M[3] * bl, M[0] * cl + M[2] * dl, M[1] * cl + M[3] * dl,
+             M[0] * el + M[2] * fl + M[4], M[1] * el + M[3] * fl + M[5]];
+    for (var i = 0; i < prims.length; i++) {
+      var p = prims[i];
+      var lay = p.lay === defLayIdx ? oLay : p.lay;
+      var col = (p.col < 0 && p.lay === defLayIdx) ? oCol : p.col;
+      if (p.k === 9) { if (placeInsert(p.ins, T, depth + 1, lay, col)) drew = true; continue; }
+      if (p.k === 3) { addText(p.t, T, lay, col); drew = true; continue; }
+      var n = p.x.length; ensureV(n + 1);
+      for (var q = 0; q < n; q++) { var X = p.x[q], Y = p.y[q]; vx[q] = T[0] * X + T[2] * Y + T[4]; vy[q] = T[1] * X + T[3] * Y + T[5]; }
+      curLay = lay; curCol = col; emit(p.k, n); expBudget -= n; drew = true;
+    }
+    if (expBudget <= 0) { blkStat.budget = 1; break; }
+  }
+  curLay = sLay; curCol = sCol;
+  if (drew) blkStat.expanded++;
+  return drew;
+}
+
 function emit(k, n) {
   if (n < 1) return;
+  if (curBlock) { storePrim(k, n); return; }
   growFeat(); growCoords(2 * n);
   var startV = nv, minx = Infinity, miny = Infinity, maxx = -Infinity, maxy = -Infinity, cnt = 0;
   for (var i = 0; i < n; i++) {
@@ -32690,7 +32891,7 @@ function bulgeSeg(x1, y1, x2, y2, b, n) {  /* tambah titik antara (x1,y1)->(x2,y
   for (var i = 1; i <= steps; i++) { var a = a1 + theta * i / steps; vx[n++] = cx + r * Math.cos(a); vy[n - 1] = cy + r * Math.sin(a); }
   vx[n - 1] = x2; vy[n - 1] = y2; return n;
 }
-function emitAcc(o, closed) {
+function emitAcc(o, closed, kind) {
   var n = o.n; if (n < 1) return; ensureV(n + 2);
   var hasB = false; for (var i = 0; i < n; i++) if (o.b[i] !== 0) { hasB = true; break; }
   var m = 0;
@@ -32700,7 +32901,71 @@ function emitAcc(o, closed) {
     for (i = 0; i < n - 1; i++) { if (o.b[i] !== 0) m = bulgeSeg(o.x[i], o.y[i], o.x[i + 1], o.y[i + 1], o.b[i], m); else { ensureV(m + 1); vx[m] = o.x[i + 1]; vy[m] = o.y[i + 1]; m++; } }
     if (closed && n > 2) { if (o.b[n - 1] !== 0) m = bulgeSeg(o.x[n - 1], o.y[n - 1], o.x[0], o.y[0], o.b[n - 1], m); else { ensureV(m + 1); vx[m] = o.x[0]; vy[m] = o.y[0]; m++; } }
   }
-  emit(closed && n > 2 ? 2 : 1, m);
+  emit(kind || (closed && n > 2 ? 2 : 1), m);
+}
+
+/* ── HATCH: path polyline & edge (garis, busur, elips) → poligon terisi (kind 4) ── */
+function hatchFlushEdge() {
+  var e = hEdge; if (!e) return; hEdge = null;
+  if (e.t === 1) {
+    if (e.x0 === e.x0 && e.x1 === e.x1) { if (accH.n === 0) accPush(accH, e.x0, e.y0, 0); accPush(accH, e.x1, e.y1, 0); }
+  } else if (e.t === 2 && e.x0 === e.x0 && e.r > 0) {
+    var s0 = e.a0 * Math.PI / 180, s1 = e.a1 * Math.PI / 180, ccw = e.ccw !== 0;
+    if (!ccw) { var tt = s0; s0 = s1; s1 = tt; }
+    var m = arcPts(e.x0, e.y0, e.r, s0, s1, 0), px = [], py = [], i;
+    for (i = 0; i < m; i++) { px.push(vx[i]); py.push(vy[i]); }
+    if (!ccw) { px.reverse(); py.reverse(); }
+    for (i = 0; i < m; i++) accPush(accH, px[i], py[i], 0);
+  } else if (e.t === 3 && e.x0 === e.x0 && e.x1 === e.x1) {
+    var a = e.a0 * Math.PI / 180, bb = e.a1 * Math.PI / 180, sw = bb - a; if (sw <= 0) sw += 2 * Math.PI;
+    for (var j = 0; j <= 48; j++) { var t = a + sw * j / 48, ct = Math.cos(t), st = Math.sin(t); accPush(accH, e.x0 + e.x1 * ct - e.y1 * e.r * st, e.y0 + e.y1 * ct + e.x1 * e.r * st, 0); }
+  }
+}
+function hatchEndPath() {
+  if (!hOpen) return; hOpen = false;
+  if (!hPoly) hatchFlushEdge();
+  if (accH.n >= 3) { emitAcc(accH, true, 4); nHatch++; }
+  accH.n = 0; hEdge = null;
+}
+function hatchCode(code, buf, a, b) {
+  if (code === 8 || code === 62) return false;
+  switch (code) {
+    case 91: hs = 1; return true;
+    case 92: if (hs === 1) { hatchEndPath(); hPoly = (int(buf, a, b) & 2) !== 0; hOpen = true; accH.n = 0; hEdge = null; } return true;
+    case 97: if (hs === 1) hatchEndPath(); return true;
+    case 75: case 76: case 98: hatchEndPath(); hs = 2; return true;
+  }
+  if (hs !== 1 || !hOpen) return true;
+  switch (code) {
+    case 72: if (!hPoly) { hatchFlushEdge(); hEdge = { t: int(buf, a, b), x0: NaN, y0: NaN, x1: NaN, y1: NaN, r: 0, a0: 0, a1: 360, ccw: 1 }; } break;
+    case 73: if (!hPoly && hEdge) hEdge.ccw = int(buf, a, b); break;
+    case 10: if (hPoly) xs0 = num(buf, a, b); else if (hEdge) hEdge.x0 = num(buf, a, b); break;
+    case 20: { var y = num(buf, a, b); if (hPoly) accPush(accH, xs0, y, 0); else if (hEdge) hEdge.y0 = y; break; }
+    case 11: if (hEdge) hEdge.x1 = num(buf, a, b); break;
+    case 21: if (hEdge) hEdge.y1 = num(buf, a, b); break;
+    case 40: if (hEdge) hEdge.r = num(buf, a, b); break;
+    case 50: if (hEdge) hEdge.a0 = num(buf, a, b); break;
+    case 51: if (hEdge) hEdge.a1 = num(buf, a, b); break;
+    case 42: if (hPoly && accH.n) accH.b[accH.n - 1] = num(buf, a, b); break;
+  }
+  return true;
+}
+function finishText() {
+  var s = tStr3 + tStr; if (!s || !(xs0 === xs0) || !(rr > 0)) return;
+  if (et === T_TEXT && (flags & 1)) return;   /* atribut tersembunyi */
+  s = cleanText(s, et === T_MTEXT); if (!s) return;
+  var ha = 0, va = 0, rot = a0 * Math.PI / 180, px = xs0, py = ys0;
+  if (et === T_MTEXT) {
+    if (xs1 === xs1 && ys1 === ys1 && (xs1 !== 0 || ys1 !== 0)) rot = Math.atan2(ys1, xs1);
+    var at = tAtt >= 1 && tAtt <= 9 ? tAtt : 1; ha = (at - 1) % 3; va = at <= 3 ? 3 : (at <= 6 ? 2 : 1);
+  } else {
+    ha = (tHj === 1 || tHj === 4) ? 1 : (tHj === 2 ? 2 : 0);
+    va = tVj === 3 ? 3 : (tVj === 2 ? 2 : (tVj === 1 ? 1 : 0));
+    if ((tHj !== 0 || tVj !== 0) && tHj !== 3 && tHj !== 5 && xs1 === xs1 && ys1 === ys1) { px = xs1; py = ys1; }
+  }
+  var t = { x: px, y: py, h: rr, r: rot, s: s, ha: ha, va: va };
+  if (curBlock) curBlock.prims.push({ k: 3, t: t, lay: curLay, col: curCol });
+  else { addText(t, IDM, curLay, curCol); var nm = et === T_MTEXT ? 'MTEXT' : 'TEXT'; typeCount[nm] = (typeCount[nm] || 0) + 1; }
 }
 
 /* ── state parser ── */
@@ -32711,7 +32976,8 @@ var layerNames = [], layerAci = [], layerCount = [], layerMap = new Map(), table
 var lastLayBytes = null, lastLayIdx = 0;
 var typeCount = {}, unsup = new Map();
 var defLayIdx = -1;
-function resetFields() { xs0 = ys0 = xs1 = ys1 = xs2 = ys2 = xs3 = ys3 = NaN; rr = 0; a0 = 0; a1 = 360; p0 = 0; p1 = 2 * Math.PI; flags = 0; vbulge = 0; vflags = 0; accL.n = 0; accC.n = 0; accF.n = 0; if (defLayIdx < 0) defLayIdx = layerIdxByName('0'); curLay = defLayIdx; curCol = -1; tName = ''; tAci = 7; }
+function resetFields() { xs0 = ys0 = xs1 = ys1 = xs2 = ys2 = xs3 = ys3 = NaN; rr = 0; a0 = 0; a1 = 360; p0 = 0; p1 = 2 * Math.PI; flags = 0; vbulge = 0; vflags = 0; accL.n = 0; accC.n = 0; accF.n = 0; if (defLayIdx < 0) defLayIdx = layerIdxByName('0'); curLay = defLayIdx; curCol = -1; tName = ''; tAci = 7;
+  tStr = ''; tStr3 = ''; tHj = 0; tVj = 0; tAtt = 1; insName = ''; isx = 1; isy = 1; icols = 1; irows = 1; icsp = 0; irsp = 0; hs = 0; hOpen = false; hEdge = null; accH.n = 0; }
 function layerIdxByName(name) {
   var i = layerMap.get(name);
   if (i === undefined) { i = layerNames.length; layerNames.push(name); var ac = tableAci.get(name); layerAci.push(ac === undefined ? 7 : ac); layerCount.push(0); layerMap.set(name, i); }
@@ -32744,7 +33010,22 @@ function finishEntity() {
   switch (et) {
     case T_LINE: if (xs0 === xs0 && xs1 === xs1) { vx[0] = xs0; vy[0] = ys0; vx[1] = xs1; vy[1] = ys1; emit(1, 2); typeCount.LINE = (typeCount.LINE || 0) + 1; } break;
     case T_POINT: if (xs0 === xs0) { vx[0] = xs0; vy[0] = ys0; emit(0, 1); typeCount.POINT = (typeCount.POINT || 0) + 1; } break;
-    case T_INSERT: if (xs0 === xs0) { vx[0] = xs0; vy[0] = ys0; emit(0, 1); typeCount.INSERT = (typeCount.INSERT || 0) + 1; } break;
+    case T_BLOCK: if (bName) { curBlock = { name: bName, bx: xs0 === xs0 ? xs0 : 0, by: ys0 === ys0 ? ys0 : 0, prims: [] }; blocks.set(bName, curBlock); } break;
+    case T_INSERT: {
+      if (!(xs0 === xs0)) break;
+      var ins = { name: insName, x: xs0, y: ys0, sx: isx, sy: isy, rot: a0 * Math.PI / 180, cols: icols, rows: irows, csp: icsp, rsp: irsp };
+      if (!(ins.sx !== 0 && ins.sx === ins.sx)) ins.sx = 1; if (!(ins.sy !== 0 && ins.sy === ins.sy)) ins.sy = 1;
+      if (curBlock) { curBlock.prims.push({ k: 9, ins: ins, lay: curLay, col: curCol }); break; }
+      typeCount.INSERT = (typeCount.INSERT || 0) + 1;
+      if (!placeInsert(ins, IDM, 0, curLay, curCol)) { vx[0] = xs0; vy[0] = ys0; emit(0, 1); }
+      break; }
+    case T_DIM: if (insName) {
+      var di = { name: insName, x: 0, y: 0, sx: 1, sy: 1, rot: 0, cols: 1, rows: 1, csp: 0, rsp: 0 };
+      if (curBlock) curBlock.prims.push({ k: 9, ins: di, lay: curLay, col: curCol });
+      else if (placeInsert(di, IDM, 0, curLay, curCol)) typeCount.DIMENSION = (typeCount.DIMENSION || 0) + 1;
+    } break;
+    case T_TEXT: case T_MTEXT: finishText(); break;
+    case T_HATCH: hatchEndPath(); break;
     case T_LWPOLY: if (accL.n) { emitAcc(accL, (flags & 1) === 1); typeCount.LWPOLYLINE = (typeCount.LWPOLYLINE || 0) + 1; } break;
     case T_POLY:
       polyActive = (flags & (16 | 64)) === 0; polyClosed = (flags & 1) === 1; polyLay = curLay; polyCol = curCol; accP.n = 0; break;
@@ -32766,14 +33047,17 @@ function finishEntity() {
   }
 }
 function onType(buf, a, b) {
-  if (sec === 5 || sec === 3) finishEntity();
+  if (sec === 5 || sec === 3 || sec === 4) finishEntity();
   et = 0;
   var h = th(buf, a, b), id = TYPEMAP.get(h) || T_OTHER;
   if (id === T_SECTION) { expectSecName = true; return; }
-  if (id === T_ENDSEC) { if (sec === 5) ended = true; sec = 0; return; }
+  if (id === T_ENDSEC) { if (sec === 5) ended = true; sec = 0; curBlock = null; return; }
   if (id === T_EOF) { ended = true; return; }
-  if (sec === 5) {
-    if (id === T_OTHER) { var u = unsup.get(h); if (!u) { var s = ''; for (var i = a; i < b; i++) s += String.fromCharCode(buf[i]); u = { name: s, n: 0 }; unsup.set(h, u); } u.n++; et = -1; }
+  if (sec === 4 && id === T_BLOCK) { curBlock = null; bName = ''; et = T_BLOCK; resetFields(); return; }
+  if (sec === 4 && id === T_ENDBLK) { curBlock = null; et = -1; return; }
+  if (sec === 5 || sec === 4) {
+    if (id === T_OTHER && sec === 4) et = -1;
+    else if (id === T_OTHER) { var u = unsup.get(h); if (!u) { var s = ''; for (var i = a; i < b; i++) s += String.fromCharCode(buf[i]); u = { name: s, n: 0 }; unsup.set(h, u); } u.n++; et = -1; }
     else if (id === T_LAYER) et = -1;
     else { et = id; resetFields(); }
   } else if (sec === 3 && id === T_LAYER) { et = id; resetFields(); }
@@ -32792,11 +33076,19 @@ function handleLine(buf, a, b) {
     return;
   }
   if (et <= 0) return;
+  if (et === T_HATCH && hatchCode(code, buf, a, b)) return;
   switch (code) {
+    case 1: if (et === T_TEXT || et === T_MTEXT) tStr = sdec(buf, a, b); break;
+    case 3: if (et === T_MTEXT) tStr3 += sdec(buf, a, b); break;
     case 8: curLay = layerIdx(buf, a, b); break;
     case 62: { var c = int(buf, a, b); curCol = (c >= 1 && c <= 255) ? c : -1; if (et === T_LAYER) tAci = c < 0 ? -c : (c || 7); break; }
-    case 2: if (et === T_LAYER) { var s = ''; for (var i = a; i < b; i++) s += String.fromCharCode(buf[i]); tName = s; } break;
-    case 70: if (et === T_VERTEX) vflags = int(buf, a, b); else flags = int(buf, a, b); break;
+    case 2: if (et === T_LAYER || et === T_INSERT || et === T_DIM || et === T_BLOCK) { var s = ''; for (var i = a; i < b; i++) s += String.fromCharCode(buf[i]); if (et === T_LAYER) tName = s; else if (et === T_BLOCK) bName = s; else insName = s; } break;
+    case 70: if (et === T_VERTEX) vflags = int(buf, a, b); else if (et === T_INSERT) icols = int(buf, a, b); else flags = int(buf, a, b); break;
+    case 71: if (et === T_MTEXT) tAtt = int(buf, a, b); else if (et === T_INSERT) irows = int(buf, a, b); break;
+    case 72: if (et === T_TEXT) tHj = int(buf, a, b); break;
+    case 73: if (et === T_TEXT) tVj = int(buf, a, b); break;
+    case 44: if (et === T_INSERT) icsp = num(buf, a, b); break;
+    case 45: if (et === T_INSERT) irsp = num(buf, a, b); break;
     case 10: xs0 = num(buf, a, b); break;
     case 20: { var y = num(buf, a, b); if (et === T_LWPOLY) accPush(accL, xs0, y, 0); else if (et === T_SPLINE) accPush(accC, xs0, y, 0); else ys0 = y; break; }
     case 11: xs1 = num(buf, a, b); break;
@@ -32806,8 +33098,8 @@ function handleLine(buf, a, b) {
     case 13: xs3 = num(buf, a, b); break;
     case 23: ys3 = num(buf, a, b); break;
     case 40: rr = num(buf, a, b); break;
-    case 41: if (et === T_ELLIPSE) p0 = num(buf, a, b); break;
-    case 42: { var bv = num(buf, a, b); if (et === T_LWPOLY) { if (accL.n) accL.b[accL.n - 1] = bv; } else if (et === T_VERTEX) vbulge = bv; else if (et === T_ELLIPSE) p1 = bv; break; }
+    case 41: if (et === T_ELLIPSE) p0 = num(buf, a, b); else if (et === T_INSERT) isx = num(buf, a, b); break;
+    case 42: { var bv = num(buf, a, b); if (et === T_LWPOLY) { if (accL.n) accL.b[accL.n - 1] = bv; } else if (et === T_VERTEX) vbulge = bv; else if (et === T_ELLIPSE) p1 = bv; else if (et === T_INSERT) isy = bv; break; }
     case 50: a0 = num(buf, a, b); break;
     case 51: a1 = num(buf, a, b); break;
   }
@@ -32874,13 +33166,28 @@ function buildIndex() {
       }
     }
   }
+  buildTextIndex(gx0, gy0, gW, gH);
   IDX = { gx0: gx0, gy0: gy0, gW: gW, gH: gH, Lmax: Lmax, cs: csA, nx: nxA, ny: nyA, off: offA, cstart: cnt, entries: IDX_entries, stamp: new Uint32Array(nf), stampN: 0 };
   /* ekstensi (merc absolut) */
   var ext = { minX: pct(sampX, 0.01) + ox, maxX: pct(sampX, 0.99) + ox, minY: pct(sampY, 0.01) + oy, maxY: pct(sampY, 0.99) + oy };
   var full = { minX: gMinX + ox, maxX: gMaxX + ox, minY: gMinY + oy, maxY: gMaxY + oy };
   var lay = layerNames.map(function (n, i) { return { name: n, aci: layerAci[i], count: 0 }; });
   for (var f = 0; f < nf; f++) lay[layA[f]].count++;
-  postMessage({ t: 'ready', nf: nf, nv: nv, extent: ext, full: full, layers: lay, types: typeCount, unsup: summarizeUnsup(), rawSample: rawSample, indexMs: Date.now() - t0 });
+  postMessage({ t: 'ready', nf: nf, nv: nv, extent: ext, full: full, layers: lay, types: typeCount, unsup: summarizeUnsup(), blk: blkStat, nblocks: blocks.size, ntext: TX.x.length, nhatch: nHatch, rawSample: rawSample, indexMs: Date.now() - t0 });
+}
+var TI = null;
+function buildTextIndex(gx0, gy0, gW, gH) {
+  var nt = TX.x.length; if (!nt) { TI = null; return; }
+  var N = 128, cs = Math.max(gW, gH) / N, cnt = new Uint32Array(N * N + 1), cell = new Uint32Array(nt), i;
+  for (i = 0; i < nt; i++) {
+    var cx = Math.floor((TX.x[i] - gx0) / cs), cy = Math.floor((TX.y[i] - gy0) / cs);
+    cx = cx < 0 ? 0 : (cx > N - 1 ? N - 1 : cx); cy = cy < 0 ? 0 : (cy > N - 1 ? N - 1 : cy);
+    cell[i] = cy * N + cx; cnt[cell[i]]++;
+  }
+  var run = 0; for (i = 0; i < N * N; i++) { var cc = cnt[i]; cnt[i] = run; run += cc; } cnt[N * N] = run;
+  var fill = new Uint32Array(cnt.subarray(0, N * N)), ent = new Uint32Array(nt);
+  for (i = 0; i < nt; i++) ent[fill[cell[i]]++] = i;
+  TI = { gx0: gx0, gy0: gy0, cs: cs, N: N, cstart: cnt, entries: ent };
 }
 var IDX_entries = null;
 function summarizeUnsup() { var o = {}; unsup.forEach(function (u) { o[u.name] = u.n; }); return o; }
@@ -32903,7 +33210,7 @@ function drawTile(rq) {
   var tx0 = rq.minX - ox, tx1 = rq.maxX - ox, ty0 = rq.minY - oy, ty1 = rq.maxY - oy;
   var mg = (st.weight * dpr + 6) / inv, qx0 = tx0 - mg, qx1 = tx1 + mg, qy0 = ty0 - mg, qy1 = ty1 + mg;
   var sMin = 1.0 * rq.mpp, I = IDX, vis = st.vis, cad = st.cad, fillOn = st.fillOpacity > 0;
-  var paths = new Map(), fills = new Map(), pts = new Map();
+  var paths = new Map(), fills = new Map(), pts = new Map(), hfills = new Map();
   var stampN = ++I.stampN, stamp = I.stamp, drawn = 0, vcount = 0, capF = 250000, capV = 4000000;
   function pset(map, key) { var p = map.get(key); if (!p) { p = new Path2D(); map.set(key, p); } return p; }
   outer:
@@ -32920,19 +33227,19 @@ function drawTile(rq) {
         var bo = id * 4;
         if (bbox[bo + 2] < qx0 || bbox[bo] > qx1 || bbox[bo + 3] < qy0 || bbox[bo + 1] > qy1) continue;
         var ly = layA[id]; if (vis[ly] === 0) continue;
-        var key; if (cad) { var ac = colA[id]; if (ac < 0) ac = layerAci[ly]; key = aciCss[ac] || aciCss[7]; } else key = st.color;
+        var key; if (cad) { var ac = colA[id]; if (ac < 0) ac = layerAci[ly]; key = (ac === 7 || ac === 0 || ac === 256) ? (st.c7 || aciCss[7]) : (aciCss[ac] || aciCss[7]); } else key = st.color;
         var s = starts[id], en = starts[id + 1], k = kindA[id];
         if (k === 0) {
           var pp = pset(pts, key), r = st.pointR * dpr;
           for (var v = s; v < en; v++) pp.rect((coords[2 * v] - tx0) * inv - r, (ty1 - coords[2 * v + 1]) * inv - r, 2 * r, 2 * r);
         } else {
-          var P1 = pset(paths, key), P2 = (k === 2 && fillOn) ? pset(fills, cad ? key : st.fillColor) : null;
+          var P1 = k === 4 ? null : pset(paths, key), P2 = (k === 2 && fillOn) ? pset(fills, cad ? key : st.fillColor) : (k === 4 ? pset(hfills, cad ? key : st.fillColor) : null);
           var lx = 0, ly2 = 0, first = true, th2 = 0.6 * dpr;
           for (var v2 = s; v2 < en; v2++) {
             var px = (coords[2 * v2] - tx0) * inv, py = (ty1 - coords[2 * v2 + 1]) * inv;
-            if (first) { P1.moveTo(px, py); if (P2) P2.moveTo(px, py); first = false; lx = px; ly2 = py; vcount++; continue; }
+            if (first) { if (P1) P1.moveTo(px, py); if (P2) P2.moveTo(px, py); first = false; lx = px; ly2 = py; vcount++; continue; }
             if (v2 !== en - 1 && Math.abs(px - lx) < th2 && Math.abs(py - ly2) < th2) continue;
-            P1.lineTo(px, py); if (P2) P2.lineTo(px, py); lx = px; ly2 = py; vcount++;
+            if (P1) P1.lineTo(px, py); if (P2) P2.lineTo(px, py); lx = px; ly2 = py; vcount++;
           }
           if (P2) P2.closePath();
         }
@@ -32943,10 +33250,41 @@ function drawTile(rq) {
   ctx.lineJoin = 'round'; ctx.lineCap = 'round';
   if (st.dash && st.dash.length) ctx.setLineDash(st.dash.map(function (d) { return d * dpr; }));
   ctx.lineWidth = st.weight * dpr;
+  ctx.globalAlpha = 0.4; hfills.forEach(function (p, c) { ctx.fillStyle = c; ctx.fill(p); });
   if (fillOn) { ctx.globalAlpha = st.fillOpacity; fills.forEach(function (p, c) { ctx.fillStyle = c; ctx.fill(p); }); }
   ctx.globalAlpha = st.opacity;
   paths.forEach(function (p, c) { ctx.strokeStyle = c; ctx.stroke(p); });
   pts.forEach(function (p, c) { ctx.fillStyle = c; ctx.fill(p); });
+  /* teks CAD (TEXT/MTEXT/ATTRIB) — hanya bila cukup besar di layar */
+  if (TI && st.text !== false) {
+    var qm = 300 / inv, N = TI.N, cs2 = TI.cs, minPh = 5 * dpr, drawnT = 0;
+    var tc0 = Math.max(0, Math.floor((tx0 - qm - TI.gx0) / cs2)), tc1 = Math.min(N - 1, Math.floor((tx1 + qm - TI.gx0) / cs2));
+    var tr0 = Math.max(0, Math.floor((ty0 - qm - TI.gy0) / cs2)), tr1 = Math.min(N - 1, Math.floor((ty1 + qm - TI.gy0) / cs2));
+    ctx.setLineDash([]); ctx.globalAlpha = 1;
+    var HA = ['left', 'center', 'right'], VA = ['alphabetic', 'bottom', 'middle', 'top'];
+    textLoop:
+    for (var ry = tr0; ry <= tr1; ry++) for (var rx = tc0; rx <= tc1; rx++) {
+      var c0 = TI.cstart[ry * N + rx], c1 = TI.cstart[ry * N + rx + 1];
+      for (var q = c0; q < c1; q++) {
+        var ti = TI.entries[q], tx = TX.x[ti], ty = TX.y[ti];
+        if (tx < tx0 - qm || tx > tx1 + qm || ty < ty0 - qm || ty > ty1 + qm) continue;
+        var ph = TX.h[ti] * inv; if (ph < minPh) continue; if (ph > 400) ph = 400;
+        var tly = TX.l[ti]; if (vis[tly] === 0) continue;
+        var tac = TX.c[ti]; if (tac < 0) tac = layerAci[tly];
+        ctx.fillStyle = cad ? ((tac === 7 || tac === 0 || tac === 256) ? (st.c7 || aciCss[7]) : (aciCss[tac] || aciCss[7])) : st.color;
+        ctx.font = Math.max(4, Math.round(ph)) + 'px sans-serif';
+        ctx.save(); ctx.translate((tx - tx0) * inv, (ty1 - ty) * inv); if (TX.r[ti]) ctx.rotate(-TX.r[ti]);
+        ctx.textAlign = HA[TX.ha[ti]] || 'left'; ctx.textBaseline = VA[TX.va[ti]] || 'alphabetic';
+        var lines = TX.s[ti].split('\n'), nl = lines.length, lh = ph * 1.25, vv = TX.va[ti];
+        for (var li = 0; li < nl; li++) {
+          var off = vv === 1 ? -(nl - 1 - li) * lh : (vv === 2 ? (li - (nl - 1) / 2) * lh : li * lh);
+          ctx.fillText(lines[li], 0, off);
+        }
+        ctx.restore();
+        if (++drawnT > 8000) break textLoop;
+      }
+    }
+  }
   var bm = cv.transferToImageBitmap();
   postMessage({ t: 'tile', id: rq.id, bitmap: bm, drawn: drawn, trunc: drawn > capF || vcount > capV }, [bm]);
 }
