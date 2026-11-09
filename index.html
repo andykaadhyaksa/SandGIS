@@ -18751,7 +18751,7 @@ function sgSerializeProject() {
 var _sgFile = null;   // { handle, name, lastJson, warned, baseCount, openedAt }
 var _sgLastOpenCount = 0;
 var SG_FSA = !!(window.showSaveFilePicker && window.showOpenFilePicker);
-var SG_FILE_TYPES = [{ description: 'Project SandGIS (.sandgis)', accept: { 'application/json': ['.sandgis', '.json'] } }];
+var SG_FILE_TYPES = [{ description: 'Project SandGIS (.sandgis)', accept: { 'application/json': ['.sandgis', '.json'], 'application/octet-stream': ['.sandgis'], 'text/plain': ['.sandgis'] } }];
 
 function _sgProjFileName(state) {
   var n = ((state && state.projectName) || 'project').trim().replace(/[^a-z0-9\-_ ]/gi, '').replace(/\s+/g, '-') || 'project';
@@ -18888,7 +18888,8 @@ function sgSaveProjectAs() { return sgSaveProject(true); }
 
 /* ─── BUKA: picker (terhubung ke file) atau input file (cadangan) ─── */
 async function sgOpenProject() {
-  if (SG_FSA) {
+  /* Android: pemilih file bawaan menyaring ketat berdasarkan tipe MIME dan membuat file .sandgis (mis. dari Telegram/WA) tampak abu-abu → pakai input file biasa (semua file) */
+  if (SG_FSA && !/Android/i.test(navigator.userAgent||'')) {
     try {
       var hs = await window.showOpenFilePicker({ types: SG_FILE_TYPES, multiple: false });
       var h = hs && hs[0]; if (!h) return;
@@ -18927,7 +18928,7 @@ function _sgOpenFromText(text) {
       try {
         var bx = document.createElement('div');
         bx.style.cssText = 'position:fixed;left:12px;right:12px;top:20%;z-index:2147483647;background:#fff;color:#111;border:2px solid #c0392b;border-radius:10px;padding:14px;font:13px/1.45 Arial,sans-serif;box-shadow:0 8px 30px rgba(0,0,0,.4);word-break:break-all';
-        bx.innerHTML = '<b>Gagal membuka file project</b><br>Versi app: <b>v20261109u</b><br>Ukuran terbaca: ' + raw.length + ' karakter<br>Penyebab: ' + String(why).replace(/</g,'&lt;') + '<br>Galat: ' + String((err2 && err2.message) || '').replace(/</g,'&lt;').slice(0,150) + '<br><br><button style="padding:8px 16px;font-size:14px">Tutup</button>';
+        bx.innerHTML = '<b>Gagal membuka file project</b><br>Versi app: <b>v20261109v</b><br>Ukuran terbaca: ' + raw.length + ' karakter<br>Penyebab: ' + String(why).replace(/</g,'&lt;') + '<br>Galat: ' + String((err2 && err2.message) || '').replace(/</g,'&lt;').slice(0,150) + '<br><br><button style="padding:8px 16px;font-size:14px">Tutup</button>';
         bx.querySelector('button').onclick = function(){ bx.remove(); };
         document.body.appendChild(bx);
       } catch(e3) {}

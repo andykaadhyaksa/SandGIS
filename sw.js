@@ -1,5 +1,5 @@
 /* Sand GIS service worker — v4 (logo baru, loading, Peta Situasi, TTD, Simpan/Simpan sebagai) */
-const VERSION = 'sandgis-v5-20261109u';
+const VERSION = 'sandgis-v5-20261109v';
 const CORE = [
   './', './index.html', './manifest-v5.webmanifest',
   './icons/icon-v5-180.png', './icons/icon-v5-192.png', './icons/icon-v5-512.png',
