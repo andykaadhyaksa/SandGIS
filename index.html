@@ -22598,6 +22598,9 @@ function _genRasterizeMapCanvas(map, drawVectorsFn) {
   // (blok lama yang memakai getBoundingClientRect - containerRect dihapus
   //  karena digantikan _offsetRelTo yang lebih akurat)
 
+  // ── Arah Aliran (raster elevasi + panah + legenda) — di bawah vektor ──
+  try { if (window.__sgFlow && window.__sgFlow.drawExport) window.__sgFlow.drawExport(ctx, map, ll2c); } catch(e) { console.warn('[ArahAliran][export]', e); }
+
   // ── Vector & marker (SHP, garis, polygon, titik) ──
   if (typeof drawVectorsFn === 'function') {
     try { drawVectorsFn(ctx, map); } catch(e) { console.error('vector draw:', e); }
@@ -35845,7 +35848,51 @@ window.addEventListener('load',function(){ installRibbon(); });
       return r; }; }
   var gi=window.genInit;
   if(typeof gi==='function'){ window.genInit=function(){ var r=gi.apply(this,arguments); try{ window.sgFlowAttachLayout(); }catch(e){} return r; }; }
-  window.__sgFlow={S:S,prepare:prepare,compute:compute,siteList:siteList};
+  /* ── Ekspor: gambar ke canvas ekspor (Layout → PNG/PDF) ── */
+  var _expImg={url:null,el:null};
+  function expImg(){
+    if(!S.obj) return null;
+    if(_expImg.url!==S.obj.url){ _expImg.url=S.obj.url; _expImg.el=new Image(); _expImg.el.src=S.obj.url; }
+    return (_expImg.el&&_expImg.el.complete&&_expImg.el.naturalWidth)?_expImg.el:null;
+  }
+  function drawExport(ctx,map,ll2c){
+    var o=S.obj,p=S.p; if(!o||!p.show) return;
+    var P=function(ll){ var q=ll2c(ll[0],ll[1]); return q; };
+    if(p.showRaster){
+      var im=expImg();
+      if(im){
+        var nw=P([o.bounds[1][0],o.bounds[0][1]]), se=P([o.bounds[0][0],o.bounds[1][1]]);
+        ctx.save(); ctx.globalAlpha=Math.max(0,Math.min(1,(+p.opa||85)/100)); ctx.imageSmoothingEnabled=true; ctx.imageSmoothingQuality='high';
+        ctx.drawImage(im,nw.x,nw.y,se.x-nw.x,se.y-nw.y); ctx.restore();
+      }
+    }
+    if(p.showArrows&&o.parts&&o.parts.length){
+      ctx.save(); ctx.strokeStyle=p.arrowColor; ctx.lineWidth=+p.arrowW||1.2; ctx.lineJoin='round'; ctx.lineCap='round'; ctx.beginPath();
+      o.parts.forEach(function(pt){ pt.forEach(function(ll,i){ var q=P(ll); if(i) ctx.lineTo(q.x,q.y); else ctx.moveTo(q.x,q.y); }); });
+      ctx.stroke(); ctx.restore();
+    }
+    /* legenda pojok kiri-bawah */
+    var H=map.getSize().y, x=10, y=H-22, w=120, h=p.showRaster?58:30; y-=h;
+    ctx.save(); ctx.fillStyle='rgba(255,255,255,.93)'; ctx.strokeStyle='#333'; ctx.lineWidth=1; ctx.fillRect(x,y,w,h); ctx.strokeRect(x+.5,y+.5,w,h);
+    ctx.fillStyle='#111'; ctx.font='bold 9px Arial'; ctx.textBaseline='top'; var ty=y+6;
+    if(p.showRaster){
+      ctx.fillText('Elevasi (m dpl)',x+8,ty); ty+=13;
+      var bw=w-16, g=ctx.createLinearGradient(x+8,0,x+8+bw,0), cs=PAL[p.pal]||PAL.pelangi;
+      cs.forEach(function(c){ g.addColorStop(Math.max(0,Math.min(1,c[0])),c[1]); });
+      ctx.fillStyle=g; ctx.fillRect(x+8,ty,bw,9); ctx.strokeStyle='#333'; ctx.strokeRect(x+8.5,ty+.5,bw,9);
+      ctx.fillStyle='#111'; ctx.font='600 9px Arial'; ty+=12;
+      ctx.textAlign='left'; ctx.fillText(String(Math.round(o.min)),x+8,ty);
+      ctx.textAlign='center'; ctx.fillText(String(Math.round((o.min+o.max)/2)),x+w/2,ty);
+      ctx.textAlign='right'; ctx.fillText(String(Math.round(o.max)),x+w-8,ty); ty+=14;
+    }
+    if(p.showArrows){
+      ctx.textAlign='left'; ctx.strokeStyle='#000'; ctx.lineWidth=1.2; ctx.beginPath(); ctx.moveTo(x+8,ty+5); ctx.lineTo(x+30,ty+5); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(x+26,ty+2); ctx.lineTo(x+30,ty+5); ctx.lineTo(x+26,ty+8); ctx.stroke();
+      ctx.fillStyle='#111'; ctx.font='600 9px Arial'; ctx.fillText('Arah aliran air',x+36,ty+1);
+    }
+    ctx.restore();
+  }
+  window.__sgFlow={drawExport:drawExport,S:S,prepare:prepare,compute:compute,siteList:siteList};
 })();
 </script>
 
