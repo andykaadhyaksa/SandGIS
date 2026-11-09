@@ -10729,6 +10729,7 @@ function shpToggleLayer(id) {
       else layerObj.labelLayer.addTo(_map);
     }
   }
+  try { layerObj.layerVisible = !!(layerObj.layer && _map.hasLayer(layerObj.layer)); } catch(e) {}
   shpUpdateLayerList();
 }
 
@@ -20062,7 +20063,13 @@ function genLogoRemove() {
 /* ─── Inisialisasi peta generate (selalu dibangun ulang agar sinkron) ─── */
 /* ── Sinkron realtime SHP: Layout mengikuti centang/atur di peta utama ── */
 function _genShpMainVisible(l) {
-  return l.layerVisible !== false && !(typeof _map !== 'undefined' && _map && l.layer && !_map.hasLayer(l.layer));
+  /* Sumber kebenaran = layer benar-benar tampil di peta utama (centang di panel Layer).
+     Flag l.layerVisible bisa basi (mis. dari file lama / toggle yang tidak memperbaruinya),
+     jadi hanya dipakai bila layer belum punya objek Leaflet. */
+  try {
+    if (typeof _map !== 'undefined' && _map && l.layer) return _map.hasLayer(l.layer);
+  } catch(e) {}
+  return l.layerVisible !== false;
 }
 function _genShpHasLabel(l) {
   return !!(l.labelField || (l.labelFields && l.labelFields.some(function(d){ return d && d.on; })));
@@ -20074,6 +20081,7 @@ function genSyncShpFromMain() {
   _shpLayers.forEach(function(l) {
     var gl = _genShpLayers[l.id];
     var vis = _genShpMainVisible(l);
+    if (l.layer) l.layerVisible = vis;
     if (!gl) { if (vis && ((l.features && l.features.length) || (l.isBig && l._worker))) needRebuild = true; return; }
     var on = _genMap.hasLayer(gl);
     if (vis && !on) gl.addTo(_genMap);
@@ -20094,17 +20102,20 @@ function genSyncSoon() {
   clearTimeout(_genSyncTimer);
   _genSyncTimer = setTimeout(genSyncShpFromMain, 150);
 }
-(function _genHookMainMap(){
-  var n = 0;
-  (function t(){
+function _genHookMainMap() {
+  try {
     if (typeof _map !== 'undefined' && _map && !_map._sgGenHook) {
       _map._sgGenHook = true;
       _map.on('layeradd layerremove', function(e){ if (e && e.layer && e.layer._url) return; genSyncSoon(); });
-    } else if (!(typeof _map !== 'undefined' && _map) && n++ < 100) setTimeout(t, 300);
-  })();
-})();
+    }
+  } catch(e) {}
+}
+/* _map bisa dibuat ulang (mis. reinit saat tile kosong) → cek terus agar hook tidak lepas */
+setInterval(_genHookMainMap, 1000);
+_genHookMainMap();
 
 function genInit() {
+  _genHookMainMap();
   var container = document.getElementById('peta-gen-map');
   if (!container || container.offsetWidth === 0) {
     // Batasi retry (±15 dtk) agar tidak berputar selamanya bila panel Generate tidak pernah tampil
@@ -20389,7 +20400,7 @@ function genInit() {
     // DXF besar (mode tile): tidak punya fitur vektor — gambar ulang lewat worker yang sama
     if (l.isBig && l._worker && typeof _DxfBigGrid === 'function') {
       try {
-        var _bVis = l.layerVisible !== false && !(_map && l.layer && !_map.hasLayer(l.layer));
+        var _bVis = _genShpMainVisible(l);
         var _bR = _genRenderers[l.id] || {};
         var _bGrid = new _DxfBigGrid(l._worker, l, { tileSize: 512, noWrap: true, pane: _bR.paneName || 'tilePane',
           updateWhenZooming: false, updateWhenIdle: true, keepBuffer: 2, maxZoom: 26 });
@@ -33890,7 +33901,7 @@ function _t3dLoad() {
   return _t3d.loading;
 }
 function _t3dLayerVisible(l) {
-  return l.layerVisible!==false && !(typeof _map!=='undefined' && _map && l.layer && !_map.hasLayer(l.layer));
+  if(typeof _map!=='undefined' && _map && l.layer) return _map.hasLayer(l.layer); return l.layerVisible!==false;
 }
 var _t3dProto = false;
 /* Protokol "sgdxf://<idLayer>/z/x/y": minta tile ke Web Worker DXF yang sama dengan peta utama,
