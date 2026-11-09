@@ -2850,8 +2850,8 @@ body{
             <!-- ⑦ TANDA TANGAN -->
             <div style="border-bottom:1px solid #1a1a1a;padding:0">
               <div style="display:flex;gap:0">
-                <div style="flex:1 1 0;min-width:0;box-sizing:border-box;text-align:center;border-right:1px solid #1a1a1a;padding:6px 8px">
-                  <div style="font-size:7px;color:#555;margin-bottom:2px">Disetujui oleh,</div>
+                <div id="gen-sig-cell-d" style="flex:1 1 0;min-width:0;box-sizing:border-box;text-align:center;border-right:1px solid #1a1a1a;padding:6px 8px">
+                  <div id="gen-sig-lbl-d" style="font-size:7px;color:#555;margin-bottom:2px">Disetujui oleh,</div>
                   <div style="height:22px"></div>
                   <div style="border-bottom:1px solid #1a1a1a;margin-bottom:1px"></div>
                   <input id="gen-direktur" type="text" placeholder="Nama Direktur" oninput="genOnInput('direktur',this.value)"
@@ -2859,8 +2859,8 @@ body{
                   <input id="gen-direktur-jabatan" type="text" placeholder="Jabatan" oninput="genOnInput('direkturJabatan',this.value)"
                     style="display:block;height:10px;line-height:10px;margin-top:1px;width:100%;font-size:6.5px;text-align:center;border:none;background:transparent;color:#555;outline:none">
                 </div>
-                <div style="flex:1 1 0;min-width:0;box-sizing:border-box;text-align:center;padding:6px 8px">
-                  <div style="font-size:7px;color:#555;margin-bottom:2px">Dibuat oleh,</div>
+                <div id="gen-sig-cell-t" style="flex:1 1 0;min-width:0;box-sizing:border-box;text-align:center;padding:6px 8px">
+                  <div id="gen-sig-lbl-t" style="font-size:7px;color:#555;margin-bottom:2px">Dibuat oleh,</div>
                   <div style="height:22px"></div>
                   <div style="border-bottom:1px solid #1a1a1a;margin-bottom:1px"></div>
                   <input id="gen-tenaga-ahli" type="text" placeholder="Nama Tenaga Ahli" oninput="genOnInput('tenagaAhli',this.value)"
@@ -2994,16 +2994,22 @@ body{
 
         <div class="card" style="padding:14px 15px;flex-shrink:0">
           <div style="font-family:Arial,sans-serif;font-size:9.5px;font-weight:700;color:var(--txt);text-transform:uppercase;letter-spacing:.8px;margin-bottom:9px">✍ Font Tanda Tangan</div>
+          <div style="font-family:Arial,sans-serif;font-size:9px;color:var(--mute);margin-bottom:4px">Tulisan atas ("Disetujui oleh," / "Dibuat oleh,")</div>
+          <div style="display:flex;gap:6px;align-items:center;margin-bottom:10px">
+            <select id="gen-sig-lbl-font" class="finput" onchange="genSetSigFont('sigLblFont',this.value)" style="flex:1;min-width:0;font-size:11px;padding:5px 6px"></select>
+            <input id="gen-sig-lbl-size" type="number" min="4" max="20" step="0.5" class="finput" title="Ukuran (px)" onchange="genSetSigFont('sigLblSize',this.value)" oninput="genSetSigFont('sigLblSize',this.value)" style="width:56px;font-size:11px;padding:5px 6px">
+            <label title="Tebal" style="display:flex;align-items:center;gap:3px;font-family:Arial,sans-serif;font-size:11px;cursor:pointer"><input type="checkbox" id="gen-sig-lbl-bold" onchange="genSetSigFont('sigLblBold',this.checked)"><b>B</b></label>
+          </div>
           <div style="font-family:Arial,sans-serif;font-size:9px;color:var(--mute);margin-bottom:4px">Nama penanda tangan</div>
           <div style="display:flex;gap:6px;align-items:center;margin-bottom:10px">
             <select id="gen-sig-name-font" class="finput" onchange="genSetSigFont('sigNameFont',this.value)" style="flex:1;min-width:0;font-size:11px;padding:5px 6px"></select>
-            <input id="gen-sig-name-size" type="number" min="4" max="20" step="0.5" class="finput" title="Ukuran (px)" onchange="genSetSigFont('sigNameSize',this.value)" style="width:56px;font-size:11px;padding:5px 6px">
+            <input id="gen-sig-name-size" type="number" min="4" max="20" step="0.5" class="finput" title="Ukuran (px)" onchange="genSetSigFont('sigNameSize',this.value)" oninput="genSetSigFont('sigNameSize',this.value)" style="width:56px;font-size:11px;padding:5px 6px">
             <label title="Tebal" style="display:flex;align-items:center;gap:3px;font-family:Arial,sans-serif;font-size:11px;cursor:pointer"><input type="checkbox" id="gen-sig-name-bold" onchange="genSetSigFont('sigNameBold',this.checked)"><b>B</b></label>
           </div>
           <div style="font-family:Arial,sans-serif;font-size:9px;color:var(--mute);margin-bottom:4px">Jabatan (di bawah nama)</div>
           <div style="display:flex;gap:6px;align-items:center;margin-bottom:10px">
             <select id="gen-sig-jab-font" class="finput" onchange="genSetSigFont('sigJabFont',this.value)" style="flex:1;min-width:0;font-size:11px;padding:5px 6px"></select>
-            <input id="gen-sig-jab-size" type="number" min="4" max="20" step="0.5" class="finput" title="Ukuran (px)" onchange="genSetSigFont('sigJabSize',this.value)" style="width:56px;font-size:11px;padding:5px 6px">
+            <input id="gen-sig-jab-size" type="number" min="4" max="20" step="0.5" class="finput" title="Ukuran (px)" onchange="genSetSigFont('sigJabSize',this.value)" oninput="genSetSigFont('sigJabSize',this.value)" style="width:56px;font-size:11px;padding:5px 6px">
             <label title="Tebal" style="display:flex;align-items:center;gap:3px;font-family:Arial,sans-serif;font-size:11px;cursor:pointer"><input type="checkbox" id="gen-sig-jab-bold" onchange="genSetSigFont('sigJabBold',this.checked)"><b>B</b></label>
           </div>
           <div style="font-family:Arial,sans-serif;font-size:9px;color:var(--mute);margin:2px 0 4px">Jarak (px) — angka kecil/negatif = lebih rapat</div>
@@ -3015,6 +3021,20 @@ body{
             <span>Nama → Jabatan</span>
             <input id="gen-sig-gap-jab" type="number" min="-20" max="40" step="0.5" class="finput" oninput="genSetSigFont('sigGapJab',this.value)" onchange="genSetSigFont('sigGapJab',this.value)" style="width:56px;font-size:11px;padding:4px 6px">
           </div>
+          <details style="margin-bottom:10px"><summary style="cursor:pointer;font-family:Arial,sans-serif;font-size:10px;color:var(--mute);margin-bottom:8px">⚙ Pengaturan lanjutan (opsional)</summary><div style="display:grid;grid-template-columns:1fr auto;gap:5px 8px;align-items:center;margin-bottom:10px;font-family:Arial,sans-serif;font-size:10px"><span>Tulisan atas → Ruang TTD</span>
+            <input id="gen-sig-gap-lbl" type="number" min="-20" max="40" step="0.5" class="finput" oninput="genSetSigFont('sigGapLbl',this.value)" onchange="genSetSigFont('sigGapLbl',this.value)" style="width:56px;font-size:11px;padding:4px 6px">
+            </div><div style="font-family:Arial,sans-serif;font-size:9px;color:var(--mute);margin:2px 0 4px">Margin dalam kotak TTD (px)</div>
+          <div style="display:grid;grid-template-columns:1fr auto;gap:5px 8px;align-items:center;margin-bottom:10px;font-family:Arial,sans-serif;font-size:10px">
+            <span>Atas</span><input id="gen-sig-pad-t" type="number" min="0" max="60" step="0.5" class="finput" oninput="genSetSigFont('sigPadT',this.value)" onchange="genSetSigFont('sigPadT',this.value)" style="width:56px;font-size:11px;padding:4px 6px">
+            <span>Bawah</span><input id="gen-sig-pad-b" type="number" min="0" max="60" step="0.5" class="finput" oninput="genSetSigFont('sigPadB',this.value)" onchange="genSetSigFont('sigPadB',this.value)" style="width:56px;font-size:11px;padding:4px 6px">
+            <span>Kiri &amp; kanan</span><input id="gen-sig-pad-x" type="number" min="0" max="80" step="0.5" class="finput" oninput="genSetSigFont('sigPadX',this.value)" onchange="genSetSigFont('sigPadX',this.value)" style="width:56px;font-size:11px;padding:4px 6px">
+          </div>
+          <div style="font-family:Arial,sans-serif;font-size:9px;color:var(--mute);margin:2px 0 4px">Garis tanda tangan</div>
+          <div style="display:grid;grid-template-columns:1fr auto;gap:5px 8px;align-items:center;margin-bottom:10px;font-family:Arial,sans-serif;font-size:10px">
+            <span>Ketebalan (px)</span><input id="gen-sig-line-w" type="number" min="0" max="5" step="0.25" class="finput" oninput="genSetSigFont('sigLineW',this.value)" onchange="genSetSigFont('sigLineW',this.value)" style="width:56px;font-size:11px;padding:4px 6px">
+            <span>Dipersempit kiri &amp; kanan (px)</span><input id="gen-sig-line-inset" type="number" min="0" max="80" step="1" class="finput" oninput="genSetSigFont('sigLineInset',this.value)" onchange="genSetSigFont('sigLineInset',this.value)" style="width:56px;font-size:11px;padding:4px 6px">
+          </div>
+          </details>
           <label style="display:flex;align-items:center;gap:6px;font-family:Arial,sans-serif;font-size:10px;cursor:pointer;margin-bottom:8px"><input type="checkbox" id="gen-sig-autofit" onchange="genSetSigFont('sigAutoFit',this.checked)"> Kecilkan otomatis bila teks terlalu panjang</label>
           <button type="button" onclick="genResetSigFont()" style="font-size:10px;padding:3px 9px;cursor:pointer;background:none;border:1px solid var(--brd2);border-radius:4px;color:var(--mute)">↺ Kembalikan bawaan</button>
         </div>
@@ -3069,6 +3089,17 @@ body{
         <div class="card" style="padding:14px 15px;flex-shrink:0">
           <div style="font-family:Arial,sans-serif;font-size:9.5px;font-weight:700;color:var(--txt);text-transform:uppercase;letter-spacing:.8px;margin-bottom:9px">🌍 Basemap Peta Situasi</div>
           <select id="gen-inset-base" class="finput" onchange="genSetInsetBase(this.value)" style="font-size:11px;padding:6px 8px;width:100%;box-sizing:border-box">
+            <optgroup label="🇮🇩 Detail Indonesia (nama jalan &amp; tempat lokal)">
+              <option value="g_road">Google Maps — Jalan</option>
+              <option value="g_hybrid">Google Satelit + label jalan</option>
+              <option value="g_terrain">Google Medan (terrain)</option>
+              <option value="g_sat">Google Satelit</option>
+              <option value="hot">OSM Humanitarian (detail desa/jalan)</option>
+              <option value="osmfr">OSM Prancis (label lokal)</option>
+              <option value="inarupa">BIG — Rupabumi Indonesia 1:50.000</option>
+              <option value="opentopo">OpenTopoMap (kontur &amp; topografi)</option>
+              <option value="cyclosm">CyclOSM (jalan &amp; jalur detail)</option>
+            </optgroup>
             <optgroup label="Peta jalan &amp; nama tempat">
               <option value="auto">Jalan (OSM / Esri Street)</option>
               <option value="street">Esri World Street Map</option>
@@ -3091,12 +3122,21 @@ body{
           </select>
           <div style="font-family:Arial,sans-serif;font-size:9px;color:var(--mute);margin:9px 0 4px">Cakupan area (zoom-out)</div>
           <select id="gen-inset-pad" class="finput" onchange="genSetInsetPad(this.value)" style="font-size:11px;padding:6px 8px;width:100%;box-sizing:border-box">
+            <option value="1">Sangat dekat — kelurahan/kecamatan (±3×)</option>
             <option value="4">Dekat — sekitar lokasi (±9×)</option>
             <option value="12">Regional — kabupaten/provinsi (±25×)</option>
             <option value="40">Pulau / negara (±80×)</option>
             <option value="150">Benua (±300×)</option>
             <option value="600">Dunia (±1200×)</option>
           </select>
+          <div style="font-family:Arial,sans-serif;font-size:9px;color:var(--mute);margin:9px 0 4px">Ukuran kotak Peta Situasi</div>
+          <div style="display:grid;grid-template-columns:1fr auto;gap:5px 8px;align-items:center;font-family:Arial,sans-serif;font-size:10px">
+            <span>Tinggi (px)</span>
+            <input id="gen-inset-h" type="number" min="40" max="400" step="5" class="finput" oninput="genSetInsetSize()" onchange="genSetInsetSize()" style="width:64px;font-size:11px;padding:4px 6px">
+            <span>Lebar (% dari kolom)</span>
+            <input id="gen-inset-w" type="number" min="30" max="100" step="5" class="finput" oninput="genSetInsetSize()" onchange="genSetInsetSize()" style="width:64px;font-size:11px;padding:4px 6px">
+          </div>
+          <button type="button" onclick="genResetInsetSize()" style="margin-top:8px;font-size:10px;padding:3px 9px;cursor:pointer;background:none;border:1px solid var(--brd2);border-radius:4px;color:var(--mute)">↺ Ukuran bawaan</button>
         </div>
 
         <div class="card" style="padding:14px 15px;flex-shrink:0">
@@ -19581,7 +19621,7 @@ function genApplySignatureFont() {
   // Jarak: ruang tanda tangan (spacer di atas garis), garis → nama, nama → jabatan
   var gSpace = (st.sigSpace != null && isFinite(parseFloat(st.sigSpace))) ? parseFloat(st.sigSpace) : 22;
   var gLine  = (st.sigGapLine != null && isFinite(parseFloat(st.sigGapLine))) ? parseFloat(st.sigGapLine) : 1;
-  var gJab   = (st.sigGapJab != null && isFinite(parseFloat(st.sigGapJab))) ? parseFloat(st.sigGapJab) : 1;
+  var gJab   = (st.sigGapJab != null && isFinite(parseFloat(st.sigGapJab))) ? parseFloat(st.sigGapJab) : -2;
   ['gen-direktur','gen-tenaga-ahli'].forEach(function(id) {
     var nm = document.getElementById(id); if (!nm) return;
     var ln = nm.previousElementSibling;                       // garis tanda tangan
@@ -19593,11 +19633,31 @@ function genApplySignatureFont() {
   ['gen-direktur-jabatan','gen-tenaga-ahli-jabatan'].forEach(function(id) {
     var jb = document.getElementById(id); if (jb) jb.style.marginTop = gJab + 'px';
   });
+  // Tulisan di atas (label), margin kotak, dan garis
+  function num(k, d) { var v = parseFloat(st[k]); return (st[k] != null && isFinite(v)) ? v : d; }
+  var lSize = num('sigLblSize', 7), gLbl = num('sigGapLbl', 2);
+  var pT = num('sigPadT', 6), pB = num('sigPadB', 6), pX = num('sigPadX', 8);
+  var lW = num('sigLineW', 1), lIn = num('sigLineInset', 0);
+  ['d','t'].forEach(function(w) {
+    var cell = document.getElementById('gen-sig-cell-' + w), lb = document.getElementById('gen-sig-lbl-' + w);
+    if (cell) cell.style.padding = pT + 'px ' + pX + 'px ' + pB + 'px';
+    if (cell) { cell.style.paddingLeft = pX + 'px'; cell.style.paddingRight = pX + 'px'; }
+    if (lb) {
+      lb.style.fontFamily = st.sigLblFont || ''; lb.style.fontSize = lSize + 'px';
+      lb.style.fontWeight = st.sigLblBold ? '700' : '400';
+      lb.style.marginBottom = gLbl + 'px'; lb.style.lineHeight = '1.2';
+    }
+  });
+  ['gen-direktur','gen-tenaga-ahli'].forEach(function(id) {
+    var nm = document.getElementById(id), ln = nm && nm.previousElementSibling; if (!ln) return;
+    ln.style.borderBottomWidth = lW + 'px';
+    ln.style.marginLeft = lIn + 'px'; ln.style.marginRight = lIn + 'px';
+  });
   if (typeof genSigImgApply === 'function') genSigImgApply();
 }
 function genSyncSigUI() {
   var st = (typeof _genState !== 'undefined' && _genState) || {};
-  ['gen-sig-name-font','gen-sig-jab-font'].forEach(function(id) {
+  ['gen-sig-name-font','gen-sig-jab-font','gen-sig-lbl-font'].forEach(function(id) {
     var sel = document.getElementById(id); if (!sel) return;
     if (!sel.options.length) GEN_SIG_FONTS.forEach(function(f) { var o = document.createElement('option'); o.value = f[0]; o.textContent = f[1]; sel.appendChild(o); });
   });
@@ -19606,13 +19666,27 @@ function genSyncSigUI() {
   set('gen-sig-name-size','value', parseFloat(st.sigNameSize) || 8); set('gen-sig-jab-size','value', parseFloat(st.sigJabSize) || 6.5);
   set('gen-sig-name-bold','checked', st.sigNameBold !== false); set('gen-sig-jab-bold','checked', !!st.sigJabBold);
   set('gen-sig-autofit','checked', st.sigAutoFit !== false);
+  set('gen-sig-lbl-font','value', st.sigLblFont || ''); set('gen-sig-lbl-size','value', st.sigLblSize != null ? st.sigLblSize : 7);
+  set('gen-sig-lbl-bold','checked', !!st.sigLblBold);
+  set('gen-sig-gap-lbl','value', st.sigGapLbl != null ? st.sigGapLbl : 2);
+  set('gen-sig-pad-t','value', st.sigPadT != null ? st.sigPadT : 6);
+  set('gen-sig-pad-b','value', st.sigPadB != null ? st.sigPadB : 6);
+  set('gen-sig-pad-x','value', st.sigPadX != null ? st.sigPadX : 8);
+  set('gen-sig-line-w','value', st.sigLineW != null ? st.sigLineW : 1);
+  set('gen-sig-line-inset','value', st.sigLineInset != null ? st.sigLineInset : 0);
   set('gen-sig-space','value', st.sigSpace != null ? st.sigSpace : 22);
   set('gen-sig-gap-line','value', st.sigGapLine != null ? st.sigGapLine : 1);
-  set('gen-sig-gap-jab','value', st.sigGapJab != null ? st.sigGapJab : 1);
+  set('gen-sig-gap-jab','value', st.sigGapJab != null ? st.sigGapJab : -2);
   if (typeof genSigImgSyncUI === 'function') genSigImgSyncUI();
 }
 function genSetSigFont(key, val) {
-  if (key === 'sigNameBold' || key === 'sigJabBold' || key === 'sigAutoFit') val = !!val;
+  if (key === 'sigNameBold' || key === 'sigJabBold' || key === 'sigLblBold' || key === 'sigAutoFit') val = !!val;
+  else if (key === 'sigLblFont') { /* string font apa adanya */ }
+  else if (key === 'sigLblSize') { val = parseFloat(val); if (!isFinite(val)) return; val = Math.max(4, Math.min(20, val)); }
+  else if (key === 'sigGapLbl') { val = parseFloat(val); if (!isFinite(val)) return; val = Math.max(-20, Math.min(40, val)); }
+  else if (key === 'sigPadT' || key === 'sigPadB') { val = parseFloat(val); if (!isFinite(val)) return; val = Math.max(0, Math.min(60, val)); }
+  else if (key === 'sigPadX' || key === 'sigLineInset') { val = parseFloat(val); if (!isFinite(val)) return; val = Math.max(0, Math.min(80, val)); }
+  else if (key === 'sigLineW') { val = parseFloat(val); if (!isFinite(val)) return; val = Math.max(0, Math.min(5, val)); }
   else if (/Size$/.test(key)) { val = parseFloat(val); if (!isFinite(val)) return; val = Math.max(4, Math.min(20, val)); }
   else if (key === 'sigSpace') { val = parseFloat(val); if (!isFinite(val)) return; val = Math.max(-20, Math.min(80, val)); }
   else if (key === 'sigGapLine' || key === 'sigGapJab') { val = parseFloat(val); if (!isFinite(val)) return; val = Math.max(-20, Math.min(40, val)); }
@@ -19620,7 +19694,7 @@ function genSetSigFont(key, val) {
   genApplySignatureFont(); genFitSignatureText();
 }
 function genResetSigFont() {
-  ['sigNameFont','sigNameSize','sigNameBold','sigJabFont','sigJabSize','sigJabBold','sigAutoFit','sigSpace','sigGapLine','sigGapJab'].forEach(function(k) { delete _genState[k]; });
+  ['sigNameFont','sigNameSize','sigNameBold','sigJabFont','sigJabSize','sigJabBold','sigAutoFit','sigSpace','sigGapLine','sigGapJab','sigLblFont','sigLblSize','sigLblBold','sigGapLbl','sigPadT','sigPadB','sigPadX','sigLineW','sigLineInset'].forEach(function(k) { delete _genState[k]; });
   genSyncSigUI(); genApplySignatureFont(); genFitSignatureText();
 }
 
@@ -21471,6 +21545,15 @@ function _genInsetBaseDef(k) {
   function T(path, nz, attr) { return [E+path+'/MapServer/tile/{z}/{y}/{x}', { attribution:'&copy; '+(attr||'Esri'), maxZoom:19, minZoom:2, maxNativeZoom:nz||19, crossOrigin:true }]; }
   var PLACES = T('Reference/World_Boundaries_and_Places', 19);
   switch (k) {
+    case 'g_road':    return [['https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', { attribution:'&copy; Google', maxZoom:20, minZoom:2, crossOrigin:true }]];
+    case 'g_hybrid':  return [['https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', { attribution:'&copy; Google', maxZoom:20, minZoom:2, crossOrigin:true }]];
+    case 'g_terrain': return [['https://mt1.google.com/vt/lyrs=p&x={x}&y={y}&z={z}', { attribution:'&copy; Google', maxZoom:20, minZoom:2, crossOrigin:true }]];
+    case 'g_sat':     return [['https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', { attribution:'&copy; Google', maxZoom:20, minZoom:2, crossOrigin:true }]];
+    case 'hot':       return [['https://tile-{s}.openstreetmap.fr/hot/{z}/{x}/{y}.png', { subdomains:'abc', attribution:'&copy; OpenStreetMap &mdash; Humanitarian OSM Team', maxZoom:19, minZoom:2, crossOrigin:true }]];
+    case 'osmfr':     return [['https://{s}.tile.openstreetmap.fr/osmfr/{z}/{x}/{y}.png', { subdomains:'abc', attribution:'&copy; OpenStreetMap France', maxZoom:20, maxNativeZoom:19, minZoom:2, crossOrigin:true }]];
+    case 'inarupa':   return [['https://tiled.big.go.id/arcgis/rest/services/Rupabumi/RBI50K/MapServer/tile/{z}/{y}/{x}', { attribution:'&copy; BIG — RBI 1:50.000', maxZoom:22, maxNativeZoom:15, minZoom:3, crossOrigin:true }]];
+    case 'opentopo':  return [['https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', { subdomains:'abc', attribution:'&copy; OpenTopoMap', maxZoom:22, maxNativeZoom:17, minZoom:3, crossOrigin:true }]];
+    case 'cyclosm':   return [['https://{s}.tile-cyclosm.openstreetmap.fr/cyclosm/{z}/{x}/{y}.png', { subdomains:'abc', attribution:'&copy; OpenStreetMap — CyclOSM', maxZoom:20, minZoom:2, crossOrigin:true }]];
     case 'street':   return [T('World_Street_Map', 19)];
     case 'natgeo':   return [T('NatGeo_World_Map', 16, 'National Geographic, Esri')];
     case 'hybrid':   return [T('World_Imagery', 19), PLACES];
@@ -21496,6 +21579,28 @@ function _genInsetApplyBase() {
     _genInsetTiles.push(l);
   });
 }
+/* Ukuran kotak Peta Situasi: tinggi (px) & lebar (% kolom, rata tengah). Disimpan di _genState.insetH / insetW. */
+function genApplyInsetSize() {
+  var el = document.getElementById('peta-gen-inset'); if (!el) return;
+  var st = (typeof _genState !== 'undefined' && _genState) || {};
+  var h = parseFloat(st.insetH); if (!isFinite(h)) h = 85;
+  var w = parseFloat(st.insetW); if (!isFinite(w)) w = 100;
+  h = Math.max(40, Math.min(400, h)); w = Math.max(30, Math.min(100, w));
+  el.style.height = h + 'px'; el.style.width = w + '%';
+  el.style.marginLeft = 'auto'; el.style.marginRight = 'auto';
+  var ih = document.getElementById('gen-inset-h'), iw = document.getElementById('gen-inset-w');
+  if (ih && document.activeElement !== ih) ih.value = h;
+  if (iw && document.activeElement !== iw) iw.value = w;
+  if (_genInsetMap) { try { _genInsetMap.invalidateSize(false); } catch(e) {} }
+}
+function genSetInsetSize() {
+  var h = parseFloat((document.getElementById('gen-inset-h') || {}).value), w = parseFloat((document.getElementById('gen-inset-w') || {}).value);
+  if (isFinite(h)) _genState.insetH = Math.max(40, Math.min(400, h));
+  if (isFinite(w)) _genState.insetW = Math.max(30, Math.min(100, w));
+  genApplyInsetSize(); genUpdateInset();
+  if (typeof genFitSignatureText === 'function') genFitSignatureText();
+}
+function genResetInsetSize() { delete _genState.insetH; delete _genState.insetW; genApplyInsetSize(); genUpdateInset(); }
 function genSetInsetPad(v) {
   if (typeof _genState !== 'undefined') _genState.insetPad = parseFloat(v) || 4;
   genUpdateInset();
@@ -21509,6 +21614,7 @@ function genBuildInset() {
   if (!container) return;
   if (_genInsetMap) { _genInsetMap.remove(); _genInsetMap = null; }
   _genInsetRectLayer = null;
+  genApplyInsetSize();
 
   var center = _genMap ? _genMap.getCenter() : L.latLng(-2.5, 118);
 
@@ -35036,6 +35142,51 @@ window.addEventListener('load',function(){ installRibbon(); });
   if(iOS&&!standalone) window.addEventListener('load',function(){ setTimeout(function(){ addItem('Cara Instal (iPhone)',function(){ alert('Di Safari: ketuk tombol Bagikan (kotak berpanah ke atas) lalu pilih "Tambah ke Layar Utama".'); }); },1500); });
   /* Pintasan manifest: ?survey=1 langsung membuka panel Survey */
   if(/[?&]survey=1/.test(location.search)) window.addEventListener('load',function(){ setTimeout(function(){ if(window.SandSurvey) SandSurvey.openPanel('pos'); },1200); });
+})();
+</script>
+<style>
+#sg-ctrl-panel .sg-acc-head{cursor:pointer;user-select:none;display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:0!important}
+#sg-ctrl-panel .sg-acc-head::after{content:'▾';font-size:12px;color:var(--mute);transition:transform .15s;flex-shrink:0}
+#sg-ctrl-panel .sg-acc-card.sg-closed .sg-acc-head::after{transform:rotate(-90deg)}
+#sg-ctrl-panel .sg-acc-body{margin-top:10px}
+#sg-ctrl-panel .sg-acc-card.sg-closed .sg-acc-body{display:none}
+#sg-ctrl-panel .sg-acc-card.sg-closed{padding-top:10px!important;padding-bottom:10px!important}
+#sg-acc-bar{display:flex;gap:6px;margin-bottom:2px}
+#sg-acc-bar button{font-size:10px;padding:3px 9px;cursor:pointer;background:none;border:1px solid var(--brd2);border-radius:4px;color:var(--mute);font-family:Arial,sans-serif}
+</style>
+<script>
+/* Menu panel kiri Generate Peta: tiap kartu jadi dropdown (accordion). Status buka/tutup diingat. */
+(function(){
+  var KEY='sgAccOpen_v1';
+  function load(){ try{ return JSON.parse(localStorage.getItem(KEY)||'null'); }catch(e){ return null; } }
+  function save(o){ try{ localStorage.setItem(KEY, JSON.stringify(o)); }catch(e){} }
+  function init(){
+    var wrap=document.querySelector('#sg-ctrl-panel > div.no-print'); if(!wrap||wrap.dataset.accInit) return;
+    wrap.dataset.accInit='1';
+    var cards=[].slice.call(wrap.children).filter(function(c){return c.classList&&c.classList.contains('card');});
+    var st=load()||{}, first=true;
+    cards.forEach(function(card,i){
+      var head=card.firstElementChild; if(!head) return;
+      var body=document.createElement('div'); body.className='sg-acc-body';
+      while(head.nextSibling) body.appendChild(head.nextSibling);
+      card.appendChild(body);
+      head.classList.add('sg-acc-head'); card.classList.add('sg-acc-card');
+      var k=(head.textContent||'').trim().slice(0,40);
+      var open = (k in st) ? !!st[k] : (i===0);
+      card.classList.toggle('sg-closed',!open);
+      head.addEventListener('click',function(){
+        card.classList.toggle('sg-closed');
+        var s=load()||{}; s[k]=!card.classList.contains('sg-closed'); save(s);
+        if(!card.classList.contains('sg-closed') && typeof genFitSignatureText==='function') genFitSignatureText();
+      });
+    });
+    var bar=document.createElement('div'); bar.id='sg-acc-bar';
+    function all(open){ var s={}; cards.forEach(function(c){ c.classList.toggle('sg-closed',!open); s[(c.firstElementChild.textContent||'').trim().slice(0,40)]=open; }); save(s); if(open&&typeof genFitSignatureText==='function') genFitSignatureText(); }
+    bar.innerHTML='<button type="button">Buka semua</button><button type="button">Tutup semua</button>';
+    bar.children[0].onclick=function(){all(true);}; bar.children[1].onclick=function(){all(false);};
+    wrap.insertBefore(bar,wrap.firstChild);
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',init); else init();
 })();
 </script>
 </body>
