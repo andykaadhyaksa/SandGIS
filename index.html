@@ -19791,7 +19791,9 @@ function genApplySignatureFont() {
          supaya angka Jarak benar-benar menentukan celah yang terlihat. */
       var h = Math.ceil(c.size * 1.2);
       el.style.padding = '0'; el.style.boxSizing = 'border-box';
-      el.style.fontFamily = c.font; el.style.fontSize = c.size + 'px';
+      /* !important inline: aturan global "font sistem" memakai !important dan sebelumnya menimpa pilihan font */
+      if (c.font) el.style.setProperty('font-family', c.font, 'important'); else el.style.removeProperty('font-family');
+      el.style.fontSize = c.size + 'px';
       el.style.fontWeight = c.bold ? '700' : '400';
       el.style.height = h + 'px'; el.style.lineHeight = h + 'px';
       el.dataset.baseFs = c.size;
@@ -19822,7 +19824,8 @@ function genApplySignatureFont() {
     if (cell) cell.style.padding = pT + 'px ' + pX + 'px ' + pB + 'px';
     if (cell) { cell.style.paddingLeft = pX + 'px'; cell.style.paddingRight = pX + 'px'; }
     if (lb) {
-      lb.style.fontFamily = st.sigLblFont || ''; lb.style.fontSize = lSize + 'px';
+      if (st.sigLblFont) lb.style.setProperty('font-family', st.sigLblFont, 'important'); else lb.style.removeProperty('font-family');
+      lb.style.fontSize = lSize + 'px';
       lb.style.fontWeight = st.sigLblBold ? '700' : '400';
       lb.style.marginBottom = gLbl + 'px'; lb.style.lineHeight = '1.2';
     }
@@ -19840,7 +19843,7 @@ function genSyncSigUI() {
     var sel = document.getElementById(id); if (!sel) return;
     if (!sel.options.length) GEN_SIG_FONTS.forEach(function(f) { var o = document.createElement('option'); o.value = f[0]; o.textContent = f[1]; sel.appendChild(o); });
   });
-  function set(id, prop, v) { var e = document.getElementById(id); if (e) e[prop] = v; }
+  function set(id, prop, v) { var e = document.getElementById(id); if (e && document.activeElement !== e) e[prop] = v; }   // jangan menimpa kolom yang sedang diketik
   set('gen-sig-name-font','value', st.sigNameFont || ''); set('gen-sig-jab-font','value', st.sigJabFont || '');
   set('gen-sig-name-size','value', parseFloat(st.sigNameSize) || 8); set('gen-sig-jab-size','value', parseFloat(st.sigJabSize) || 6.5);
   set('gen-sig-name-bold','checked', st.sigNameBold !== false); set('gen-sig-jab-bold','checked', !!st.sigJabBold);
