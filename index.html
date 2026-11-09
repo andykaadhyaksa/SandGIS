@@ -23042,16 +23042,17 @@ function _genSwapSignatureInputs() {
       'border:'+cs.borderTopWidth+' solid transparent;' +
       'font-size:'+cs.fontSize+';font-weight:'+cs.fontWeight+';text-align:'+cs.textAlign+';color:'+cs.color+';font-family:'+cs.fontFamily+';' +
       'line-height:'+Math.max(1, _h - _padV - _brdV)+'px;';
+    var prevDisp = inp.style.display;      // simpan display inline asli (markup memakai display:block)
     inp.style.display = 'none';
     inp.parentNode.insertBefore(div, inp.nextSibling);
-    saved.push({ inp:inp, div:div });
+    saved.push({ inp:inp, div:div, disp:prevDisp });
   });
   return saved;
 }
 function _genRestoreSignatureInputs(saved) {
   if (!saved) return;
   saved.forEach(function(pair){
-    pair.inp.style.display = '';
+    pair.inp.style.display = (pair.disp != null ? pair.disp : '');   // kembalikan persis (sebelumnya dikosongkan → input jadi inline-block & jarak berubah)
     if (pair.div.parentNode) pair.div.parentNode.removeChild(pair.div);
   });
 }
