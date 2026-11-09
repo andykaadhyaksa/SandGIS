@@ -3247,6 +3247,12 @@ setTimeout(hide,8000);})();
               <option value="dd">Desimal (°)</option>
             </select>
           </div>
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+            <span style="font-family:Arial,sans-serif;font-size:9px;color:var(--mute);white-space:nowrap">Angka di belakang koma</span>
+            <select id="sym-coord-dec" onchange="symApply()" title="DMS: desimal pada detik · Desimal: desimal pada derajat" style="font-size:10px;padding:3px 6px;border-radius:4px;border:1px solid var(--brd2);background:var(--bg2);color:var(--txt);flex:1">
+              <option value="">Otomatis (DMS 3 · DD 6)</option><option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option>
+            </select>
+          </div>
 
           <!-- Daftar titik per-titik -->
           <div id="sym-point-list" style="display:flex;flex-direction:column;gap:5px;max-height:160px;overflow-y:auto"></div>
@@ -19189,6 +19195,7 @@ var symState = {
   boxBg:       true,
   boxBorder:   false,
   coordFmt:    'dms',
+  coordDec:    '',     // jumlah angka di belakang koma ('' = otomatis: DMS 3, DD 6)
   markerSize:  100,   // ukuran simbol titik global (% dari ukuran asli)
   markerScales: {},   // override ukuran simbol per titik: { id: persen }
   // offsets per marker id: { id: {dx, dy} }  (px di container space)
@@ -19211,18 +19218,24 @@ function symLoad() {
 
 /* Format koordinat */
 function symFmtCoord(lat, lng, fmt) {
+  var dec = parseInt(symState.coordDec, 10);
+  var hasDec = isFinite(dec) && dec >= 0 && dec <= 10;
   function toDMS(deg, posLabel, negLabel) {
+    var nd   = hasDec ? dec : 3;
     var sign = deg < 0 ? negLabel : posLabel;
-    var U    = Math.round(Math.abs(deg) * 3600000);   /* 1/1000 detik, bulat */
-    var d    = Math.floor(U / 3600000);
-    var rem  = U - d * 3600000;
-    var m    = Math.floor(rem / 60000);
-    var s    = ((rem - m * 60000) / 1000).toFixed(3);
+    var f    = Math.pow(10, nd);
+    var U    = Math.round(Math.abs(deg) * 3600 * f);   /* satuan 10^-nd detik, bulat */
+    var perDeg = 3600 * f, perMin = 60 * f;
+    var d    = Math.floor(U / perDeg);
+    var rem  = U - d * perDeg;
+    var m    = Math.floor(rem / perMin);
+    var s    = ((rem - m * perMin) / f).toFixed(nd);
     return d + '\u00b0 ' + m + '\u2032 ' + s + '\u2033 ' + sign;
   }
   if (fmt === 'dd') {
-    return lng.toFixed(6) + '\u00b0 ' + (lng >= 0 ? 'E' : 'W') + '  ' +
-           Math.abs(lat).toFixed(6) + '\u00b0 ' + (lat >= 0 ? 'N' : 'S');
+    var n2 = hasDec ? dec : 6;
+    return Math.abs(lng).toFixed(n2) + '\u00b0 ' + (lng >= 0 ? 'E' : 'W') + '  ' +
+           Math.abs(lat).toFixed(n2) + '\u00b0 ' + (lat >= 0 ? 'N' : 'S');
   }
   return toDMS(lng, 'E', 'W') + '\n' + toDMS(lat, 'N', 'S');
 }
@@ -19239,6 +19252,7 @@ function symSyncUI() {
   if ((el=document.getElementById('sym-box-bg')))       el.checked = symState.boxBg;
   if ((el=document.getElementById('sym-box-border')))   el.checked = symState.boxBorder;
   if ((el=document.getElementById('sym-coord-fmt')))    el.value   = symState.coordFmt;
+  if ((el=document.getElementById('sym-coord-dec')))    el.value   = (symState.coordDec === undefined || symState.coordDec === null) ? '' : String(symState.coordDec);
   if ((el=document.getElementById('sym-marker-size')))  el.value   = symState.markerSize;
   var msv = document.getElementById('sym-marker-size-val');
   if (msv) msv.textContent = symState.markerSize + '%';
@@ -19254,6 +19268,7 @@ function symApply() {
   if ((el=document.getElementById('sym-box-bg')))       symState.boxBg       = el.checked;
   if ((el=document.getElementById('sym-box-border')))   symState.boxBorder   = el.checked;
   if ((el=document.getElementById('sym-coord-fmt')))    symState.coordFmt    = el.value;
+  if ((el=document.getElementById('sym-coord-dec')))    symState.coordDec    = el.value;
   if ((el=document.getElementById('sym-marker-size')))  symState.markerSize  = parseFloat(el.value) || 100;
   symRefreshMarkerIcons();
   symPersist();
