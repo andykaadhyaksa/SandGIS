@@ -3300,6 +3300,8 @@ setTimeout(hide,8000);})();
       <label style="cursor:pointer"><input type="checkbox" id="t3d-bld" checked onchange="t3dToggleLayer('bld',this.checked)"> Bangunan 3D</label>
       <label style="cursor:pointer"><input type="checkbox" id="t3d-dxf" checked onchange="t3dToggleDxf(this.checked)"> DXF / SHP</label>
       <label style="cursor:pointer" title="Bentuk relief dari elevasi (Z) kontur DXF di area DXF; di luar area tetap memakai data ketinggian global"><input type="checkbox" id="t3d-dxfdem" onchange="t3dToggleDxfDem(this.checked)"> Relief ikut kontur DXF</label>
+      <label style="cursor:pointer" title="Bentuk relief 3D dari DEM (TIF) yang sudah diunggah; di luar area DEM tetap memakai data ketinggian global"><input type="checkbox" id="t3d-tifdem" onchange="t3dToggleTifDem(this.checked)"> Relief ikut DEM (TIF)</label>
+      <select id="t3d-tifsel" onfocus="t3dFillTifSel()" onchange="if(document.getElementById('t3d-tifdem').checked)t3dToggleTifDem(true)" style="font-size:10px;padding:3px 6px;max-width:170px"><option value="">— pilih DEM —</option></select>
       <button onclick="t3dResetView()" style="font-size:10px;padding:3px 9px;cursor:pointer">↺ Reset</button>
       <span id="t3d-status"></span>
       <span style="flex:1"></span>
@@ -18928,7 +18930,7 @@ function _sgOpenFromText(text) {
       try {
         var bx = document.createElement('div');
         bx.style.cssText = 'position:fixed;left:12px;right:12px;top:20%;z-index:2147483647;background:#fff;color:#111;border:2px solid #c0392b;border-radius:10px;padding:14px;font:13px/1.45 Arial,sans-serif;box-shadow:0 8px 30px rgba(0,0,0,.4);word-break:break-all';
-        bx.innerHTML = '<b>Gagal membuka file project</b><br>Versi app: <b>v20261109v</b><br>Ukuran terbaca: ' + raw.length + ' karakter<br>Penyebab: ' + String(why).replace(/</g,'&lt;') + '<br>Galat: ' + String((err2 && err2.message) || '').replace(/</g,'&lt;').slice(0,150) + '<br><br><button style="padding:8px 16px;font-size:14px">Tutup</button>';
+        bx.innerHTML = '<b>Gagal membuka file project</b><br>Versi app: <b>v20261109w</b><br>Ukuran terbaca: ' + raw.length + ' karakter<br>Penyebab: ' + String(why).replace(/</g,'&lt;') + '<br>Galat: ' + String((err2 && err2.message) || '').replace(/</g,'&lt;').slice(0,150) + '<br><br><button style="padding:8px 16px;font-size:14px">Tutup</button>';
         bx.querySelector('button').onclick = function(){ bx.remove(); };
         document.body.appendChild(bx);
       } catch(e3) {}
@@ -35963,6 +35965,61 @@ window.addEventListener('load',function(){ installRibbon(); });
       });
     }
   }catch(e){}
+})();
+</script>
+<script id="sg-t3d-tifdem">
+/* 3D Medan: relief mengikuti DEM (TIF) unggahan — memakai mekanisme tile "sgdem" yang sama dengan relief kontur DXF */
+(function(){
+  function tifs(){ return (typeof _tifLayers!=='undefined'&&_tifLayers||[]).filter(function(l){ return l&&l.georaster&&!l.isRGB&&l.georaster.values&&l.georaster.values[0]; }); }
+  window.t3dFillTifSel=function(){
+    var s=document.getElementById('t3d-tifsel'); if(!s) return; var keep=s.value, d=tifs();
+    s.innerHTML=d.length?d.map(function(l){ return '<option value="'+String(l.id).replace(/"/g,'&quot;')+'">'+String(l.name).replace(/</g,'&lt;')+'</option>'; }).join(''):'<option value="">(belum ada TIF)</option>';
+    if(keep&&d.some(function(l){return l.id===keep;})) s.value=keep;
+  };
+  function buildGrid(l){
+    var g=l.georaster, pw=Math.abs(g.pixelWidth), ph=Math.abs(g.pixelHeight), rows=g.values[0], nd=g.noDataValue;
+    var west=g.xmin, east=g.xmin+g.width*pw, north=g.ymax, south=g.ymax-g.height*ph;
+    if(!(Math.abs(west)<=180&&Math.abs(east)<=180&&Math.abs(north)<=90&&Math.abs(south)<=90)) return null;
+    var sw=_t3dMerc(west,south), ne=_t3dMerc(east,north), W=ne[0]-sw[0], H=ne[1]-sw[1];
+    var cs=Math.max(1,Math.max(W,H)/2000); var w=Math.ceil(W/cs)+3, h=Math.ceil(H/cs)+3, Z=new Float32Array(w*h); Z.fill(NaN);
+    var G={minX:sw[0]-cs,maxY:ne[1]+cs,cs:cs,w:w,h:h,Z:Z}, R=6378137, cnt=0;
+    for(var j=0;j<h;j++){
+      var my=G.maxY-(j+.5)*cs, lat=(2*Math.atan(Math.exp(my/R))-Math.PI/2)*180/Math.PI, r=Math.floor((north-lat)/ph);
+      if(r<0||r>=g.height) continue; var row=rows[r]; if(!row) continue;
+      for(var i=0;i<w;i++){
+        var lon=(G.minX+(i+.5)*cs)/R*180/Math.PI, c=Math.floor((lon-west)/pw);
+        if(c<0||c>=g.width) continue; var v=row[c];
+        if(v!=null&&v===v&&v!==nd&&v>-9000&&v<9000){ Z[j*w+i]=v; cnt++; }
+      }
+    }
+    if(cnt<100) return null;
+    return G;
+  }
+  window.t3dToggleTifDem=async function(on){
+    var m=_t3d.map, cb=document.getElementById('t3d-tifdem'); if(!m) return;
+    var dx=document.getElementById('t3d-dxfdem');
+    if(!on){ _t3d.demSrc='dem'; try{ m.setTerrain({source:'dem',exaggeration:_t3d.ex}); }catch(e){} _t3dStatus(''); return; }
+    t3dFillTifSel(); var id=document.getElementById('t3d-tifsel').value, l=tifs().find(function(x){return x.id===id;});
+    if(!l){ _t3dStatus('⚠ Unggah DEM (TIF) dulu lewat tab Data'); if(cb) cb.checked=false; return; }
+    if(dx) dx.checked=false;
+    _t3dStatus('Membaca DEM…'); await new Promise(function(r){ setTimeout(r,30); });
+    var G=null; try{ G=buildGrid(l); }catch(e){ console.error(e); }
+    if(!_t3d.map||_t3d.map!==m) return;
+    if(!G){ _t3dStatus('⚠ DEM tidak bisa dipakai (koordinat bukan Lon/Lat atau data kosong)'); if(cb) cb.checked=false; return; }
+    _t3dDem=G; _t3dDemSig='tif:'+id+':'+Date.now();
+    t3dRegisterDemProtocol();
+    try{
+      if(m.getSource('dem-dxf')){ m.setTerrain({source:'dem',exaggeration:_t3d.ex}); m.removeSource('dem-dxf'); }
+      m.addSource('dem-dxf',{type:'raster-dem',tiles:['sgdem://{z}/{x}/{y}'],encoding:'terrarium',tileSize:256,maxzoom:15});
+      _t3d.demSrc='dem-dxf'; m.setTerrain({source:'dem-dxf',exaggeration:_t3d.ex});
+      _t3dStatus('✓ Relief mengikuti DEM: '+l.name); setTimeout(function(){ _t3dStatus(''); },4000);
+    }catch(e){ console.error(e); _t3dStatus('⚠ Gagal menerapkan relief DEM'); if(cb) cb.checked=false; }
+  };
+  /* kalau relief kontur DXF dipakai, matikan opsi DEM */
+  var _o=window.t3dToggleDxfDem;
+  if(typeof _o==='function') window.t3dToggleDxfDem=function(on){ if(on){ var c=document.getElementById('t3d-tifdem'); if(c) c.checked=false; } return _o.apply(this,arguments); };
+  var _op=window.openTerrain3D;
+  if(typeof _op==='function') window.openTerrain3D=function(){ var r=_op.apply(this,arguments); try{ t3dFillTifSel(); }catch(e){} return r; };
 })();
 </script>
 </body>
