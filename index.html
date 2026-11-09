@@ -3759,7 +3759,31 @@ var PETA_PT_TYPES = {
   hilir:    { label:'Titik Pantau Hilir', short:'Pantau Hilir', color:'#9b59b6', useUbmName:false, shape:'pin' }
 };
 var PETA_PT_ORDER = ['sampling','inlet','outlet','outfall','hulu','hilir'];
-function _ptType(type) { return PETA_PT_TYPES[type] || PETA_PT_TYPES.sampling; }
+var _PT_CUSTOM_PALETTE = ['#e84393','#00b894','#0984e3','#fdcb6e','#6c5ce7','#d63031','#00cec9','#e17055'];
+/* Jenis titik kustom yang belum terdaftar (mis. file dibuka di sesi baru) didaftarkan otomatis
+   dari kuncinya, supaya titiknya tetap muncul di legenda & Edit Keterangan. */
+function _ptEnsureType(type) {
+  if (!type || PETA_PT_TYPES[type] || type === 'sungai') return !!PETA_PT_TYPES[type];
+  var raw = String(type).replace(/^custom_/, '').replace(/_+/g, ' ').trim();
+  var lbl = raw ? (raw.length <= 5 ? raw.toUpperCase() : raw.replace(/\b\w/g, function(c){ return c.toUpperCase(); })) : String(type);
+  var h = 0; for (var i = 0; i < type.length; i++) h = (h * 31 + type.charCodeAt(i)) >>> 0;
+  PETA_PT_TYPES[type] = { label: lbl, short: lbl, color: _PT_CUSTOM_PALETTE[h % _PT_CUSTOM_PALETTE.length], useUbmName: false, isCustom: true, shape: 'pin', autoRegistered: true };
+  return true;
+}
+function _ptType(type) { if (!PETA_PT_TYPES[type] && type && String(type).indexOf('custom_') === 0) _ptEnsureType(type); return PETA_PT_TYPES[type] || PETA_PT_TYPES.sampling; }
+/* Semua jenis titik yang ada: bawaan + kustom terdaftar + semua jenis yang dipakai marker di peta */
+function _ptAllTypes() {
+  var out = PETA_PT_ORDER.slice();
+  Object.keys(PETA_PT_TYPES).forEach(function(k){ if (out.indexOf(k) < 0) out.push(k); });
+  try {
+    (_markers || []).forEach(function(m){
+      if (!m || !m.type || m.type === 'sungai') return;
+      if (!PETA_PT_TYPES[m.type]) _ptEnsureType(m.type);
+      if (PETA_PT_TYPES[m.type] && out.indexOf(m.type) < 0) out.push(m.type);
+    });
+  } catch(e) {}
+  return out;
+}
 
 /* Warna EFEKTIF suatu jenis titik: pakai override warna kustom (dari panel
    Generate Peta > Keterangan > Titik Penaatan) kalau ada, kalau tidak pakai
@@ -4062,7 +4086,7 @@ function _importParseAOA(aoa) {
 function _importRenderTargetTypeOptions() {
   var sel = document.getElementById('import-target-type');
   if (!sel) return;
-  var opts = PETA_PT_ORDER.concat(Object.keys(PETA_PT_TYPES).filter(function(k){ return k.indexOf('custom_')===0 && PETA_PT_ORDER.indexOf(k)<0; }));
+  var opts = _ptAllTypes();
   sel.innerHTML = opts.map(function(t){ return '<option value="'+t+'">'+_ptType(t).label+'</option>'; }).join('');
 }
 
@@ -12058,7 +12082,7 @@ function petaDeleteShape(kind, id) {
 /* ─── Ubah warna garis/poligon yang sudah disimpan ───────────── */
 /* ─── Nama tampilan di Keterangan (legenda) — terpisah dari nama garis/poligon asli ─── */
 function petaChangeShapeLegendName(id, name) {
-  var item = (_lines.find(function(x){ return x.id===id; })) || (_polygons.find(function(x){ return x.id===id; }));
+  var item = (_lines.find(function(x){ return x.id===id; })) || (_polygons.find(function(x){ return x.id===id; })) || ((typeof _rivers!=='undefined'?_rivers:[]).find(function(x){ return x.id===id; }));
   if (!item) return;
   item.legendName = name;
   if (item.showLabel && typeof _shapeBuildLabel === 'function') _shapeBuildLabel(item);
@@ -18647,6 +18671,7 @@ function _collectProjectState() {
     view: view,
     activeBasemap: activeBasemap,
     markers: _markers || [],
+    customPtTypes: (function(){ var o={}; Object.keys(PETA_PT_TYPES).forEach(function(k){ var t=PETA_PT_TYPES[k]; if(t&&t.isCustom) o[k]={label:t.label,short:t.short,color:t.color,shape:t.shape||'pin',isCustom:true,autoRegistered:!!t.autoRegistered}; }); return o; })(),
     rivers: _rivers || [],
     lines: (_lines || []).map(_lineStripForSave),
     polygons: (_polygons || []).map(_polyStripForSave),
@@ -18924,6 +18949,8 @@ function _applyProjectState(data) {
     _uid = data.uid || 1;
     _markers = data.markers || [];
     _rivers  = data.rivers  || [];
+    try { Object.keys(data.customPtTypes || {}).forEach(function(k){ var t = data.customPtTypes[k]; if (t && !t.autoRegistered || !PETA_PT_TYPES[k]) PETA_PT_TYPES[k] = Object.assign({useUbmName:false}, t); }); } catch(e) {}
+    try { _ptAllTypes(); } catch(e) {}
 
     if (document.getElementById('sg-project-name') && data.projectName) {
       document.getElementById('sg-project-name').value = data.projectName;
@@ -21060,9 +21087,7 @@ function genRenderLegend(skipEditor) {
   var hiddenPtTypes = (_genState.legendHiddenPtTypes || {});
 
   // TITIK PENAATAN
-  var _allPtTypes = PETA_PT_ORDER.concat(
-    Object.keys(PETA_PT_TYPES).filter(function(k){ return k.startsWith('custom_') && PETA_PT_ORDER.indexOf(k) < 0; })
-  );
+  var _allPtTypes = _ptAllTypes();
   var ptHtml = _allPtTypes.filter(function(t){
     return _markers.some(function(m){ return m.type === t && !m.hidden; }) && !hiddenPtTypes[t];
   }).map(function(t){
@@ -21107,10 +21132,19 @@ function genRenderLegend(skipEditor) {
     return '<div style="'+rowStyle+'">'+svgSym+'<span style="'+labelStyle+'" title="'+_e(nm)+'">'+_e(nm)+'</span></div>';
   }).join('');
 
+  var _rvOk = function(r){ return r && r.points && r.points.length >= 2 && !r.legendHidden && _genRiverVisible(r); };
+  var _rvList = (typeof _rivers !== 'undefined' ? _rivers : []).filter(_rvOk);
+  lineHtml += _rvList.map(function(r){
+    var nm = _legendName(r);
+    var sym = _resolveSymbol(Object.assign({lineStyle:'solid', color:'#4488ff', weight:4}, r), 'line');
+    var svgSym = _legendSymSvg(sym.symType, sym.fillColor, sym.fillOpacity, sym.strokeColor, sym.strokeWidth);
+    return '<div style="'+rowStyle+'">'+svgSym+'<span style="'+labelStyle+'" title="'+_e(nm)+'">'+_e(nm)+'</span></div>';
+  }).join('');
   shpEl.innerHTML = shpLineHtml + lineHtml;
   var shpLineCount = _shpLayers.filter(function(l){
     return (!_genMap || !_genShpLayers[l.id] || _genMap.hasLayer(_genShpLayers[l.id])) && _shpGeomType(l) !== 'polygon' && !l.legendHidden;
   }).length + (typeof _lines !== 'undefined' ? _lines : []).filter(function(l){ return l.points && l.points.length>=2 && !l.legendHidden && _genItemVisible(l); }).length;
+  shpLineCount += _rvList.length;
   _genLegendApplyColumns(shpEl, shpLineCount);
   if (shpWrap) shpWrap.style.display = (shpLineHtml || lineHtml) ? 'block' : 'none';
 
@@ -21192,9 +21226,7 @@ function genRenderLegendEditor() {
   var hiddenPtTypes = (_genState.legendHiddenPtTypes || {});
 
   // Titik Penaatan (per jenis titik, bukan per titik individual)
-  var _allPtTypesSidebar = PETA_PT_ORDER.concat(
-    Object.keys(PETA_PT_TYPES).filter(function(k){ return k.startsWith('custom_') && PETA_PT_ORDER.indexOf(k) < 0; })
-  );
+  var _allPtTypesSidebar = _ptAllTypes();
   _allPtTypesSidebar.filter(function(t){ return _markers.some(function(m){ return m.type === t; }); }).forEach(function(t) {
     var pt = _ptType(t);
     var nm = (_genState.legendPtNames && _genState.legendPtNames[t]) || pt.label;
@@ -21232,6 +21264,19 @@ function genRenderLegendEditor() {
       name: l.legendName||'', placeholder: l.name, hidden: !!l.legendHidden,
       defFillColor: l.color, defStrokeColor: l.color, defFillOpacity: 100, defStrokeWidth: l.weight||1.5,
       defLineStyle: l.lineStyle || 'solid',
+      ov: ov,
+      onName: "petaChangeShapeLegendName('"+l.id+"',this.value)",
+      onToggle: "petaToggleShapeLegendVisibility('"+l.id+"')"
+    }));
+  });
+
+  (typeof _rivers !== 'undefined' ? _rivers : []).forEach(function(l) {
+    var ov = _symGet(l.id) || {};
+    rows.push(_legendEditorRow({
+      id: l.id, geomKind: 'line',
+      name: l.legendName||'', placeholder: l.name, hidden: !!l.legendHidden,
+      defFillColor: '#4488ff', defStrokeColor: '#4488ff', defFillOpacity: 100, defStrokeWidth: 4,
+      defLineStyle: 'solid',
       ov: ov,
       onName: "petaChangeShapeLegendName('"+l.id+"',this.value)",
       onToggle: "petaToggleShapeLegendVisibility('"+l.id+"')"
@@ -21430,7 +21475,7 @@ function shpToggleLegendVisibility(id) {
   _persist();
 }
 function petaToggleShapeLegendVisibility(id) {
-  var item = (_lines.find(function(x){ return x.id===id; })) || (_polygons.find(function(x){ return x.id===id; }));
+  var item = (_lines.find(function(x){ return x.id===id; })) || (_polygons.find(function(x){ return x.id===id; })) || ((typeof _rivers!=='undefined'?_rivers:[]).find(function(x){ return x.id===id; }));
   if (!item) return;
   item.legendHidden = !item.legendHidden;
   genRenderLegend();
