@@ -33,6 +33,18 @@ Setiap rilis berikutnya: ubah `VERSION` di `sw.js` (mis. `sandgis-v5-YYYYMMDD`) 
 - Perlu Chrome/Edge (desktop). Di browser lain, Simpan mengunduh file seperti biasa.
 - Setelah aplikasi ditutup lalu dibuka lagi, browser meminta izin menulis ulang — klik **Simpan** sekali.
 
+## Edit geometri SHP
+Mengubah bentuk fitur dari layer SHP yang sudah di-upload (titik, garis, poligon, multi-part, lubang poligon).
+- **Mulai:** klik ✏️ pada baris layer (tab Layer atau daftar SHP), atau ribbon **Edit → Edit SHP → Edit Geometri**.
+- **Pilih fitur:** klik fitur di peta. Tampil handle: ■ titik (vertex), ◦ titik tengah, ✥ geser seluruh fitur.
+- **Geser titik:** seret ■. **Tambah titik:** ketuk ◦. **Hapus titik:** pilih ■ lalu ⌫ / Delete / klik kanan / klik ganda. **Hapus fitur:** tombol 🗑.
+- **Snap:** menempel ke titik layer lain yang terlihat (toleransi 12 px, 18 px di layar sentuh).
+- **Undo/Redo:** Ctrl+Z / Ctrl+Y atau tombol ↶ ↷ (satu riwayat dengan fitur lain). **Esc:** batal pilih.
+- Poligon minimal 3 titik, garis minimal 2 titik. Fitur dengan >1.500 titik: zoom in dulu agar handle muncul.
+- Luas/panjang fitur terpilih ditampilkan (ellipsoid WGS84). Kolom `_LUAS_M2/_LUAS_HA` fitur yang diedit ikut dihitung ulang.
+- Hasil edit tersimpan di file `.sandgis`. **Ekspor:** tombol ⤓ → Shapefile (.zip, WGS84 atau UTM) atau GeoJSON. Nilai Z tidak ikut di SHP.
+- Belum ada: menambah fitur baru, edit Z per titik.
+
 ## Vercel
 Upload semua isi folder ini ke ROOT project (bukan di dalam subfolder). `vercel.json` memastikan `sw.js` & manifest tidak ter-cache dan bertipe benar.
 Cek setelah deploy: buka `/manifest-v5.webmanifest` (harus tampil JSON berisi `icon-v5-*`) dan `/icons/icon-v5-512.png` (harus tampil gambar).

@@ -2538,6 +2538,7 @@ setTimeout(hide,8000);})();
           <div class="sg-item" onclick="petaAddMode('circle')"><span class="sg-ico" style="color:#38bdf8"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><circle cx="12" cy="12" r="8"/></svg></span>Lingkaran</div>
           <div class="sg-item" onclick="_rulerKind='dist';petaAddMode('ruler')"><span class="sg-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15l5-5 10 10"/><path d="M14 6l4 4"/><path d="M7 12l1.5 1.5M9.5 9.5L11 11M12 7l1.5 1.5"/></svg></span>Ukur Jarak</div>
           <div class="sg-item" onclick="_rulerKind='area';petaAddMode('ruler')"><span class="sg-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 17.5L7.5 6.5l10 3.5 1.5 8z" fill="currentColor" fill-opacity=".18"/><circle cx="5" cy="17.5" r="1" fill="currentColor"/><circle cx="7.5" cy="6.5" r="1" fill="currentColor"/><circle cx="17.5" cy="10" r="1" fill="currentColor"/><circle cx="19" cy="18" r="1" fill="currentColor"/></svg></span>Ukur Luas</div>
+          <div class="sg-item" onclick="geToggle()" title="Edit geometri layer SHP yang sudah diunggah: geser / tambah / hapus titik, geser atau hapus fitur"><span class="sg-ico" style="color:#f59e0b"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 17l4-9 7 3 5-6"/><rect x="2.5" y="15.5" width="3" height="3" rx=".6" fill="currentColor" stroke="none"/><rect x="6.5" y="6.5" width="3" height="3" rx=".6" fill="currentColor" stroke="none"/><rect x="13.5" y="9.5" width="3" height="3" rx=".6" fill="currentColor" stroke="none"/><path d="M17 20l.6-2.4L22 13.2l1.8 1.8-4.4 4.4z" stroke-width="1.5"/></svg></span>Edit Geometri</div>
         </div>
       </div>
 
@@ -6084,11 +6085,18 @@ function _shpBuildLeafletLayer(geojson, opts, layerName) {
       );
       // Snap ke fitur SHP ini saat sedang menggambar garis/poligon/ukur — popup dicegah, bukan ditutup setelah kelihatan
       layer.on('popupopen', function(){
+        if (window.GE && GE.active && GE.layerId === opts.id) { layer.closePopup(); return; } // mode Edit Geometri: klik = pilih fitur, bukan popup
         if (_mode === 'garis' || _mode === 'polygon' || _mode === 'ruler') layer.closePopup();
         if (typeof _sgtPhase !== 'undefined' && _sgtPhase) layer.closePopup();
         if (_mode && _mode !== 'garis' && _mode !== 'polygon' && _mode !== 'ruler') layer.closePopup();
       });
       layer.on('click', function(e){
+        // Mode Edit Geometri (layer ini sedang diedit): klik memilih fitur untuk diedit
+        if (window.GE && GE.active && GE.layerId === opts.id && !_mode && !(typeof _sgtPhase !== 'undefined' && _sgtPhase)) {
+          L.DomEvent.stopPropagation(e);
+          GE.onFeatureClick(feature, e);
+          return;
+        }
         // Saat mode segmentasi: teruskan ke handler segmentasi
         if (typeof _sgtPhase !== 'undefined' && _sgtPhase) {
           L.DomEvent.stopPropagation(e);
@@ -10700,6 +10708,8 @@ function shpUpdateLayerList() {
       '</span>' +
       '<button onclick="shpOpenAttr(\''+l.id+'\')" title="Lihat tabel atribut" ' +
         'style="background:none;border:none;color:#3a9efd;cursor:pointer;font-size:12px;padding:0 2px 0 4px">⊞</button>' +
+      '<button onclick="GE.toggleLayer(\''+l.id+'\')" title="Edit geometri (geser/tambah/hapus titik, hapus fitur)" ' +
+        'style="background:none;border:none;color:#f59e0b;cursor:pointer;font-size:12px;padding:0 2px">✏️</button>' +
       '<button onclick="petaToggleFillPanel(\'shp-fill-'+l.id+'\')" title="Gaya garis &amp; isi area" ' +
         'style="background:none;border:none;color:var(--mute);cursor:pointer;font-size:12px;padding:0 2px">🎨</button>' +
       '<button onclick="shpRemoveLayer(\''+l.id+'\')" style="background:none;border:none;color:var(--mute);cursor:pointer;font-size:13px;padding:0 0 0 2px" title="Hapus layer">✕</button>' +
@@ -30693,7 +30703,7 @@ button:focus-visible,.sg-item:focus-visible,.sg-lbl:focus-visible{outline:2px so
   var TABS=[
     {id:'proyek',label:'Proyek',file:true,groups:[['Berkas',['sgSaveProject()','sgSaveProjectAs()','sgOpenProject()']]]},
     {id:'data',label:'Data',groups:[['Unggah data',["sgUp('shp')","sgUp('dxf')","sgUp('tif')","sgUp('png')","sgUp('kmz')","sgUp('gpkg')","sgUp('gdb')"]],['Konversi',['cvOpenModal()']],['Titik',['petaShowImportModal()']]]},
-    {id:'edit',label:'Edit',groups:[['Titik',[A+"sampling')",A+"inlet')",A+"outlet')",A+"outfall')",A+"hulu')",A+"hilir')",'petaShowCustomMarkerModal()']],['Gambar',[A+"garis')",A+"polygon')",A+"rectangle')",A+"circle')","_rulerKind='dist'","_rulerKind='area'"]],['Kelola',['petaClearAll','petaHardResetShapes']]]},
+    {id:'edit',label:'Edit',groups:[['Titik',[A+"sampling')",A+"inlet')",A+"outlet')",A+"outfall')",A+"hulu')",A+"hilir')",'petaShowCustomMarkerModal()']],['Gambar',[A+"garis')",A+"polygon')",A+"rectangle')",A+"circle')","_rulerKind='dist'","_rulerKind='area'"]],['Edit SHP',['geToggle()']],['Kelola',['petaClearAll','petaHardResetShapes']]]},
     {id:'analisis',label:'Analisis',groups:[['Sungai',['sgtOpen()']],['Hidrologi',['sgThOpen()','sgCatchOpen()','sgFlowOpen()']],['Terrain & KMZ',['sgHsKontur()','sgLabelKmz()']]]},
     {id:'tampilan',label:'Tampilan',groups:[['Peta',['open3DMap()','petaToggleDMS()']],['Panel',['@panel']]]}
   ];
@@ -30916,7 +30926,7 @@ button:focus-visible,.sg-item:focus-visible,.sg-lbl:focus-visible{outline:2px so
       var key=x.type+':'+x.id,sel=key===selKey;
       h+='<div class="rg-row rg-leaf'+(sel?' sel':'')+'" role="treeitem" tabindex="0" aria-selected="'+sel+'" data-k="'+esc(key)+'" data-type="'+x.type+'" data-id="'+esc(x.id)+'">'+
         '<input type="checkbox"'+(vis(x.it)?' checked':'')+' aria-label="Tampilkan '+esc(name)+'"><span class="rg-ic">'+icon(x.type,x.it.color)+'</span><span class="rg-name" title="'+esc(name)+'">'+esc(name)+'</span>'+
-        (sel?'<span class="rg-act"><button type="button" data-a="up" title="Naikkan" aria-label="Naikkan"'+(i===0?' disabled':'')+'>▲</button><button type="button" data-a="down" title="Turunkan" aria-label="Turunkan"'+(i===L.length-1?' disabled':'')+'>▼</button><button type="button" data-a="zoom" title="Zoom ke layer" aria-label="Zoom ke layer">⌕</button></span>':'')+'</div>';
+        (sel?'<span class="rg-act"><button type="button" data-a="up" title="Naikkan" aria-label="Naikkan"'+(i===0?' disabled':'')+'>▲</button><button type="button" data-a="down" title="Turunkan" aria-label="Turunkan"'+(i===L.length-1?' disabled':'')+'>▼</button>'+(x.type==='shp'?'<button type="button" data-a="edit" title="Edit geometri" aria-label="Edit geometri">✏️</button>':'')+'<button type="button" data-a="zoom" title="Zoom ke layer" aria-label="Zoom ke layer">⌕</button></span>':'')+'</div>';
     });
     if(m&&!q){
       var dot=function(c,r){return '<span class="rg-ic"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="'+r+'" fill="'+esc(c)+'" stroke="#fff" stroke-width="1.2"/></svg></span>';};
@@ -30948,7 +30958,7 @@ button:focus-visible,.sg-item:focus-visible,.sg-lbl:focus-visible{outline:2px so
     if(pr){ if(e.target.matches('input')){ try{markerSetAllVisible(e.target.checked);}catch(er){} render(true);} return; }
     var row=e.target.closest('.rg-leaf[data-id]'); if(!row) return;
     var t=row.dataset.type,id=row.dataset.id,b=e.target.closest('button[data-a]');
-    if(b){try{if(b.dataset.a==='up') petaLayerMoveUp(t,id); else if(b.dataset.a==='down') petaLayerMoveDown(t,id); else petaLayerZoomTo(t,id);}catch(er){} render(true); return;}
+    if(b){try{if(b.dataset.a==='up') petaLayerMoveUp(t,id); else if(b.dataset.a==='down') petaLayerMoveDown(t,id); else if(b.dataset.a==='edit') GE.toggleLayer(id); else petaLayerZoomTo(t,id);}catch(er){} render(true); return;}
     if(e.target.matches('input')){toggle(t,id); render(true); return;}
     selKey=row.dataset.k;
     if(t==='img'){ try{ window.sgOverlays.select(id); }catch(er){} }
@@ -34944,6 +34954,8 @@ document.addEventListener('keydown', function(e){
   body>#rg-tabs .rg-tab,body>#rg-tabs #sg-nav-layer{flex:1 0 44px!important;min-width:44px!important;white-space:normal!important;line-height:1.1;text-align:center;font-size:10px!important}
   .rg-tab[data-t=survey]{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 22s7-6.5 7-12a7 7 0 10-14 0c0 5.5 7 12 7 12z'/%3E%3Ccircle cx='12' cy='10' r='2.5'/%3E%3C/svg%3E")}
 }
+
+.svm-arr{width:16px;height:16px;pointer-events:none;filter:drop-shadow(0 0 1px rgba(0,0,0,.45))}
 </style>
 <script id="sg-survey">
 (function(){
@@ -34972,7 +34984,7 @@ function dl(blob,name){ var a=document.createElement('a'); a.href=URL.createObje
 function safeName(s){ return String(s||'survey').replace(/[^a-z0-9\-_ ]/gi,'').trim().replace(/\s+/g,'-')||'survey'; }
 
 /* ─── Pengaturan ─── */
-var DEF={maxAcc:25,minDist:5,kalman:true,avgN:10,avgMax:25,keepAwake:true,follow:true,stampMap:'osm',photoMax:2048,showOnMap:true};
+var DEF={maxAcc:30,minDist:4,kalman:true,avgN:12,avgMax:30,keepAwake:true,follow:true,stampMap:'osm',photoMax:2048,showOnMap:true,arrows:true};
 var S=(function(){ var o={}; try{ o=JSON.parse(localStorage.getItem('sv_settings')||'{}'); }catch(e){} var r={}; for(var k in DEF) r[k]=(o[k]!==undefined?o[k]:DEF[k]); return r; })();
 function saveS(){ try{ localStorage.setItem('sv_settings',JSON.stringify(S)); }catch(e){} }
 
@@ -34994,8 +35006,8 @@ var st={ watchId:null, raw:null, cur:null, tracking:false, paused:false, track:n
 
 /* ─── Kalman (smoothing posisi, Q = m/s) ─── */
 function KF(q){ this.q=q; this.v=-1; }
-KF.prototype.proc=function(lat,lng,acc,t){ acc=Math.max(acc||10,1); if(this.v<0){ this.lat=lat; this.lng=lng; this.v=acc*acc; this.t=t; }
-  else{ var dt=t-this.t; if(dt>0){ this.v+=dt/1000*this.q*this.q; this.t=t; } var K=this.v/(this.v+acc*acc); this.lat+=K*(lat-this.lat); this.lng+=K*(lng-this.lng); this.v=(1-K)*this.v; }
+KF.prototype.proc=function(lat,lng,acc,t,spd){ acc=Math.max(acc||10,1); var q=(spd!=null&&isFinite(spd)&&spd>=0)?Math.min(Math.max(spd*1.2+0.6,0.6),20):this.q; if(this.v<0){ this.lat=lat; this.lng=lng; this.v=acc*acc; this.t=t; }
+  else{ var dt=t-this.t; if(dt>0){ this.v+=dt/1000*q*q; this.t=t; } var K=this.v/(this.v+acc*acc); this.lat+=K*(lat-this.lat); this.lng+=K*(lng-this.lng); this.v=(1-K)*this.v; }
   return {lat:this.lat,lng:this.lng,acc:Math.sqrt(this.v)}; };
 
 /* ─── Lapisan peta ─── */
@@ -35005,12 +35017,39 @@ function ensureGrp(){ var m=M(); if(!m||typeof L==='undefined') return false; if
 var PAL=['#e8590c','#2f7cf6','#9c36b5','#0ca678','#c92a2a','#f08c00','#1098ad'];
 function trkColor(t){ return t.color||(t.color=PAL[Math.abs(hash(t.id))%PAL.length]); }
 function hash(s){ var h=0; for(var i=0;i<s.length;i++) h=(h*31+s.charCodeAt(i))|0; return h; }
-function drawTrack(t){ if(!ensureGrp()) return; var key=t.id, ll_=t.pts.map(function(p){return [p[0],p[1]];});
-  var pl=st.trkLines[key]; if(!pl){ pl=L.polyline(ll_,{color:trkColor(t),weight:5,opacity:.9,lineJoin:'round'}).addTo(st.grp); pl._svStart=null; pl._svEnd=null; st.trkLines[key]=pl; } else pl.setLatLngs(ll_);
-  if(ll_.length){ if(!pl._svStart) pl._svStart=L.marker(ll_[0],{icon:L.divIcon({className:'',html:'<div class="svm-end" style="background:#1fa97e"></div>',iconSize:[14,14],iconAnchor:[7,7]}),interactive:false,keyboard:false}).addTo(st.grp); else pl._svStart.setLatLng(ll_[0]);
-    if(!t.active && ll_.length>1){ if(!pl._svEnd) pl._svEnd=L.marker(ll_[ll_.length-1],{icon:L.divIcon({className:'',html:'<div class="svm-end" style="background:#e5484d"></div>',iconSize:[14,14],iconAnchor:[7,7]}),interactive:false,keyboard:false}).addTo(st.grp); else pl._svEnd.setLatLng(ll_[ll_.length-1]); }
-    else if(pl._svEnd){ st.grp.removeLayer(pl._svEnd); pl._svEnd=null; } } }
-function undrawTrack(id){ var pl=st.trkLines[id]; if(!pl||!st.grp) return; [pl._svStart,pl._svEnd,pl].forEach(function(l){ if(l) st.grp.removeLayer(l); }); delete st.trkLines[id]; }
+function trackSegs(t){ var segs=[],gaps=[],cur=[]; t.pts.forEach(function(p){ var q=[p[0],p[1]]; if(p[6]&&cur.length){ gaps.push([cur[cur.length-1],q]); segs.push(cur); cur=[q]; } else cur.push(q); }); if(cur.length) segs.push(cur); return {segs:segs,gaps:gaps}; }
+/* Perhentian: selisih waktu antar titik ≥ 3 menit dengan perpindahan kecil (titik tidak direkam saat diam) */
+function trackStops(t){ var r=[]; for(var i=1;i<t.pts.length;i++){ var a=t.pts[i-1],b=t.pts[i]; if(b[6]) continue; var dt=b[2]-a[2]; if(dt>=180000&&hav(a[0],a[1],b[0],b[1])<80) r.push({i:i-1,t:a[2],dur:dt}); } return r; }
+function trkMode(t){ var el=trackElapsed(t), dw=trackStops(t).reduce(function(q,x){return q+x.dur;},0), mv=Math.max(1,el-dw)/1000, v=t.dist/mv*3.6;
+  return {v:v,label:v<0.8?'Diam':v<7?'Jalan kaki':v<25?'Sepeda / lari':'Kendaraan',dwell:dw}; }
+function arrowIcon(ang,col){ return L.divIcon({className:'',html:'<div class="svm-arr" style="transform:rotate('+ang.toFixed(0)+'deg)"><svg viewBox="0 0 16 16" width="16" height="16"><path d="M3 12.5L8 3.5L13 12.5L8 10Z" fill="'+col+'" stroke="#fff" stroke-width="1.3" stroke-linejoin="round"/></svg></div>',iconSize:[16,16],iconAnchor:[8,8]}); }
+/* Panah arah di sepanjang jalur (jarak tetap dalam piksel layar, hanya di area terlihat) */
+function updateArrows(t,force){ var pl=st.trkLines[t.id], m=M(); if(!pl||!m||!pl._arr||typeof L==='undefined') return; var now=Date.now(); if(!force&&t.active&&now-(pl._arrT||0)<2500) return; pl._arrT=now;
+  pl._arr.clearLayers(); var z=m.getZoom(); if(!S.arrows||z<15||t.pts.length<2) return;
+  var SP=64, accd=SP/2, n=0, col=trkColor(t), prev=null, pb=m.getPixelBounds().pad(0.25);
+  for(var i=0;i<t.pts.length&&n<700;i++){ var p=t.pts[i], pt=m.project(L.latLng(p[0],p[1]),z);
+    if(prev&&!p[6]){ var dx=pt.x-prev.x, dy=pt.y-prev.y, len=Math.sqrt(dx*dx+dy*dy);
+      if(len>0){ var need=SP-accd; if(len>=need){ var o=need, ang=Math.atan2(dx,-dy)*180/Math.PI; while(o<=len&&n<700){ var q=L.point(prev.x+dx*o/len,prev.y+dy*o/len); if(pb.contains(q)){ L.marker(m.unproject(q,z),{icon:arrowIcon(ang,col),interactive:false,keyboard:false,zIndexOffset:-200}).addTo(pl._arr); n++; } o+=SP; } accd=len-(o-SP); } else accd+=len; } }
+    else accd=SP/2;
+    prev=pt; } }
+function trackPopup(t,e){ var best=-1,bd=1e12; t.pts.forEach(function(p,i){ var d=hav(p[0],p[1],e.latlng.lat,e.latlng.lng); if(d<bd){ bd=d; best=i; } }); var p=t.pts[best], m=M(); if(!p||!m) return;
+  L.popup({maxWidth:230}).setLatLng([p[0],p[1]]).setContent('<div class="svm-pop"><b>'+esc(t.name)+'</b><br>'+fmtFull(p[2])+'<br><small>'+(p[5]!=null?(p[5]*3.6).toFixed(1)+' km/j · ':'')+'±'+fmtAcc(p[3])+' m'+(p[4]!=null?' · '+Math.round(p[4])+' m dpl':'')+'</small></div>').openOn(m); }
+function drawTrack(t){ if(!ensureGrp()) return; var key=t.id, sg=trackSegs(t), col=trkColor(t), pl=st.trkLines[key];
+  if(!pl){ pl={}; var o={lineJoin:'round',lineCap:'round',smoothFactor:.5};
+    pl.casing=L.polyline(sg.segs,{color:'#fff',weight:9,opacity:.92,lineJoin:'round',lineCap:'round',smoothFactor:.5,interactive:false}).addTo(st.grp);
+    pl.line=L.polyline(sg.segs,{color:col,weight:5,opacity:1,lineJoin:'round',lineCap:'round',smoothFactor:.5}).addTo(st.grp);
+    pl.gaps=L.polyline(sg.gaps,{color:'#5b6470',weight:3,opacity:.9,dashArray:'1 8',lineCap:'round',interactive:false}).addTo(st.grp);
+    pl._arr=L.layerGroup().addTo(st.grp); pl._stops=L.layerGroup().addTo(st.grp); pl._nst=-1;
+    pl.line.on('click',function(e){ trackPopup(t,e); }); st.trkLines[key]=pl; }
+  else{ pl.casing.setLatLngs(sg.segs); pl.line.setLatLngs(sg.segs); pl.gaps.setLatLngs(sg.gaps); }
+  var ll_=t.pts;
+  if(ll_.length){ var a0=[ll_[0][0],ll_[0][1]], a1=[ll_[ll_.length-1][0],ll_[ll_.length-1][1]];
+    if(!pl._svStart) pl._svStart=L.marker(a0,{icon:L.divIcon({className:'',html:'<div class="svm-end" style="background:#1fa97e"></div>',iconSize:[14,14],iconAnchor:[7,7]}),interactive:false,keyboard:false}).addTo(st.grp); else pl._svStart.setLatLng(a0);
+    if(!t.active&&ll_.length>1){ if(!pl._svEnd) pl._svEnd=L.marker(a1,{icon:L.divIcon({className:'',html:'<div class="svm-end" style="background:#e5484d"></div>',iconSize:[14,14],iconAnchor:[7,7]}),interactive:false,keyboard:false}).addTo(st.grp); else pl._svEnd.setLatLng(a1); }
+    else if(pl._svEnd){ st.grp.removeLayer(pl._svEnd); pl._svEnd=null; }
+    var stp=trackStops(t); if(stp.length!==pl._nst){ pl._nst=stp.length; pl._stops.clearLayers(); stp.forEach(function(x){ var q=t.pts[x.i]; L.circleMarker([q[0],q[1]],{radius:6,color:'#fff',weight:2,fillColor:'#5b6470',fillOpacity:1}).bindTooltip('Berhenti '+fmtDur(x.dur)+' · '+fmtClock(x.t),{direction:'top'}).addTo(pl._stops); }); } }
+  updateArrows(t); }
+function undrawTrack(id){ var pl=st.trkLines[id]; if(!pl||!st.grp) return; [pl._svStart,pl._svEnd,pl.casing,pl.line,pl.gaps,pl._arr,pl._stops].forEach(function(l){ if(l) st.grp.removeLayer(l); }); delete st.trkLines[id]; }
 function pinIcon(n,col){ return L.divIcon({className:'',html:'<div class="svm-pin" style="--c:'+col+'"><b>'+n+'</b></div>',iconSize:[30,30],iconAnchor:[8,30],popupAnchor:[7,-28]}); }
 function drawPoint(p,idx){ if(!ensureGrp()) return; var mk=st.ptMks[p.id], n=(idx!=null?idx:st.points.indexOf(p))+1;
   if(!mk){ mk=L.marker([p.lat,p.lng],{icon:pinIcon(n,'#e8590c'),title:p.name,riseOnHover:true}).addTo(st.grp); mk.bindPopup(function(){ return popHtml(p); },{maxWidth:260}); mk.on('popupopen',function(){ fillPopThumbs(p); }); st.ptMks[p.id]=mk; }
@@ -35035,16 +35074,26 @@ function startWatch(){ if(st.watchId!=null) return true;
   if(!navigator.geolocation){ T('⚠ Perangkat/browser ini tidak mendukung GPS','err'); return false; }
   if(window.isSecureContext===false) T('⚠ GPS butuh HTTPS. Buka aplikasi lewat alamat https:// agar izin lokasi bisa muncul','warn');
   st.err=null; st.firstFix=false; st.kf=S.kalman?new KF(3):null;
-  st.watchId=navigator.geolocation.watchPosition(onFix,onErr,{enableHighAccuracy:true,maximumAge:0,timeout:30000});
+  st.watchId=navigator.geolocation.watchPosition(onFix,onErr,GEO); st.watchStart=Date.now(); st.lastFixAt=0; clearInterval(st.pollT); st.pollT=setInterval(pollGps,4000);
   startTick(); refreshUI(); return true; }
+var GEO={enableHighAccuracy:true,maximumAge:0,timeout:30000};
+/* Pengaman: bila watchPosition berhenti mengirim data (umum di HP/PWA), minta posisi manual & mulai ulang watch */
+function pollGps(){ if(st.watchId==null||!navigator.geolocation) return; var age=Date.now()-(st.lastFixAt||st.watchStart||0);
+  if(age>9000){ try{ navigator.geolocation.getCurrentPosition(onFix,function(){},{enableHighAccuracy:true,maximumAge:0,timeout:8000}); }catch(e){} }
+  if(age>25000) restartWatch(); }
+function restartWatch(){ if(st.watchId==null||!navigator.geolocation) return; try{ navigator.geolocation.clearWatch(st.watchId); }catch(e){} st.watchId=navigator.geolocation.watchPosition(onFix,onErr,GEO); st.watchStart=Date.now(); st.lastFixAt=Date.now(); }
 function stopWatch(force){ if(st.watchId==null) return; if(!force&&(st.tracking||st.modal||st.avg)) return;
-  try{ navigator.geolocation.clearWatch(st.watchId); }catch(e){} st.watchId=null; stopTick(); refreshUI(); }
+  try{ navigator.geolocation.clearWatch(st.watchId); }catch(e){} st.watchId=null; clearInterval(st.pollT); st.pollT=null; stopTick(); refreshUI(); }
 function onErr(e){ var m={1:'Izin lokasi ditolak. Aktifkan izin Lokasi untuk situs ini di pengaturan browser, lalu coba lagi.',2:'Posisi tidak tersedia. Pastikan GPS/Lokasi di HP menyala dan coba di area terbuka.',3:'Waktu pencarian sinyal GPS habis. Coba di area terbuka.'}[e&&e.code]||'Gagal membaca GPS';
   st.err=m; if(e&&e.code===1){ stopWatch(true); } if(!st._errT||Date.now()-st._errT>15000){ st._errT=Date.now(); T('⚠ '+m,'err'); } refreshUI(); }
 function onFix(pos){
   var c=pos.coords, raw={lat:c.latitude,lng:c.longitude,acc:c.accuracy,alt:c.altitude,altAcc:c.altitudeAccuracy,spd:c.speed,hdg:c.heading,t:pos.timestamp||Date.now()};
-  st.err=null; st.raw=raw;
-  var f=st.kf?st.kf.proc(raw.lat,raw.lng,raw.acc,raw.t):{lat:raw.lat,lng:raw.lng,acc:raw.acc};
+  if(!isFinite(raw.lat)||!isFinite(raw.lng)) return;
+  if(st.cur&&st.cur.acc<=30&&raw.acc>100&&raw.t-st.cur.t<20000) return; /* lompatan ke lokasi jaringan/Wi-Fi: abaikan */
+  if(st.cur&&raw.t<=st.cur.t) return; /* duplikat / data basi */
+  st.lastFixAt=Date.now(); st.err=null; st.raw=raw;
+  if(st.kf&&st.cur&&raw.t-st.cur.t>40000) st.kf=new KF(3);
+  var f=st.kf?st.kf.proc(raw.lat,raw.lng,raw.acc,raw.t,raw.spd):{lat:raw.lat,lng:raw.lng,acc:raw.acc};
   st.cur={lat:f.lat,lng:f.lng,acc:raw.acc,alt:raw.alt,altAcc:raw.altAcc,spd:raw.spd,hdg:raw.hdg,t:raw.t,rawLat:raw.lat,rawLng:raw.lng};
   updateMe();
   var m=M();
@@ -35055,28 +35104,38 @@ function onFix(pos){
   refreshUI(); }
 /* ─── Rata-rata posisi (menaikkan akurasi titik) ─── */
 function avgStart(){ st.avg={s:[],t0:Date.now(),done:false}; if(st.raw&&Date.now()-st.raw.t<3000) avgPush(st.raw); }
-function avgPush(r){ var a=st.avg; if(!a||a.done) return; if(r.acc>Math.max(S.maxAcc*2,50)) return; a.s.push(r); if(a.s.length>=S.avgN||(Date.now()-a.t0)/1000>=S.avgMax&&a.s.length>=3) a.done=true; }
+function avgPush(r){ var a=st.avg; if(!a||a.done) return; if(r.acc>Math.max(S.maxAcc*2,50)) return; if(a.s.length&&a.s[a.s.length-1].t===r.t) return; a.s.push(r); if(a.s.length>=S.avgN||(Date.now()-a.t0)/1000>=S.avgMax&&a.s.length>=3) a.done=true; }
 function avgResult(){ var a=st.avg; if(!a||!a.s.length) return st.cur?{lat:st.cur.lat,lng:st.cur.lng,acc:st.cur.acc,alt:st.cur.alt,n:1,t:st.cur.t}:null;
-  var s=a.s.slice(); function wmean(arr){ var w=0,la=0,lo=0,al=0,aw=0; arr.forEach(function(x){ var k=1/Math.max(x.acc,1)/Math.max(x.acc,1); w+=k; la+=x.lat*k; lo+=x.lng*k; if(x.alt!=null){ al+=x.alt*k; aw+=k; } }); return {lat:la/w,lng:lo/w,alt:aw?al/aw:null}; }
+  var s=a.s.slice(); if(s.length>=6){ s.sort(function(x,y){return x.acc-y.acc;}); s=s.slice(0,Math.max(4,Math.ceil(s.length*0.7))); } function wmean(arr){ var w=0,la=0,lo=0,al=0,aw=0; arr.forEach(function(x){ var k=1/Math.max(x.acc,1)/Math.max(x.acc,1); w+=k; la+=x.lat*k; lo+=x.lng*k; if(x.alt!=null){ al+=x.alt*k; aw+=k; } }); return {lat:la/w,lng:lo/w,alt:aw?al/aw:null}; }
   var m=wmean(s); if(s.length>=5){ var keep=s.filter(function(x){ return hav(m.lat,m.lng,x.lat,x.lng)<=Math.max(2.5*x.acc,12); }); if(keep.length>=3){ s=keep; m=wmean(s); } }
   var meanAcc=s.reduce(function(q,x){return q+x.acc;},0)/s.length, acc=Math.max(1,meanAcc/Math.sqrt(Math.min(s.length,4)));
   return {lat:m.lat,lng:m.lng,acc:acc,alt:m.alt,n:s.length,t:s[s.length-1].t}; }
 /* ─── Tracking ─── */
 function trackPush(raw,f){ var t=st.track; if(!t) return;
-  if(raw.acc>S.maxAcc){ st.skipped++; return; }
   var p=t.pts[t.pts.length-1], lat=f.lat, lng=f.lng;
-  if(p){ var d=hav(p[0],p[1],lat,lng), dt=(raw.t-p[2])/1000;
-    if(d<Math.max(S.minDist,raw.acc*0.5)){ return; }
-    if(dt>0&&d/dt>70&&dt<30){ st.skipped++; return; }
-    t.dist+=d; var sp=(raw.spd!=null&&raw.spd>=0)?raw.spd:(dt>0?d/dt:0); if(sp>t.maxSpd) t.maxSpd=sp; }
-  t.pts.push([+lat.toFixed(7),+lng.toFixed(7),raw.t,+raw.acc.toFixed(1),raw.alt!=null?+raw.alt.toFixed(1):null,raw.spd!=null?+raw.spd.toFixed(2):null]);
+  /* akurasi: normal ≤ batas; bila lama tak ada titik, terima sampai 2× batas supaya jalur tidak putus */
+  var okAcc=raw.acc<=S.maxAcc||(p&&raw.t-p[2]>15000&&raw.acc<=S.maxAcc*2)||(!p&&raw.acc<=S.maxAcc*2);
+  if(!okAcc){ st.skipped++; return; }
+  var gapNow=!!(st.lastSeenT&&raw.t-st.lastSeenT>40000); st.lastSeenT=raw.t;
+  var flag=0, hdgOk=(raw.hdg!=null&&!isNaN(raw.hdg)&&raw.spd>0.8);
+  if(p){ var d=hav(p[0],p[1],lat,lng), dt=(raw.t-p[2])/1000; if(dt<=0) return;
+    var vEst=d/dt, sp=(raw.spd!=null&&raw.spd>=0)?raw.spd:vEst, moving=sp>0.8;
+    if(vEst>70&&dt<30){ st.skipped++; return; }
+    var thr=moving?Math.max(2,Math.min(S.minDist,f.acc*0.35)):Math.max(S.minDist,f.acc*0.6);
+    var turn=false; if(hdgOk&&st._hdg!=null){ var dh=Math.abs(((raw.hdg-st._hdg+540)%360)-180); turn=dh>20&&d>=1.5; }
+    var beat=moving&&dt>=5&&d>=1.2;
+    if(gapNow&&d>15) flag=1;
+    if(!(d>=thr||turn||beat||flag)) return;
+    t.dist+=d; if(sp>t.maxSpd&&sp<70) t.maxSpd=sp; }
+  if(hdgOk) st._hdg=raw.hdg;
+  t.pts.push([+lat.toFixed(7),+lng.toFixed(7),raw.t,+raw.acc.toFixed(1),raw.alt!=null?+raw.alt.toFixed(1):null,raw.spd!=null?+raw.spd.toFixed(2):null,flag]);
   drawTrack(t); if(t.pts.length%20===0||Date.now()-st.lastSave>20000) saveTrack(); }
 function saveTrack(){ st.lastSave=Date.now(); if(st.track) return dbPut('tracks',st.track); }
 function trackElapsed(t){ t=t||st.track; if(!t) return 0; var end=t.active?(st.paused?st.pausedAt:Date.now()):t.end; return Math.max(0,end-t.start-(t.pausedMs||0)); }
 SV.startTrack=function(){ if(st.tracking){ SV.openPanel('pos'); return; }
   if(!startWatch()) return; var d=new Date();
   var t={id:uid('tr'),name:'Perjalanan '+pad(d.getDate())+' '+MON[d.getMonth()]+' '+pad(d.getHours())+':'+pad(d.getMinutes()),start:Date.now(),end:null,pts:[],dist:0,maxSpd:0,pausedMs:0,active:true};
-  trkColor(t); st.track=t; st.tracks.push(t); st.tracking=true; st.paused=false; st.skipped=0; st.follow=true; st.firstFix=false;
+  trkColor(t); st._hdg=null; st.lastSeenT=0; st.track=t; st.tracks.push(t); st.tracking=true; st.paused=false; st.skipped=0; st.follow=true; st.firstFix=false;
   if(st.cur) trackPush(st.cur,st.cur);
   saveTrack(); drawTrack(t); wake(true); startTick(); T('▶ Tracking dimulai','ok'); SV.openPanel('pos'); refreshUI(); };
 SV.pauseTrack=function(){ if(!st.tracking) return; if(!st.paused){ st.paused=true; st.pausedAt=Date.now(); T('⏸ Tracking dijeda'); } else { st.track.pausedMs=(st.track.pausedMs||0)+(Date.now()-st.pausedAt); st.paused=false; T('▶ Tracking dilanjutkan','ok'); } saveTrack(); refreshUI(); };
@@ -35088,7 +35147,7 @@ SV.stopTrack=function(){ if(!st.tracking) return; var t=st.track; if(st.paused){
 SV.toggleTrack=function(){ if(st.tracking) SV.stopTrack(); else SV.startTrack(); };
 /* Layar tetap menyala */
 function wake(on){ if(!S.keepAwake&&on) return; try{ if(on){ if(navigator.wakeLock&&!st.wake) navigator.wakeLock.request('screen').then(function(l){ st.wake=l; l.addEventListener('release',function(){ st.wake=null; }); }).catch(function(){}); } else if(st.wake){ st.wake.release(); st.wake=null; } }catch(e){} }
-document.addEventListener('visibilitychange',function(){ if(document.visibilityState==='visible'){ if(st.tracking) wake(true); refreshUI(); } else if(st.tracking) saveTrack(); });
+document.addEventListener('visibilitychange',function(){ if(document.visibilityState==='visible'){ if(st.tracking) wake(true); if(st.watchId!=null) restartWatch(); refreshUI(); } else if(st.tracking) saveTrack(); });
 window.addEventListener('pagehide',function(){ if(st.tracking) saveTrack(); });
 /* Pengatur waktu UI */
 function startTick(){ if(st.tick) return; st.tick=setInterval(function(){ refreshUI(true); },1000); }
@@ -35103,7 +35162,7 @@ SV.locate=function(){ st.follow=true; var m=M(); if(m) m._svUserMoved=false;
 SV.toggleFollow=function(){ st.follow=!st.follow; var m=M(); if(m) m._svUserMoved=false; S.follow=st.follow; saveS(); if(st.follow&&st.cur&&m) m.panTo([st.cur.lat,st.cur.lng]); refreshUI(); };
 SV.gpsOff=function(){ if(st.tracking){ T('Hentikan tracking dulu','warn'); return; } stopWatch(true); T('GPS dimatikan'); };
 SV.copyCoord=function(){ if(!st.cur) return; var s=ll(st.cur.lat,st.cur.lng); (navigator.clipboard?navigator.clipboard.writeText(s):Promise.reject()).then(function(){ T('Koordinat disalin','ok'); }).catch(function(){ T(s); }); };
-function bindMapMove(){ var m=M(); if(!m||m._svBound) return; m._svBound=true; m.on('dragstart',function(){ if(st.follow&&(st.tracking||panelOn())){ m._svUserMoved=true; } }); }
+function bindMapMove(){ var m=M(); if(!m||m._svBound) return; m._svBound=true; var _at=null; m.on('zoomend moveend',function(){ clearTimeout(_at); _at=setTimeout(function(){ st.tracks.forEach(function(t){ if(st.trkLines[t.id]) updateArrows(t,true); }); },180); }); m.on('dragstart',function(){ if(st.follow&&(st.tracking||panelOn())){ m._svUserMoved=true; } }); }
 
 /* ═══ FOTO: EXIF + stempel (waktu, koordinat, peta mini) ═══ */
 function exifDate(buf){ try{ var v=new DataView(buf); if(v.getUint16(0)!==0xFFD8) return null; var o=2;
@@ -35146,34 +35205,35 @@ function stampPhoto(file,info){
     var W=bm.width,H=bm.height,sc=Math.min(1,S.photoMax/Math.max(W,H)); W=Math.round(W*sc); H=Math.round(H*sc);
     var cv=document.createElement('canvas'); cv.width=W; cv.height=H; var g=cv.getContext('2d'); g.imageSmoothingQuality='high'; g.drawImage(bm.img||bm,0,0,W,H); if(bm.close) bm.close(); if(bm._u) URL.revokeObjectURL(bm._u);
     return miniMap(info.lat,info.lng,info.acc,S.stampMap,384).then(function(mm){
-      var s=Math.min(W,H), mg=Math.round(s*0.018), pd=Math.round(s*0.0105), f1=Math.max(10,s*0.0195), f2=Math.max(8,s*0.0142), FONT='system-ui,-apple-system,"Segoe UI",Roboto,sans-serif';
-      var maxCardW=Math.min(W*0.62,Math.max(s*0.40,230)), lineH2=f2*1.38, ic=f2*1.05;
-      /* isi kartu */
-      g.font='500 '+f2+'px '+FONT; var addr=info.addr?wrapText(g,info.addr,maxCardW-pd*2,2):[];
+      var s=Math.min(W,H), mg=Math.round(s*0.043), mb=Math.round(s*0.027), pd=Math.round(s*0.032), f1=Math.max(13,s*0.034), f2=Math.max(10,s*0.0235), FONT='system-ui,-apple-system,"Segoe UI",Roboto,sans-serif';
+      var avail=Math.min(W,s)-2*mg, gap=Math.round(s*0.021), rad=Math.round(s*0.03), ic=f2*1.0, gs=ic*1.2, textW=avail*0.70-pd*2;
+      function fitT(txt,font){ g.font=font; if(g.measureText(txt).width<=textW) return txt; while(txt.length>3&&g.measureText(txt+'…').width>textW) txt=txt.slice(0,-1); return txt+'…'; }
+      function segW(sg,f){ g.font=(sg.b?'600 ':'500 ')+f+'px '+FONT; return g.measureText(sg.t).width+(sg.ic?ic*1.5:0); }
+      g.font='500 '+f2+'px '+FONT; var addr=info.addr?wrapText(g,info.addr,textW,3):[];
       var coord=dmsC(info.lat,true)+' '+dmsC(info.lng,false);
       var alt=(info.alt!=null?(Math.round(info.alt*10)/10)+'m':'')+(info.acc!=null?(info.alt!=null?'   ':'')+'±'+(info.acc<10?info.acc.toFixed(1):Math.round(info.acc))+'m':'');
-      var title=info.custom&&info.name?info.name:'';
-      var rows=[]; if(title) rows.push({t:title,f:f2*1.12,b:1,c:'#fff'});
-      rows.push({t:fmtEn(info.t),f:f1,b:1,c:'#fff',h:f1*1.3});
-      addr.forEach(function(a){ rows.push({t:a,f:f2,c:'rgba(255,255,255,.92)',h:lineH2}); });
-      rows.push({t:coord,f:f2,c:'rgba(255,255,255,.92)',h:lineH2,ic:'pos'});
-      if(alt) rows.push({t:alt,f:f2,c:'rgba(255,255,255,.92)',h:lineH2,ic:'alt'});
-      var wmax=0,hh=0; rows.forEach(function(r){ r.h=r.h||r.f*1.35; g.font=(r.b?'700 ':'500 ')+r.f+'px '+FONT; r.w=g.measureText(r.t).width+(r.ic?ic*1.5:0); wmax=Math.max(wmax,r.w); hh+=r.h; });
-      var cw=Math.min(Math.ceil(wmax+pd*2),maxCardW), ch=Math.ceil(hh+pd*1.6), msz=ch, rad=Math.round(s*0.013);
-      var gap=Math.round(pd*0.9), total=cw+gap+msz; var cx=mg, cy=H-mg-ch;
-      if(total>W-mg*2){ cx=mg; }
+      var title=info.custom&&info.name?fitT(info.name,'600 '+(f2*1.15)+'px '+FONT):'', LC='rgba(255,255,255,.94)';
+      var rows=[]; if(title) rows.push({segs:[{t:title,b:1}],f:f2*1.15,h:f2*1.75,c:'#fff'});
+      rows.push({segs:[{t:fmtEn(info.t),b:1}],f:f1,h:f1*1.75,c:'#fff'});
+      addr.forEach(function(a){ rows.push({segs:[{t:a}],f:f2,h:f2*1.6,c:LC}); });
+      var sc_={t:coord,ic:'pos'}, sa_=alt?{t:alt,ic:'alt'}:null;
+      if(sa_&&segW(sc_,f2)+gs+segW(sa_,f2)<=textW) rows.push({segs:[sc_,sa_],f:f2,h:f2*1.6,c:LC});
+      else{ rows.push({segs:[sc_],f:f2,h:f2*1.6,c:LC}); if(sa_) rows.push({segs:[sa_],f:f2,h:f2*1.6,c:LC}); }
+      var hh=0; rows.forEach(function(r){ hh+=r.h; });
+      var ch=Math.ceil(hh+pd*2.6), msz=Math.round(Math.min(ch,avail*0.34)), cw=Math.round(avail-gap-msz), cx=mg, cy=H-mb-ch;
       /* kartu teks */
-      g.save(); g.shadowColor='rgba(0,0,0,.25)'; g.shadowBlur=s*0.01; g.fillStyle='rgba(58,58,60,.80)'; rrect(g,cx,cy,cw,ch,rad); g.fill(); g.restore();
-      var tx=cx+pd, ty=cy+pd*0.8; g.textBaseline='middle';
-      rows.forEach(function(r){ var yc=ty+r.h/2; var x=tx; g.fillStyle=r.c; g.strokeStyle=r.c;
-        if(r.ic==='pos'){ var ix=tx+ic/2, iy=yc; g.lineWidth=Math.max(1,ic*.11); g.beginPath(); g.arc(ix,iy,ic*.27,0,7); g.stroke(); [[0,-1],[0,1],[-1,0],[1,0]].forEach(function(d){ g.beginPath(); g.moveTo(ix+d[0]*ic*.34,iy+d[1]*ic*.34); g.lineTo(ix+d[0]*ic*.52,iy+d[1]*ic*.52); g.stroke(); }); g.beginPath(); g.arc(ix,iy,ic*.07,0,7); g.fill(); x=tx+ic*1.5; }
-        else if(r.ic==='alt'){ var ix=tx+ic/2, iy=yc; g.lineWidth=Math.max(1,ic*.11); g.beginPath(); g.moveTo(ix-ic*.5,iy+ic*.38); g.lineTo(ix,iy-ic*.42); g.lineTo(ix+ic*.5,iy+ic*.38); g.closePath(); g.stroke(); g.beginPath(); g.moveTo(ix-ic*.2,iy+ic*.05); g.lineTo(ix,iy+ic*.38); g.moveTo(ix+ic*.1,iy+ic*.05); g.lineTo(ix+ic*.3,iy+ic*.38); g.stroke(); x=tx+ic*1.5; }
-        g.font=(r.b?'700 ':'500 ')+r.f+'px '+FONT; g.fillText(r.t,x,yc); ty+=r.h; });
-      /* peta mini terpisah di kanan kartu */
-      var mx=cx+cw+gap, my=cy; if(mx+msz>W-mg/2){ mx=W-mg-msz; }
-      g.save(); g.shadowColor='rgba(0,0,0,.3)'; g.shadowBlur=s*0.01; g.fillStyle='#fff'; rrect(g,mx,my,msz,msz,rad); g.fill(); g.restore();
+      g.save(); g.shadowColor='rgba(0,0,0,.28)'; g.shadowBlur=s*0.012; g.fillStyle='rgba(52,52,55,.86)'; rrect(g,cx,cy,cw,ch,rad); g.fill(); g.restore();
+      function icon(type,ix,iy){ g.lineWidth=Math.max(1.2,ic*.11); g.lineCap='round'; g.lineJoin='round';
+        if(type==='pos'){ g.beginPath(); g.arc(ix,iy,ic*.27,0,7); g.stroke(); [[0,-1],[0,1],[-1,0],[1,0]].forEach(function(d){ g.beginPath(); g.moveTo(ix+d[0]*ic*.34,iy+d[1]*ic*.34); g.lineTo(ix+d[0]*ic*.52,iy+d[1]*ic*.52); g.stroke(); }); g.beginPath(); g.arc(ix,iy,ic*.07,0,7); g.fill(); }
+        else{ g.beginPath(); g.moveTo(ix-ic*.5,iy+ic*.38); g.lineTo(ix,iy-ic*.42); g.lineTo(ix+ic*.5,iy+ic*.38); g.closePath(); g.stroke(); g.beginPath(); g.moveTo(ix-ic*.2,iy+ic*.05); g.lineTo(ix,iy+ic*.38); g.moveTo(ix+ic*.1,iy+ic*.05); g.lineTo(ix+ic*.3,iy+ic*.38); g.stroke(); } }
+      var tx=cx+pd, ty=cy+pd*1.2; g.textBaseline='middle';
+      rows.forEach(function(r){ var yc=ty+r.h/2, x=tx; g.fillStyle=r.c; g.strokeStyle=r.c;
+        r.segs.forEach(function(sg){ if(sg.ic){ icon(sg.ic,x+ic/2,yc); x+=ic*1.5; } g.font=(sg.b?'600 ':'500 ')+r.f+'px '+FONT; g.fillStyle=r.c; g.fillText(sg.t,x,yc); x+=g.measureText(sg.t).width+gs; }); ty+=r.h; });
+      /* peta mini di kanan kartu */
+      var mx=cx+cw+gap, my=cy+Math.round((ch-msz)/2);
+      g.save(); g.shadowColor='rgba(0,0,0,.3)'; g.shadowBlur=s*0.012; g.fillStyle='#fff'; rrect(g,mx,my,msz,msz,rad); g.fill(); g.restore();
       g.save(); rrect(g,mx,my,msz,msz,rad); g.clip(); g.drawImage(mm.cv,mx,my,msz,msz); g.restore();
-      g.lineWidth=Math.max(1.5,s*0.0025); g.strokeStyle='rgba(255,255,255,.95)'; rrect(g,mx,my,msz,msz,rad); g.stroke();
+      g.lineWidth=Math.max(1.5,s*0.003); g.strokeStyle='rgba(255,255,255,.95)'; rrect(g,mx,my,msz,msz,rad); g.stroke();
       return new Promise(function(res,rej){ cv.toBlob(function(b){ if(!b) return rej(new Error('Gagal membuat foto')); var th=document.createElement('canvas'),k=160/Math.max(W,H); th.width=Math.round(W*k); th.height=Math.round(H*k); th.getContext('2d').drawImage(cv,0,0,th.width,th.height); res({blob:b,w:W,h:H,thumb:th.toDataURL('image/jpeg',.7),mapOk:mm.ok}); },'image/jpeg',0.9); }); }); }); }
 function pickFiles(kind,cb){ var inp=document.createElement('input'); inp.type='file'; inp.accept='image/*'; if(kind==='cam') inp.setAttribute('capture','environment'); else inp.multiple=true; inp.style.display='none'; document.body.appendChild(inp);
   inp.addEventListener('change',function(){ var fs=[].slice.call(inp.files||[]); inp.remove(); if(fs.length) cb(fs); }); inp.addEventListener('cancel',function(){ inp.remove(); }); inp.click(); }
@@ -35285,7 +35345,7 @@ function posHtml(){ var c=st.cur, q=qual(c&&c.acc), t=st.track;
   if(st.err&&!c) h+='<div style="color:#d64545;font-weight:600;line-height:1.45">'+esc(st.err)+'</div>';
   h+='<div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><span class="sv-badge '+q.c+'" id="sv-q">'+(c?'±'+fmtAcc(c.acc)+' m · '+q.l:(st.watchId!=null?'Mencari sinyal GPS…':'GPS mati'))+'</span><span class="sv-sub" id="sv-age"></span></div>'
    +'<div class="sv-coord" id="sv-c" style="margin-top:8px">'+(c?ll(c.lat,c.lng):'—')+'</div><div class="sv-sub" id="sv-dms">'+(c?dms(c.lat,true)+'  '+dms(c.lng,false):'')+'</div>'
-   +'<div class="sv-grid">'+stat('Elevasi','<b id="sv-alt">'+(c&&c.alt!=null?Math.round(c.alt)+' m':'—')+'</b>')+stat('Kecepatan','<b id="sv-spd">'+(c&&c.spd!=null&&c.spd>=0?(c.spd*3.6).toFixed(1)+' km/j':'—')+'</b>')+stat('Arah','<b id="sv-hdg">'+(c&&c.hdg!=null&&!isNaN(c.hdg)&&c.spd>0.6?Math.round(c.hdg)+'°':'—')+'</b>')+'</div></div>';
+   +(c&&c.acc>50?'<div class="sv-sub" style="color:#d64545;margin-top:6px;line-height:1.45">Akurasi rendah (&gt;50 m). Aktifkan Lokasi akurasi tinggi (Google Location Accuracy) dan izin lokasi “Tepat/Precise”, matikan mode hemat daya, lalu pindah ke area terbuka.</div>':'')+'<div class="sv-grid">'+stat('Elevasi','<b id="sv-alt">'+(c&&c.alt!=null?Math.round(c.alt)+' m':'—')+'</b>')+stat('Kecepatan','<b id="sv-spd">'+(c&&c.spd!=null&&c.spd>=0?(c.spd*3.6).toFixed(1)+' km/j':'—')+'</b>')+stat('Arah','<b id="sv-hdg">'+(c&&c.hdg!=null&&!isNaN(c.hdg)&&c.spd>0.6?Math.round(c.hdg)+'°':'—')+'</b>')+'</div></div>';
   h+='<div class="sv-row"><button class="sv-btn" data-a="loc">◎ Lokasi saya</button><button class="sv-btn'+(st.follow?' on':'')+'" data-a="follow">'+(st.follow?'✓ Ikuti posisi':'Ikuti posisi')+'</button></div>';
   if(st.tracking){ h+='<div class="sv-card" style="border-color:#e5484d"><div class="sv-h" style="margin-top:0;color:#e5484d">● '+(st.paused?'Dijeda':'Merekam')+' — '+esc(t.name)+'</div><div class="sv-grid c2" id="sv-ts">'+trkStats()+'</div></div>'
     +'<div class="sv-row"><button class="sv-btn" data-a="pause">'+(st.paused?'▶ Lanjut':'⏸ Jeda')+'</button><button class="sv-btn rec" data-a="stop">⏹ Selesai</button></div>'; }
@@ -35308,6 +35368,9 @@ function ptsHtml(){ if(!st.points.length) return '<div class="sv-empty">Belum ad
     h+='<div class="sv-item" data-pt="'+p.id+'"><div class="sv-thumb" '+(th?'style="background-image:url('+th+')"':'')+'>'+(th?'':'📍')+(n>1?'<i>'+n+'</i>':'')+'</div><div class="t"><b>'+esc(p.name)+'</b><small>'+fmtFull(p.t)+'</small><small style="font-family:ui-monospace,monospace">'+ll(p.lat,p.lng)+' · ±'+fmtAcc(p.acc)+' m</small></div><button class="sv-ib" data-a="editpt" data-id="'+p.id+'" title="Edit">✎</button></div>'; });
   return h; }
 function hydrateThumbs(){}
+function evHtml(t,pts){ var ev=[]; pts.forEach(function(p){ ev.push({t:p.t,h:'<div class="sv-ev" data-a="fly" data-id="'+p.id+'" data-k="p"><b>📍 '+esc(p.name)+'</b><small>'+fmtClock(p.t)+((p.photos||[]).length?' · '+p.photos.length+' foto':'')+'</small></div>'}); });
+  trackStops(t).forEach(function(x){ ev.push({t:x.t,h:'<div class="sv-ev" data-a="fly" data-id="'+t.id+'" data-k="st" data-i="'+x.i+'"><b>⏸ Berhenti '+fmtDur(x.dur)+'</b><small>'+fmtClock(x.t)+' – '+fmtClock(x.t+x.dur)+'</small></div>'}); });
+  ev.sort(function(a,b){return a.t-b.t;}); return ev.map(function(e){return e.h;}).join(''); }
 function tlHtml(){ var items=[]; st.tracks.forEach(function(t){ items.push({k:'t',t:t.start,o:t}); });
   st.points.forEach(function(p){ var inT=p.trackId&&st.tracks.some(function(t){return t.id===p.trackId;}); if(!inT) items.push({k:'p',t:p.t,o:p}); });
   if(!items.length) return '<div class="sv-empty">Linimasa masih kosong.<br>Mulai tracking atau tandai titik — perjalanan Anda akan muncul di sini per hari.</div>';
@@ -35316,9 +35379,9 @@ function tlHtml(){ var items=[]; st.tracks.forEach(function(t){ items.push({k:'t
     if(i.k==='p'){ h+='<div class="sv-tl"><div class="sv-ev" data-a="fly" data-id="'+i.o.id+'" data-k="p"><b>📍 '+esc(i.o.name)+'</b><small>'+fmtClock(i.o.t)+' · '+(i.o.photos||[]).length+' foto</small></div></div>'; return; }
     var t=i.o, pts=st.points.filter(function(p){return p.trackId===t.id;}).sort(function(a,b){return a.t-b.t;}), el=trackElapsed(t), avg=el>0?t.dist/(el/1000)*3.6:0;
     h+='<div class="sv-trk"><div class="hd"><span class="sv-sw" style="background:'+trkColor(t)+'"></span><b>'+esc(t.name)+(t.active?' <small style="color:#e5484d">● merekam</small>':'')+'</b><button class="sv-ib" data-a="ren" data-id="'+t.id+'" title="Ganti nama">✎</button><button class="sv-ib" data-a="deltr" data-id="'+t.id+'" title="Hapus">🗑</button></div>'
-     +'<div class="sv-grid">'+stat('Jarak',fmtDist(t.dist))+stat('Durasi',fmtDur(el))+stat('Rata-rata',avg.toFixed(1)+' km/j')+'</div>'
+     +'<div class="sv-sub" style="margin:2px 0 6px">'+trkMode(t).label+' · '+t.pts.length+' titik rekam'+(t.pts.some(function(q){return q[6];})?' · ada jeda sinyal (garis putus-putus)':'')+'</div>'+'<div class="sv-grid">'+stat('Jarak',fmtDist(t.dist))+stat('Durasi',fmtDur(el))+stat('Rata-rata',avg.toFixed(1)+' km/j')+'</div>'
      +'<div class="sv-tl" style="margin-top:10px"><div class="sv-ev s" data-a="fly" data-id="'+t.id+'" data-k="ts"><b>Mulai</b><small>'+fmtClock(t.start)+'</small></div>'
-     +pts.map(function(p){ return '<div class="sv-ev" data-a="fly" data-id="'+p.id+'" data-k="p"><b>📍 '+esc(p.name)+'</b><small>'+fmtClock(p.t)+((p.photos||[]).length?' · '+p.photos.length+' foto':'')+'</small></div>'; }).join('')
+     +evHtml(t,pts)
      +(t.active?'':'<div class="sv-ev e" data-a="fly" data-id="'+t.id+'" data-k="te"><b>Selesai</b><small>'+fmtClock(t.end)+(t.interrupted?' (terputus)':'')+'</small></div>')+'</div>'
      +'<div class="sv-row" style="margin:8px 0 0"><button class="sv-btn sm" data-a="showtr" data-id="'+t.id+'">Lihat di peta</button><button class="sv-btn sm" data-a="gpx1" data-id="'+t.id+'">GPX</button></div></div>'; });
   return h; }
@@ -35329,23 +35392,24 @@ function setHtml(){ return '<div class="sv-h" style="margin-top:0">Akurasi</div>
   +'<label class="sv-chk"><input type="checkbox" data-s="kalman" '+(S.kalman?'checked':'')+'> Haluskan posisi (filter Kalman)</label>'
   +'<label class="sv-chk"><input type="checkbox" data-s="keepAwake" '+(S.keepAwake?'checked':'')+'> Jaga layar tetap menyala saat tracking</label>'
   +'<label class="sv-chk"><input type="checkbox" data-s="showOnMap" '+(S.showOnMap?'checked':'')+'> Tampilkan data survey di peta</label>'
+  +'<label class="sv-chk"><input type="checkbox" data-s="arrows" '+(S.arrows?'checked':'')+'> Panah arah pergerakan pada jalur</label>'
   +'<div class="sv-h">Foto</div>'
   +'<label class="sv-field"><span>Peta mini pada stempel foto</span><select data-s="stampMap"><option value="osm"'+(S.stampMap==='osm'?' selected':'')+'>Peta jalan</option><option value="sat"'+(S.stampMap==='sat'?' selected':'')+'>Satelit</option></select></label>'
   +'<label class="sv-field"><span>Ukuran maks. foto (px sisi terpanjang)</span><select data-s="photoMax">'+[1280,1600,2048,3000].map(function(v){return '<option'+(S.photoMax===v?' selected':'')+'>'+v+'</option>';}).join('')+'</select></label>'
   +'<div class="sv-h">Data &amp; ekspor</div><div class="sv-sub" style="margin-bottom:8px">Data survey tersimpan otomatis di perangkat ini (tidak ikut file .sandgis). Ekspor untuk cadangan.</div>'
   +'<div class="sv-row"><button class="sv-btn sm" data-a="zip">ZIP (+foto)</button><button class="sv-btn sm" data-a="geojson">GeoJSON</button></div><div class="sv-row"><button class="sv-btn sm" data-a="gpx">GPX</button><button class="sv-btn sm" data-a="csv">CSV titik</button></div>'
   +'<div class="sv-row"><button class="sv-btn sm" data-a="wipe" style="color:#d64545">Hapus semua data survey</button></div>'; }
-function onSetChange(e){ var el=e.target.closest('[data-s]'); if(!el) return; var k=el.dataset.s, v=el.type==='checkbox'?el.checked:(el.tagName==='SELECT'&&(k==='photoMax')?+el.value:(el.type==='number'?+el.value:el.value)); if(el.type==='number'&&(!isFinite(v)||v<+el.min)) v=Math.max(+el.min,DEF[k]); S[k]=v; saveS(); if(k==='kalman') st.kf=v?new KF(3):null; if(k==='showOnMap'){ ensureGrp(); redrawAll(); } }
+function onSetChange(e){ var el=e.target.closest('[data-s]'); if(!el) return; var k=el.dataset.s, v=el.type==='checkbox'?el.checked:(el.tagName==='SELECT'&&(k==='photoMax')?+el.value:(el.type==='number'?+el.value:el.value)); if(el.type==='number'&&(!isFinite(v)||v<+el.min)) v=Math.max(+el.min,DEF[k]); S[k]=v; saveS(); if(k==='kalman') st.kf=v?new KF(3):null; if(k==='showOnMap'){ ensureGrp(); redrawAll(); } if(k==='arrows') st.tracks.forEach(function(t){ updateArrows(t,true); }); }
 function onBody(e){ var b=e.target.closest('[data-a],[data-pt]'); if(!b) return; var a=b.dataset.a, id=b.dataset.id;
   if(!a&&b.dataset.pt){ SV.flyPoint(b.dataset.pt); return; }
   switch(a){ case 'loc': SV.locate(); break; case 'follow': SV.toggleFollow(); break; case 'start': SV.startTrack(); break; case 'pause': SV.pauseTrack(); break; case 'stop': SV.stopTrack(); break;
     case 'mark': SV.markPoint(); break; case 'markphoto': SV.markPoint({photo:'cam'}); break; case 'gpsoff': SV.gpsOff(); break; case 'editpt': e.stopPropagation(); SV.editPoint(id); break;
-    case 'fly': flyTo(b.dataset.k,id); break; case 'showtr': SV.showTrack(id); break;
+    case 'fly': flyTo(b.dataset.k,id,b.dataset.i); break; case 'showtr': SV.showTrack(id); break;
     case 'ren': var t=st.tracks.filter(function(x){return x.id===id;})[0]; var n=t&&prompt('Nama perjalanan:',t.name); if(n&&n.trim()){ t.name=n.trim(); dbPut('tracks',t); renderBody(true); } break;
     case 'deltr': SV.delTrack(id); break; case 'gpx1': SV.exportGPX(id); break; case 'toslm': SV.toSandGIS(); break;
     case 'zip': SV.exportZip(); break; case 'geojson': SV.exportGeoJSON(); break; case 'gpx': SV.exportGPX(); break; case 'csv': SV.exportCSV(); break; case 'wipe': SV.wipe(); break; } }
 SV.flyPoint=function(id){ var p=st.points.filter(function(x){return x.id===id;})[0]; var m=M(); if(!p||!m) return; ensureGrp(); st.follow=false; m._svUserMoved=true; m.setView([p.lat,p.lng],Math.max(m.getZoom(),18)); var mk=st.ptMks[id]; if(mk) setTimeout(function(){ mk.openPopup(); },300); };
-function flyTo(k,id){ var m=M(); if(!m) return; if(k==='p') return SV.flyPoint(id); var t=st.tracks.filter(function(x){return x.id===id;})[0]; if(!t||!t.pts.length) return; var p=k==='te'?t.pts[t.pts.length-1]:t.pts[0]; st.follow=false; m._svUserMoved=true; m.setView([p[0],p[1]],Math.max(m.getZoom(),17)); }
+function flyTo(k,id,ix){ var m=M(); if(!m) return; if(k==='p') return SV.flyPoint(id); var t=st.tracks.filter(function(x){return x.id===id;})[0]; if(!t||!t.pts.length) return; var p=k==='te'?t.pts[t.pts.length-1]:(k==='st'?(t.pts[+ix]||t.pts[0]):t.pts[0]); st.follow=false; m._svUserMoved=true; m.setView([p[0],p[1]],Math.max(m.getZoom(),17)); }
 SV.showTrack=function(id){ var t=st.tracks.filter(function(x){return x.id===id;})[0], m=M(); if(!t||!m||t.pts.length<2) return; ensureGrp(); drawTrack(t); st.follow=false; m._svUserMoved=true; m.fitBounds(L.latLngBounds(t.pts.map(function(p){return [p[0],p[1]];})),{padding:[40,40],maxZoom:19}); if(window.matchMedia('(max-width:768px)').matches) toggleMin(); };
 SV.delTrack=function(id){ var t=st.tracks.filter(function(x){return x.id===id;})[0]; if(!t) return; if(t.active){ T('Selesaikan tracking dulu','warn'); return; } if(!confirm('Hapus "'+t.name+'"? Titik yang ditandai pada perjalanan ini tetap tersimpan.')) return;
   undrawTrack(id); st.tracks.splice(st.tracks.indexOf(t),1); dbDel('tracks',id); st.points.forEach(function(p){ if(p.trackId===id){ delete p.trackId; dbPut('points',p); } }); renderBody(true); T('Perjalanan dihapus'); };
@@ -36022,5 +36086,804 @@ window.addEventListener('load',function(){ installRibbon(); });
   if(typeof _op==='function') window.openTerrain3D=function(){ var r=_op.apply(this,arguments); try{ t3dFillTifSel(); }catch(e){} return r; };
 })();
 </script>
+<!-- GEOMEDIT:BEGIN -->
+<style id="sg-geomedit-css">
+/* ═══ Edit Geometri SHP — panel, titik kendali, dialog ═══ */
+#ge-panel{position:absolute;left:50%;bottom:30px;transform:translateX(-50%);z-index:851;width:max-content;max-width:calc(100% - 20px);
+  display:none;flex-direction:column;gap:6px;padding:8px 10px;background:var(--card);color:var(--txt);
+  border:1px solid var(--rg-line,var(--brd));border-radius:10px;box-shadow:0 10px 28px rgba(0,0,0,.3);font-family:Arial,sans-serif;font-size:12px}
+#peta-map-wrap.attr-open #ge-panel{bottom:calc(var(--sa-h,300px) + var(--sa-off,23px) + 12px)!important}
+#ge-panel .ge-r{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+#ge-panel .ge-top b{color:#f59e0b;font-size:12.5px;white-space:nowrap}
+#ge-panel select{max-width:210px;font-size:12px;padding:3px 5px;border:1px solid var(--rg-line,var(--brd));border-radius:5px;background:var(--inp);color:var(--txt)}
+#ge-panel .ge-info{color:var(--txt2);font-size:11.5px;min-height:15px;line-height:1.35}
+#ge-panel .ge-info b{color:var(--txt)}
+#ge-panel button,.ge-modal button{display:inline-flex;align-items:center;gap:4px;padding:5px 9px;font-size:12px;line-height:1.2;cursor:pointer;
+  border:1px solid var(--rg-line,var(--brd));border-radius:6px;background:var(--inp);color:var(--txt);font-family:inherit}
+#ge-panel button:hover:not(:disabled),.ge-modal button:hover:not(:disabled){background:var(--sg3)}
+#ge-panel button:disabled{opacity:.4;cursor:not-allowed}
+#ge-panel button.ge-tg.on{background:var(--sg3);border-color:var(--sg);box-shadow:inset 0 -2px 0 var(--sg)}
+#ge-panel button.ge-dng{color:var(--red,#d64545)}
+#ge-panel button.ge-pri,.ge-modal button.ge-pri{background:#f59e0b;border-color:#f59e0b;color:#1a1a1a;font-weight:700;margin-left:auto}
+#ge-panel .ge-hint{color:var(--mute);font-size:10.5px;line-height:1.4;max-width:560px}
+@media (max-width:640px){#ge-panel{bottom:34px}#ge-panel .ge-hint{display:none}}
+.ge-vtx{box-sizing:border-box;background:#fff;border:2px solid #00acc1;border-radius:2px;box-shadow:0 0 0 1px rgba(0,0,0,.45);cursor:move}
+.ge-vtx.pt{border-radius:50%;background:#ffee58;border-color:#00acc1}
+.ge-vtx.sel{background:#ffb300;border-color:#b45309}
+.ge-mid{box-sizing:border-box;border-radius:50%;background:rgba(0,172,193,.30);border:1.5px solid #00acc1;cursor:copy}
+.ge-mid:hover{background:#00acc1}
+.ge-mv{box-sizing:border-box;border-radius:50%;background:#f59e0b;color:#1a1a1a;border:2px solid #fff;box-shadow:0 0 0 1px rgba(0,0,0,.5);
+  display:flex;align-items:center;justify-content:center;font:700 15px/1 Arial,sans-serif;cursor:move}
+.ge-modal{position:fixed;inset:0;z-index:99996;background:rgba(15,23,42,.5);display:flex;align-items:center;justify-content:center;padding:12px}
+.ge-modal .bx{background:var(--card);color:var(--txt);border:1px solid var(--rg-line,var(--brd));border-radius:10px;padding:16px 18px;
+  width:min(420px,100%);max-height:90vh;overflow:auto;font-family:Arial,sans-serif;font-size:13px;box-shadow:var(--shd)}
+.ge-modal h3{margin:0 0 10px;font-size:14px}
+.ge-modal fieldset{border:1px solid var(--rg-line,var(--brd));border-radius:7px;margin:0 0 10px;padding:8px 10px}
+.ge-modal legend{font-size:11px;color:var(--mute);padding:0 4px}
+.ge-modal label{display:flex;align-items:center;gap:6px;margin:3px 0;cursor:pointer}
+.ge-modal input[type=number],.ge-modal select{font-size:12.5px;padding:3px 5px;border:1px solid var(--rg-line,var(--brd));border-radius:5px;background:var(--inp);color:var(--txt)}
+.ge-modal input[type=number]{width:64px}
+.ge-modal .ge-note{color:var(--mute);font-size:11px;line-height:1.45;margin:0 0 10px}
+.ge-modal .ge-act{display:flex;gap:8px;justify-content:flex-end;margin-top:4px}
+.ge-modal .ge-pick{display:flex;flex-direction:column;gap:6px}
+.ge-modal .ge-pick button{justify-content:space-between;width:100%;text-align:left;padding:8px 10px}
+.ge-modal .ge-pick small{color:var(--mute)}
+</style>
+<script id="sg-geomedit">
+/* ═══════════════════════════════════════════════════════════════════════
+   EDIT GEOMETRI SHP
+   Mengedit bentuk fitur layer yang sudah diunggah (SHP / layer lain berbasis `features`):
+   geser titik, tambah titik, hapus titik, geser seluruh fitur, hapus fitur, snap,
+   undo/redo (memakai riwayat global Ctrl+Z / Ctrl+Y), dan ekspor ke SHP/GeoJSON.
+   Perubahan langsung tertulis ke layerObj.features, sehingga ikut tersimpan di file .sandgis.
+   Blok ini berdiri sendiri (IIFE) — kaitan ke kode lama hanya: _shpBuildLeafletLayer
+   (klik fitur saat mode edit), tombol ✏️ di daftar layer, dan item ribbon "Edit Geometri".
+   ═══════════════════════════════════════════════════════════════════════ */
+(function(){
+'use strict';
+if (window.GE) return;
+var GE = window.GE = { active:false, layerId:null };
+var S = { l:null, sel:null, parts:[], selV:null, hl:null, grp:null, vm:[], mm:[], mv:null,
+          snap:true, tooMany:false, drag:null, snapDot:null, depT:0, mvT:0, panel:null };
+var COARSE = false; try { COARSE = window.matchMedia('(pointer:coarse)').matches; } catch(e){}
+var SZ = COARSE ? { v:22, m:16, mv:34 } : { v:14, m:10, mv:26 };
+var MAXV = 1500, MAXM = 600;
+
+/* ── util umum ── */
+function en(){ try { return typeof sgTr === 'function' && sgTr('Simpan') === 'Save'; } catch(e){ return false; } }
+function T(a,b){ return en() ? b : a; }
+function say(m,t){ try { toast(m,t); } catch(e){} }
+function esc(s){ return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function layerById(id){ for (var i=0;i<_shpLayers.length;i++) if (_shpLayers[i].id === id) return _shpLayers[i]; return null; }
+function editable(l){ return !!(l && !l.isBig && l.features && l.features.length && l.layer); }
+function editableLayers(){ return _shpLayers.filter(editable); }
+function kindOfType(t){ return /Point/.test(t||'') ? 'Point' : /Line/.test(t||'') ? 'Line' : /Polygon/.test(t||'') ? 'Polygon' : ''; }
+function eachPos(c, fn){ if (!c) return; if (typeof c[0] === 'number') { fn(c); return; } for (var i=0;i<c.length;i++) eachPos(c[i], fn); }
+function typing(t){
+  if (!t || !t.tagName) return false;
+  if (t.isContentEditable || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT') return true;
+  if (t.tagName === 'INPUT') return !/^(range|checkbox|radio|color|button|submit|file)$/i.test(t.type || 'text');
+  return false;
+}
+function typeLabel(t){
+  return ({ Point:T('Titik','Point'), MultiPoint:T('Multi-titik','Multipoint'), LineString:T('Garis','Line'), MultiLineString:T('Multi-garis','Multiline'),
+            Polygon:T('Poligon','Polygon'), MultiPolygon:T('Multi-poligon','Multipolygon') })[t] || t;
+}
+
+/* ── geometri: bagian-bagian yang bisa diedit (merujuk array koordinat ASLI, diubah di tempat) ── */
+function getParts(g){
+  var out = [], t = g.type, c = g.coordinates;
+  if (t === 'Point') out.push({ arr:[c], kind:'point' });
+  else if (t === 'MultiPoint') out.push({ arr:c, kind:'mpoint' });
+  else if (t === 'LineString') out.push({ arr:c, kind:'line' });
+  else if (t === 'MultiLineString') c.forEach(function(a){ out.push({ arr:a, kind:'line' }); });
+  else if (t === 'Polygon') c.forEach(function(r){ out.push({ arr:r, kind:'ring' }); });
+  else if (t === 'MultiPolygon') c.forEach(function(poly){ poly.forEach(function(r){ out.push({ arr:r, kind:'ring' }); }); });
+  out.forEach(function(p){            /* cincin poligon harus tertutup */
+    if (p.kind !== 'ring' || p.arr.length < 2) return;
+    var a = p.arr[0], z = p.arr[p.arr.length-1];
+    if (a[0] !== z[0] || a[1] !== z[1]) p.arr.push(a.slice());
+  });
+  return out;
+}
+function logicalN(p){ return p.kind === 'ring' ? Math.max(0, p.arr.length - 1) : p.arr.length; }
+function flatPos(parts){ var o = []; parts.forEach(function(p){ p.arr.forEach(function(q){ o.push(q); }); }); return o; }
+function vertexCount(parts){ var n = 0; parts.forEach(function(p){ n += logicalN(p); }); return n; }
+function depthOf(t){ return ({ LineString:0, MultiLineString:1, Polygon:1, MultiPolygon:2 })[t]; }
+function bboxCenter(parts){
+  var s=90,n=-90,w=180,e=-180, any=false;
+  parts.forEach(function(p){ p.arr.forEach(function(q){ any=true; if(q[1]<s)s=q[1]; if(q[1]>n)n=q[1]; if(q[0]<w)w=q[0]; if(q[0]>e)e=q[0]; }); });
+  return any ? [(s+n)/2, (w+e)/2] : null;
+}
+
+/* ── ukuran: panjang & luas geodesik ── */
+/* Luas di elipsoid WGS84: lintang geodetik → lintang authalic, lalu rumus bola (Chamberlain–Duquette).
+   Bola berjari-jari ekuator melebih-lebihkan luas ±0,67% di dekat ekuator, jadi tidak dipakai. */
+var E2 = 0.00669437999014, E1 = Math.sqrt(E2), RA = 6371007.1809;
+function qAuth(phi){ var s = Math.sin(phi); return (1 - E2) * (s / (1 - E2 * s * s) - Math.log((1 - E1 * s) / (1 + E1 * s)) / (2 * E1)); }
+var QP = qAuth(Math.PI / 2);
+function sinBeta(latDeg){ return qAuth(latDeg * Math.PI / 180) / QP; }
+function ringArea(r){
+  var n = r.length, a = 0; if (n < 3) return 0;
+  for (var i=0;i<n;i++){ var p1 = r[i], p2 = r[(i+1)%n];
+    a += (p2[0]-p1[0]) * Math.PI/180 * (2 + sinBeta(p1[1]) + sinBeta(p2[1])); }
+  return Math.abs(a) * RA * RA / 2;
+}
+function areaM2(g){
+  var polys = g.type === 'Polygon' ? [g.coordinates] : (g.type === 'MultiPolygon' ? g.coordinates : []), s = 0;
+  polys.forEach(function(rings){ rings.forEach(function(r,i){ var a = ringArea(r); s += i === 0 ? a : -a; }); });
+  return Math.max(0, s);
+}
+function lenM(g){
+  var lines = g.type === 'LineString' ? [g.coordinates] : (g.type === 'MultiLineString' ? g.coordinates : []), s = 0;
+  lines.forEach(function(a){ for (var i=0;i<a.length-1;i++) s += L.latLng(a[i][1],a[i][0]).distanceTo(L.latLng(a[i+1][1],a[i+1][0])); });
+  return s;
+}
+function nf(x,d){ return x.toLocaleString('id-ID', { minimumFractionDigits:d, maximumFractionDigits:d }); }
+function fmtArea(a){ return a >= 10000 ? nf(a/10000,2) + ' ha' : nf(a,1) + ' m²'; }
+function fmtLen(m){ return m >= 1000 ? nf(m/1000,3) + ' km' : nf(m,1) + ' m'; }
+
+/* ── sublayer Leaflet milik fitur (di dalam L.geoJSON yang dibangun _shpBuildLeafletLayer) ── */
+function geoJsonGroup(l){ var g = null; if (l && l.layer && l.layer.eachLayer) l.layer.eachLayer(function(x){ if (!g && x.addData) g = x; }); return g; }
+function findSub(gj, f){ var r = null; gj.eachLayer(function(s){ if (!r && s.feature === f) r = s; }); return r; }
+function hideSub(l, f){ var gj = geoJsonGroup(l); if (!gj) return; var s = findSub(gj, f); if (s) gj.removeLayer(s); }
+function removeSub(l, f){ hideSub(l, f); }
+function rebuildNow(l){
+  if (typeof _shpBuildLeafletLayer !== 'function') return;
+  var on = !!(l.layer && _map && _map.hasLayer(l.layer));
+  if (on) _map.removeLayer(l.layer);
+  l.layer = _shpBuildLeafletLayer({ type:'FeatureCollection', features:l.features }, l, l.name);
+  if (on) l.layer.addTo(_map);
+  if (typeof _layerOrderApply === 'function') { try { _layerOrderApply(); } catch(e){} }
+  if (GE.active && S.l === l && S.sel) hideSub(l, S.sel);
+}
+function showSub(l, f){          /* gambar ulang HANYA satu fitur dengan gaya layer yang sama */
+  var gj = geoJsonGroup(l);
+  if (!gj) { rebuildNow(l); return; }
+  var old = findSub(gj, f); if (old) gj.removeLayer(old);
+  gj.addData(f);
+}
+
+/* ── setelah geometri / daftar fitur berubah ── */
+function hasLabel(l){ return (l.labelFields && l.labelFields.some(function(d){ return d.on; })) || l.labelField; }
+function attrOpenFor(l){
+  try { var m = document.getElementById('shp-attr-modal'); return typeof _attrLayerId !== 'undefined' && _attrLayerId === l.id && m && m.style.display !== 'none'; }
+  catch(e){ return false; }
+}
+function flushDeps(l){
+  try { if (hasLabel(l) && typeof shpRebuildLabelLayer === 'function') shpRebuildLabelLayer(l); } catch(e){ console.warn('[GE] label', e); }
+  try { if (attrOpenFor(l) && typeof _attrApplyFilter === 'function') _attrApplyFilter(); } catch(e){}
+}
+function afterChange(l, f){
+  var p = f && f.properties;
+  if (p && f.geometry && /Polygon/.test(f.geometry.type) && ('_LUAS_M2' in p || '_LUAS_HA' in p)) {
+    var a = areaM2(f.geometry); p._LUAS_M2 = Math.round(a); p._LUAS_HA = parseFloat((a/10000).toFixed(4));
+  }
+  clearTimeout(S.depT); S.depT = setTimeout(function(){ flushDeps(l); }, 350);
+  try { if (typeof _persist === 'function') _persist(); } catch(e){}
+}
+function afterListChange(l){
+  l.count = l.features.length;
+  try { _shpLayerListHash = ''; shpUpdateLayerList(); } catch(e){}
+  flushDeps(l);
+  try { if (typeof _persist === 'function') _persist(); } catch(e){}
+  updatePanel();
+}
+
+/* ── riwayat global (Ctrl+Z / Ctrl+Y / tombol ↶ ↷ di titlebar) ── */
+function hist(label, undoFn, redoFn){ try { if (typeof sgHistPush === 'function') sgHistPush(label, undoFn, redoFn); } catch(e){} }
+/* Riwayat berbasis OPERASI (hanya selisih kecil per edit — aman untuk poligon puluhan ribu titik):
+   mv = geser satu titik · shift = geser seluruh fitur · ins = tambah titik · del = hapus titik */
+function setP(p, vi, xy){
+  var pos = p.arr[vi]; pos[0] = xy[0]; pos[1] = xy[1];
+  if (p.kind === 'ring' && vi === 0) { var last = p.arr[p.arr.length-1]; last[0] = xy[0]; last[1] = xy[1]; }
+}
+function delAt(p, idx){
+  if (p.kind === 'ring' && idx === 0) { p.arr.splice(0, 1); p.arr[p.arr.length-1] = p.arr[0].slice(); }
+  else p.arr.splice(idx, 1);
+}
+function opApply(f, op, fwd){
+  var parts = getParts(f.geometry), p = parts[op.pi], i;
+  if (op.t === 'mv') setP(p, op.vi, fwd ? op.to : op.from);
+  else if (op.t === 'shift') {
+    var fl = flatPos(parts);
+    for (i = 0; i < fl.length; i++) { fl[i][0] = op.orig[2*i] + (fwd ? op.dx : 0); fl[i][1] = op.orig[2*i+1] + (fwd ? op.dy : 0); }
+  }
+  else if (op.t === 'ins') { if (fwd) p.arr.splice(op.idx, 0, op.pos.slice()); else p.arr.splice(op.idx, 1); }
+  else if (op.t === 'del') {
+    if (fwd) delAt(p, op.idx);
+    else if (p.kind === 'ring' && op.idx === 0) { p.arr.splice(0, 0, op.pos.slice()); p.arr[p.arr.length-1] = p.arr[0].slice(); }
+    else p.arr.splice(op.idx, 0, op.pos.slice());
+  }
+}
+function runOp(l, f, op, fwd){
+  opApply(f, op, fwd);
+  if (_shpLayers.indexOf(l) < 0) return;
+  var live = GE.active && S.l === l;
+  if (live && S.sel === f) { S.parts = getParts(f.geometry); S.selV = null; drawOverlay(); renderHandles(); }
+  else { showSub(l, f); if (live) select(f); }
+  afterChange(l, f);
+}
+function pushOp(label, l, f, op){
+  hist(label + ' #' + f._fid, function(){ runOp(l, f, op, false); }, function(){ runOp(l, f, op, true); });
+}
+function removeFeature(l, f){
+  var i = l.features.indexOf(f); if (i >= 0) l.features.splice(i, 1);
+  if (S.sel === f) { clearHandles(); clearOverlay(); S.sel = null; S.parts = []; S.selV = null; }
+  removeSub(l, f);
+  afterListChange(l);
+}
+function restoreFeature(l, f, idx){
+  if (l.features.indexOf(f) < 0) l.features.splice(Math.min(idx, l.features.length), 0, f);
+  showSub(l, f);
+  afterListChange(l);
+  if (GE.active && S.l === l) select(f);
+}
+
+/* ── overlay (bentuk yang sedang diedit) ── */
+function ovStyle(){ return { pane:'ge-pane', color:'#00e5ff', weight:3, opacity:1, fillColor:'#00e5ff', fillOpacity:.16, interactive:false, lineJoin:'round' }; }
+function clearOverlay(){ if (S.hl && S.grp) S.grp.removeLayer(S.hl); S.hl = null; }
+function drawOverlay(){
+  clearOverlay(); if (!S.sel || !S.grp) return;
+  var g = S.sel.geometry, d = depthOf(g.type); if (d === undefined) return;
+  var ll = L.GeoJSON.coordsToLatLngs(g.coordinates, d);
+  S.hl = (/Polygon/.test(g.type) ? L.polygon(ll, ovStyle()) : L.polyline(ll, ovStyle())).addTo(S.grp);
+}
+function updateOverlay(){
+  if (!S.hl || !S.sel) return;
+  var g = S.sel.geometry; S.hl.setLatLngs(L.GeoJSON.coordsToLatLngs(g.coordinates, depthOf(g.type)));
+}
+
+/* ── titik kendali ── */
+function rmM(m){ try { S.grp.removeLayer(m); } catch(e){} }
+function clearVM(){ S.vm.forEach(rmM); S.mm.forEach(rmM); S.vm = []; S.mm = []; }
+function clearHandles(){ clearVM(); if (S.mv) { rmM(S.mv); S.mv = null; } hideSnap(); }
+function inB(b, q){ return q[1] >= b.s && q[1] <= b.n && q[0] >= b.w && q[0] <= b.e; }
+function renderHandles(){
+  clearHandles();
+  if (!S.sel || !S.grp) return;
+  var bb = _map.getBounds().pad(0.25), b = { s:bb.getSouth(), n:bb.getNorth(), w:bb.getWest(), e:bb.getEast() }, vis = 0;
+  S.parts.forEach(function(p){ var n = logicalN(p); for (var i=0;i<n;i++) if (inB(b, p.arr[i])) vis++; });
+  S.tooMany = vis > MAXV;
+  if (!S.tooMany) {
+    S.parts.forEach(function(p, pi){
+      var n = logicalN(p), i;
+      for (i=0;i<n;i++) if (inB(b, p.arr[i])) addVertex(pi, i);
+      if (vis <= MAXM && (p.kind === 'line' || p.kind === 'ring')) {
+        var segs = p.kind === 'ring' ? n : n - 1;
+        for (i=0;i<segs;i++) if (inB(b, p.arr[i]) || inB(b, p.arr[i+1])) addMid(pi, i);
+      }
+    });
+  }
+  addMove();
+  updatePanel();
+}
+function refreshSelClass(){
+  S.vm.forEach(function(m){
+    if (!m._icon) return;
+    var on = S.selV && m._ge.pi === S.selV.pi && m._ge.vi === S.selV.vi;
+    if (on) L.DomUtil.addClass(m._icon, 'sel'); else L.DomUtil.removeClass(m._icon, 'sel');
+  });
+}
+function addVertex(pi, i){
+  var p = S.parts[pi], pos = p.arr[i], isPt = p.kind === 'point', s = isPt ? SZ.v + 4 : SZ.v;
+  var on = S.selV && S.selV.pi === pi && S.selV.vi === i;
+  var m = L.marker([pos[1], pos[0]], { pane:'ge-mpane', draggable:true, keyboard:false, bubblingMouseEvents:false, zIndexOffset:500,
+    icon:L.divIcon({ className:'ge-vtx' + (isPt ? ' pt' : '') + (on ? ' sel' : ''), iconSize:[s,s] }) });
+  m._ge = { pi:pi, vi:i };
+  m.on('dragstart', vStart).on('drag', vDrag).on('dragend', vEnd).on('click', vClick).on('dblclick', vDel).on('contextmenu', vDel);
+  m.addTo(S.grp); S.vm.push(m);
+}
+function addMid(pi, s){
+  var p = S.parts[pi], a = p.arr[s], c = p.arr[s+1];
+  var pa = _map.latLngToLayerPoint([a[1], a[0]]), pc = _map.latLngToLayerPoint([c[1], c[0]]);
+  if (pa.distanceTo(pc) < (COARSE ? 34 : 22)) return;      /* segmen terlalu pendek di layar */
+  var ll = _map.layerPointToLatLng(L.point((pa.x + pc.x) / 2, (pa.y + pc.y) / 2));
+  var m = L.marker(ll, { pane:'ge-mpane', keyboard:false, bubblingMouseEvents:false, zIndexOffset:300,
+    icon:L.divIcon({ className:'ge-mid', iconSize:[SZ.m, SZ.m] }) });
+  m.on('click', function(ev){ L.DomEvent.stopPropagation(ev); insertVertex(pi, s, ll); });
+  m.addTo(S.grp); S.mm.push(m);
+}
+function addMove(){
+  if (!S.sel || S.sel.geometry.type === 'Point') return;
+  var c = bboxCenter(S.parts); if (!c) return;
+  var m = L.marker(c, { pane:'ge-mpane', draggable:true, keyboard:false, bubblingMouseEvents:false, zIndexOffset:700,
+    title:T('Geser seluruh fitur','Move whole feature'), icon:L.divIcon({ className:'ge-mv', html:'✥', iconSize:[SZ.mv, SZ.mv] }) });
+  m.on('dragstart', mvStart).on('drag', mvDrag).on('dragend', mvEnd);
+  m.addTo(S.grp); S.mv = m;
+}
+
+/* ── geser titik (dengan snap) ── */
+function wx(lng, z){ return (lng + 180) / 360 * 256 * Math.pow(2, z); }
+function wy(lat, z){ var s = Math.sin(lat * Math.PI / 180); return (0.5 - Math.log((1 + s) / (1 - s)) / (4 * Math.PI)) * 256 * Math.pow(2, z); }
+function buildCands(){
+  var bb = _map.getBounds().pad(0.2), s = bb.getSouth(), n = bb.getNorth(), w = bb.getWest(), e = bb.getEast(), z = _map.getZoom();
+  var C = { xs:[], ys:[], la:[], lo:[], z:z }, cap = 150000;
+  for (var i=0;i<_shpLayers.length;i++){
+    var L2 = _shpLayers[i]; if (!L2 || L2.isBig || !L2.features || !L2.layer || !_map.hasLayer(L2.layer)) continue;
+    var hid = L2._hiddenFids || {};
+    for (var j=0;j<L2.features.length && C.xs.length < cap;j++){
+      var f = L2.features[j]; if (f === S.sel || !f.geometry) continue;
+      if (f._fid != null && hid[f._fid]) continue;
+      eachPos(f.geometry.coordinates, function(p){
+        if (p[1] >= s && p[1] <= n && p[0] >= w && p[0] <= e && C.xs.length < cap) { C.lo.push(p[0]); C.la.push(p[1]); C.xs.push(wx(p[0], z)); C.ys.push(wy(p[1], z)); }
+      });
+    }
+  }
+  return C;
+}
+function snapTo(ll){
+  var C = S.drag.cands, x = wx(ll.lng, C.z), y = wy(ll.lat, C.z), tol = COARSE ? 18 : 12, best = tol * tol, bi = -1;
+  for (var i=0;i<C.xs.length;i++){ var dx = C.xs[i] - x, dy = C.ys[i] - y, d = dx*dx + dy*dy; if (d < best) { best = d; bi = i; } }
+  return bi < 0 ? null : [C.la[bi], C.lo[bi]];
+}
+function showSnap(ll){
+  if (!S.snapDot) S.snapDot = L.circleMarker(ll, { pane:'ge-pane', radius:10, color:'#ff6d00', weight:2.5, fill:false, interactive:false }).addTo(S.grp);
+  else S.snapDot.setLatLng(ll);
+}
+function hideSnap(){ if (S.snapDot && S.grp) S.grp.removeLayer(S.snapDot); S.snapDot = null; }
+function vStart(e){
+  if (!S.sel) return;
+  var g = e.target._ge, pos = S.parts[g.pi].arr[g.vi];
+  S.selV = g;
+  S.drag = { op:{ t:'mv', pi:g.pi, vi:g.vi, from:[pos[0], pos[1]] }, cands:S.snap ? buildCands() : null };
+  S.mm.forEach(rmM); S.mm = [];
+  refreshSelClass(); updatePanel();
+}
+function vDrag(e){
+  if (!S.drag) return;
+  var m = e.target, ll = m.getLatLng();
+  if (S.drag.cands) {
+    var sn = snapTo(ll);
+    if (sn) { ll = L.latLng(sn[0], sn[1]); m.setLatLng(ll); showSnap(ll); } else hideSnap();
+  }
+  setP(S.parts[m._ge.pi], m._ge.vi, [ll.lng, ll.lat]); updateOverlay();
+}
+function vEnd(){
+  var d = S.drag; S.drag = null; hideSnap(); if (!d || !S.sel) return;
+  var pos = S.parts[d.op.pi].arr[d.op.vi]; d.op.to = [pos[0], pos[1]];
+  afterChange(S.l, S.sel); pushOp(T('Geser titik','Move vertex'), S.l, S.sel, d.op);
+  renderHandles();
+}
+function vClick(e){ L.DomEvent.stopPropagation(e); S.selV = e.target._ge; refreshSelClass(); updatePanel(); }
+function vDel(e){
+  L.DomEvent.stopPropagation(e); try { L.DomEvent.preventDefault(e.originalEvent || e); } catch(x){}
+  delVertex(e.target._ge.pi, e.target._ge.vi);
+}
+
+/* ── geser seluruh fitur ── */
+function mvStart(e){
+  if (!S.sel) return;
+  var fl = flatPos(S.parts), orig = new Float64Array(fl.length * 2);
+  for (var i = 0; i < fl.length; i++) { orig[2*i] = fl[i][0]; orig[2*i+1] = fl[i][1]; }
+  S.drag = { op:{ t:'shift', pi:0, orig:orig, dx:0, dy:0 }, flat:fl, ll0:e.target.getLatLng() };
+  clearVM(); hideSnap();
+}
+function mvDrag(e){
+  var d = S.drag; if (!d || !d.flat) return;
+  var ll = e.target.getLatLng(), dx = ll.lng - d.ll0.lng, dy = ll.lat - d.ll0.lat, o = d.op.orig;
+  for (var i=0;i<d.flat.length;i++){ d.flat[i][0] = o[2*i] + dx; d.flat[i][1] = o[2*i+1] + dy; }
+  d.op.dx = dx; d.op.dy = dy;
+  updateOverlay();
+}
+function mvEnd(){
+  var d = S.drag; S.drag = null; if (!d || !S.sel) return;
+  afterChange(S.l, S.sel); pushOp(T('Geser fitur','Move feature'), S.l, S.sel, d.op);
+  renderHandles();
+}
+
+/* ── operasi struktur: tambah / hapus titik, hapus fitur ── */
+function insertVertex(pi, s, ll){
+  var f = S.sel; if (!f) return;
+  var p = S.parts[pi], a = p.arr[s], c = p.arr[s+1], np = [ll.lng, ll.lat];
+  for (var k=2;k<a.length;k++) np.push(typeof a[k] === 'number' && typeof c[k] === 'number' ? (a[k] + c[k]) / 2 : a[k]);
+  var op = { t:'ins', pi:pi, idx:s + 1, pos:np };
+  p.arr.splice(op.idx, 0, np.slice());
+  S.selV = { pi:pi, vi:op.idx };
+  afterChange(S.l, f); pushOp(T('Tambah titik','Add vertex'), S.l, f, op);
+  updateOverlay(); renderHandles();
+}
+function delVertex(pi, vi){
+  var f = S.sel; if (!f) return;
+  var p = S.parts[pi]; if (!p) return;
+  var n = logicalN(p);
+  if (p.kind === 'point') { say(T('Titik tunggal tidak punya titik yang bisa dihapus — pakai “Hapus fitur”.','A single point has no vertex to delete — use “Delete feature”.'), 'warn'); return; }
+  var min = p.kind === 'ring' ? 3 : p.kind === 'line' ? 2 : 1;
+  if (n <= min) {
+    say(p.kind === 'ring' ? T('Poligon minimal 3 titik','A polygon needs at least 3 vertices')
+        : p.kind === 'line' ? T('Garis minimal 2 titik','A line needs at least 2 vertices')
+        : T('Multi-titik minimal 1 titik — pakai “Hapus fitur”.','A multipoint needs at least 1 point — use “Delete feature”.'), 'warn');
+    return;
+  }
+  var op = { t:'del', pi:pi, idx:vi, pos:p.arr[vi].slice() };
+  delAt(p, vi);
+  S.selV = null;
+  afterChange(S.l, f); pushOp(T('Hapus titik','Delete vertex'), S.l, f, op);
+  updateOverlay(); renderHandles();
+}
+function delFeature(){
+  var f = S.sel, l = S.l; if (!f) return;
+  var idx = l.features.indexOf(f);
+  removeFeature(l, f);
+  hist(T('Hapus fitur','Delete feature') + ' #' + f._fid, function(){ restoreFeature(l, f, idx); }, function(){ removeFeature(l, f); });
+  say(T('🗑 Fitur dihapus — Ctrl+Z untuk mengurungkan','🗑 Feature deleted — Ctrl+Z to undo'), 'ok');
+}
+
+/* ── pilih / lepas pilih fitur ── */
+function select(f){
+  if (S.sel === f || !f || !f.geometry) return;
+  deselect();
+  S.sel = f; S.selV = null;
+  hideSub(S.l, f);
+  S.parts = getParts(f.geometry);
+  drawOverlay(); renderHandles();
+}
+function deselect(){
+  var f = S.sel; if (!f) return;
+  clearHandles(); clearOverlay();
+  S.sel = null; S.parts = []; S.selV = null; S.tooMany = false;
+  if (S.l && S.l.features.indexOf(f) >= 0) showSub(S.l, f);
+  updatePanel();
+}
+GE.state = function(){ return S; };          /* hanya-baca, untuk debug/uji */
+GE.onFeatureClick = function(feature){ if (GE.active && !S.drag) select(feature); };
+
+/* ── panel kontrol ── */
+function buildPanel(){
+  var wrap = document.getElementById('peta-map-wrap'); if (!wrap) return null;
+  var el = document.getElementById('ge-panel');
+  if (!el) {
+    el = document.createElement('div'); el.id = 'ge-panel';
+    el.innerHTML =
+      '<div class="ge-r ge-top"><b>✏️ Edit Geometri</b><select id="ge-lyr" title="Layer yang diedit"></select>' +
+        '<button type="button" data-a="done" class="ge-pri">✓ Selesai</button></div>' +
+      '<div class="ge-r ge-info" id="ge-info"></div>' +
+      '<div class="ge-r">' +
+        '<button type="button" data-a="undo" title="Urungkan (Ctrl+Z)">↶</button>' +
+        '<button type="button" data-a="redo" title="Ulangi (Ctrl+Y)">↷</button>' +
+        '<button type="button" data-a="snap" id="ge-snap" class="ge-tg on" title="Titik menempel ke titik terdekat di layer lain / fitur lain">🧲 Snap</button>' +
+        '<button type="button" data-a="delv" id="ge-delv" title="Hapus titik terpilih (Delete)">⌫ Hapus titik</button>' +
+        '<button type="button" data-a="delf" id="ge-delf" class="ge-dng" title="Hapus fitur terpilih">🗑 Hapus fitur</button>' +
+        '<button type="button" data-a="exp" title="Ekspor layer ke Shapefile / GeoJSON">⤓ Ekspor</button>' +
+      '</div>' +
+      '<div class="ge-hint">Geser ■ = pindah titik · ketuk ◦ = tambah titik · pilih ■ lalu ⌫ (atau klik kanan / klik ganda) = hapus titik · geser ✥ = pindahkan seluruh fitur · Esc = lepas pilihan</div>';
+    wrap.appendChild(el);
+    try { L.DomEvent.disableClickPropagation(el); L.DomEvent.disableScrollPropagation(el); } catch(e){}
+    el.addEventListener('click', function(ev){
+      var b = ev.target.closest && ev.target.closest('button[data-a]'); if (!b || b.disabled) return;
+      var a = b.getAttribute('data-a');
+      if (a === 'done') GE.stop();
+      else if (a === 'undo') { if (typeof sgUndo === 'function') sgUndo(); }
+      else if (a === 'redo') { if (typeof sgRedo === 'function') sgRedo(); }
+      else if (a === 'snap') { S.snap = !S.snap; updatePanel(); say(S.snap ? T('🧲 Snap aktif','🧲 Snap on') : T('Snap nonaktif','Snap off'), 'ok'); }
+      else if (a === 'delv') { if (S.selV) delVertex(S.selV.pi, S.selV.vi); }
+      else if (a === 'delf') delFeature();
+      else if (a === 'exp') GE.exportDialog(S.l && S.l.id);
+    });
+    el.querySelector('#ge-lyr').addEventListener('change', function(){ GE.start(this.value); });
+  }
+  return el;
+}
+function updatePanel(){
+  var el = S.panel; if (!el || !GE.active) return;
+  var sel = el.querySelector('#ge-lyr'), ls = editableLayers(), sig = ls.map(function(l){ return l.id + l.name; }).join('|') + '#' + (S.l && S.l.id);
+  if (sel.getAttribute('data-sig') !== sig) {
+    sel.innerHTML = ls.map(function(l){ return '<option value="' + esc(l.id) + '"' + (S.l && l.id === S.l.id ? ' selected' : '') + '>' + esc(l.name) + '</option>'; }).join('');
+    sel.setAttribute('data-sig', sig);
+  }
+  var info = el.querySelector('#ge-info'), f = S.sel;
+  if (!f) {
+    info.innerHTML = T('Klik sebuah fitur di peta untuk mengeditnya', 'Click a feature on the map to edit it') + ' · <b>' + (S.l ? S.l.features.length.toLocaleString('id-ID') : 0) + '</b> ' + T('fitur','features');
+  } else {
+    var g = f.geometry, nm = ''; var p = f.properties || {};
+    var nmv = p.NAMOBJ || p.namobj || p.NAMA || p.nama || p.NAME || p.name; if (nmv) nm = ' “' + esc(String(nmv).slice(0, 28)) + '”';
+    var mt = /Polygon/.test(g.type) ? ' · ' + fmtArea(areaM2(g)) : /Line/.test(g.type) ? ' · ' + fmtLen(lenM(g)) : '';
+    info.innerHTML = '<b>#' + esc(f._fid) + '</b>' + nm + ' · ' + typeLabel(g.type) + ' · ' + vertexCount(S.parts).toLocaleString('id-ID') + ' ' + T('titik','vertices') + mt +
+      (S.tooMany ? ' · <b style="color:#f59e0b">' + T('terlalu banyak titik di tampilan — perbesar (zoom in) untuk menampilkan titik', 'too many vertices in view — zoom in to show them') + '</b>' : '');
+  }
+  el.querySelector('#ge-delv').disabled = !S.selV;
+  el.querySelector('#ge-delf').disabled = !f;
+  el.querySelector('#ge-snap').classList.toggle('on', S.snap);
+}
+
+/* ── mulai / selesai ── */
+function ribbonState(on){
+  try { var it = document.querySelector('.sg-item[onclick*="geToggle()"]'); if (it) it.classList.toggle('rg-on', !!on); } catch(e){}
+}
+function ensurePanes(){
+  if (!_map.getPane('ge-pane')) { _map.createPane('ge-pane').style.zIndex = 640; }
+  if (!_map.getPane('ge-mpane')) { _map.createPane('ge-mpane').style.zIndex = 660; }
+}
+var _moveT = 0;
+function onMoveEnd(){ if (!S.sel || S.drag) return; clearTimeout(_moveT); _moveT = setTimeout(function(){ if (GE.active && S.sel && !S.drag) renderHandles(); }, 90); }
+function onMapClick(){ if (typeof _mode !== 'undefined' && _mode) return; if (S.sel) deselect(); }
+
+GE.start = function(id){
+  if (!_map) { say(T('Peta belum terbuka — buka tab Pemetaan dulu','Map is not open — open the Mapping tab first'), 'err'); return; }
+  var l = id ? layerById(id) : null;
+  if (!l) {
+    var ls = editableLayers();
+    if (!ls.length) { say(T('Belum ada layer SHP yang bisa diedit — unggah dulu lewat Data → SHP','No editable SHP layer yet — upload one via Data → SHP'), 'warn'); return; }
+    if (ls.length === 1) return GE.start(ls[0].id);
+    return pickLayer(ls);
+  }
+  if (!editable(l)) { say(T('Layer ini tidak bisa diedit (kosong atau mode besar)','This layer cannot be edited (empty or large mode)'), 'warn'); return; }
+  if (GE.active) GE.stop(true);
+  try { if (typeof _mode !== 'undefined' && _mode && typeof petaCancelMode === 'function') petaCancelMode(); } catch(e){}
+  try { if (typeof _vertexMode !== 'undefined' && _vertexMode && typeof petaExitVertexEditMode === 'function') petaExitVertexEditMode(); } catch(e){}
+  if (!_map.hasLayer(l.layer)) { l.layer.addTo(_map); try { shpUpdateLayerList(); } catch(e){} }
+  l.features.forEach(function(f, i){ if (f._fid === undefined) f._fid = i; });
+  ensurePanes();
+  S.l = l; S.sel = null; S.parts = []; S.selV = null; S.drag = null;
+  S.grp = L.layerGroup().addTo(_map);
+  S.panel = buildPanel();
+  GE.active = true; GE.layerId = l.id;
+  _map.on('click', onMapClick); _map.on('moveend', onMoveEnd);
+  if (S.panel) S.panel.style.display = 'flex';
+  updatePanel(); ribbonState(true);
+  say(T('✏️ Edit geometri: ','✏️ Geometry edit: ') + l.name + T(' — klik fitur untuk mulai',' — click a feature to start'), 'ok');
+};
+GE.stop = function(silent){
+  if (!GE.active) return;
+  deselect();
+  clearTimeout(_moveT);
+  try { _map.off('click', onMapClick); _map.off('moveend', onMoveEnd); } catch(e){}
+  try { if (S.grp) _map.removeLayer(S.grp); } catch(e){}
+  var l = S.l;
+  S.grp = null; S.l = null; S.sel = null; S.parts = []; S.selV = null; S.drag = null;
+  GE.active = false; GE.layerId = null;
+  if (S.panel) S.panel.style.display = 'none';
+  ribbonState(false);
+  if (l) flushDeps(l);
+  if (!silent) say(T('✓ Edit geometri selesai','✓ Geometry edit finished'), 'ok');
+};
+window.geToggle = function(){ if (GE.active) GE.stop(); else GE.start(); };
+GE.toggleLayer = function(id){ if (GE.active && GE.layerId === id) GE.stop(); else GE.start(id); };
+
+function pickLayer(ls){
+  closeModal();
+  var m = document.createElement('div'); m.className = 'ge-modal'; m.id = 'ge-modal';
+  m.innerHTML = '<div class="bx"><h3>' + T('Pilih layer yang akan diedit','Choose the layer to edit') + '</h3><div class="ge-pick">' +
+    ls.map(function(l){ return '<button type="button" data-id="' + esc(l.id) + '"><span>' + esc(l.name) + '</span><small>' + l.features.length.toLocaleString('id-ID') + ' ' + T('fitur','features') + '</small></button>'; }).join('') +
+    '</div><div class="ge-act"><button type="button" data-x="1">' + T('Batal','Cancel') + '</button></div></div>';
+  m.addEventListener('click', function(ev){
+    var b = ev.target.closest && ev.target.closest('button');
+    if (b && b.getAttribute('data-id')) { closeModal(); GE.start(b.getAttribute('data-id')); }
+    else if ((b && b.getAttribute('data-x')) || ev.target === m) closeModal();
+  });
+  document.body.appendChild(m);
+}
+function closeModal(){ var m = document.getElementById('ge-modal'); if (m && m.parentNode) m.parentNode.removeChild(m); }
+
+/* ═══════════════ EKSPOR: Shapefile (.shp .shx .dbf .prj .cpg) & GeoJSON ═══════════════ */
+var WGS_PRJ = 'GEOGCS["GCS_WGS_1984",DATUM["D_WGS_1984",SPHEROID["WGS_1984",6378137.0,298.257223563]],PRIMEM["Greenwich",0.0],UNIT["Degree",0.0174532925199433]]';
+function utmPrj(zone, south){
+  return 'PROJCS["WGS_1984_UTM_Zone_' + zone + (south ? 'S' : 'N') + '",' + WGS_PRJ + ',PROJECTION["Transverse_Mercator"],' +
+    'PARAMETER["False_Easting",500000.0],PARAMETER["False_Northing",' + (south ? '10000000.0' : '0.0') + '],' +
+    'PARAMETER["Central_Meridian",' + (zone * 6 - 183) + '.0],PARAMETER["Scale_Factor",0.9996],PARAMETER["Latitude_Of_Origin",0.0],UNIT["Meter",1.0]]';
+}
+function makeProj(crs, zone, south){
+  if (crs !== 'utm') return { fn:function(x, y){ return [x, y]; }, prj:WGS_PRJ };
+  if (typeof proj4 === 'undefined') throw new Error('proj4 belum termuat');
+  var pj = proj4('EPSG:4326', '+proj=utm +zone=' + zone + (south ? ' +south' : '') + ' +datum=WGS84 +units=m +no_defs');
+  return { fn:function(x, y){ return pj.forward([x, y]); }, prj:utmPrj(zone, south) };
+}
+function layerCenter(l){
+  var s = 90, n = -90, w = 180, e = -180, c = 0;
+  for (var i=0;i<l.features.length && c < 200000;i++){
+    var g = l.features[i].geometry; if (!g) continue;
+    eachPos(g.coordinates, function(p){ c++; if (p[1]<s)s=p[1]; if (p[1]>n)n=p[1]; if (p[0]<w)w=p[0]; if (p[0]>e)e=p[0]; });
+  }
+  return c ? { lat:(s+n)/2, lng:(w+e)/2 } : { lat:0, lng:117 };
+}
+function dominantKind(l){
+  var cnt = { Point:0, Line:0, Polygon:0 };
+  l.features.forEach(function(f){ var k = f.geometry && kindOfType(f.geometry.type); if (k) cnt[k]++; });
+  return Object.keys(cnt).sort(function(a, b){ return cnt[b] - cnt[a]; })[0];
+}
+function isVirtualCol(k){ return k === '_LUAS_M2' || k === '_LUAS_HA'; }
+
+function buildShapefile(l, proj){
+  var kind = dominantKind(l), baseType = kind === 'Point' ? 1 : kind === 'Line' ? 3 : 5, skipped = 0, hadZ = false;
+  var recs = [];       /* {content:ArrayBuffer} atau null (shape kosong) */
+  var feats = [];      /* fitur yang masuk ke berkas (urutan = urutan record) */
+  var X0 = Infinity, Y0 = Infinity, X1 = -Infinity, Y1 = -Infinity;
+  var shpType = baseType;
+  if (kind === 'Point') l.features.forEach(function(f){ if (f.geometry && f.geometry.type === 'MultiPoint' && f.geometry.coordinates.length !== 1) shpType = 8; });
+  function signed(r){ var a = 0; for (var i=0;i<r.length-1;i++) a += r[i][0] * r[i+1][1] - r[i+1][0] * r[i][1]; return a / 2; }
+  l.features.forEach(function(f){
+    var g = f.geometry, k = g && kindOfType(g.type);
+    if (g && k !== kind) { skipped++; return; }
+    feats.push(f);
+    if (!g) { recs.push(null); return; }
+    eachPos(g.coordinates, function(p){ if (p.length > 2) hadZ = true; });
+    var c = g.coordinates, pts = [], parts = [];
+    function tr(arr){ return arr.map(function(p){ return proj.fn(p[0], p[1]); }); }
+    if (kind === 'Point') { pts = (g.type === 'Point' ? [c] : c).map(function(p){ return proj.fn(p[0], p[1]); }); }
+    else if (kind === 'Line') { (g.type === 'LineString' ? [c] : c).forEach(function(a){ parts.push(tr(a)); }); }
+    else { (g.type === 'Polygon' ? [c] : c).forEach(function(rings){ rings.forEach(function(r, i){
+      var rr = tr(r), a0 = rr[0], an = rr[rr.length-1];
+      if (a0[0] !== an[0] || a0[1] !== an[1]) rr.push(a0.slice());
+      var sa = signed(rr); if ((i === 0 && sa > 0) || (i > 0 && sa < 0)) rr.reverse();     /* luar searah jarum jam, lubang berlawanan */
+      parts.push(rr); }); }); }
+    var all = kind === 'Point' ? pts : [].concat.apply([], parts);
+    var bx0 = Infinity, by0 = Infinity, bx1 = -Infinity, by1 = -Infinity;
+    all.forEach(function(p){ if (p[0]<bx0)bx0=p[0]; if (p[0]>bx1)bx1=p[0]; if (p[1]<by0)by0=p[1]; if (p[1]>by1)by1=p[1]; });
+    if (bx0 < X0) X0 = bx0; if (by0 < Y0) Y0 = by0; if (bx1 > X1) X1 = bx1; if (by1 > Y1) Y1 = by1;
+    var buf, dv, off;
+    if (kind === 'Point' && shpType === 1) {
+      buf = new ArrayBuffer(20); dv = new DataView(buf); dv.setInt32(0, 1, true); dv.setFloat64(4, pts[0][0], true); dv.setFloat64(12, pts[0][1], true);
+    } else if (kind === 'Point') {
+      buf = new ArrayBuffer(40 + 16 * pts.length); dv = new DataView(buf); dv.setInt32(0, 8, true);
+      dv.setFloat64(4, bx0, true); dv.setFloat64(12, by0, true); dv.setFloat64(20, bx1, true); dv.setFloat64(28, by1, true); dv.setInt32(36, pts.length, true);
+      off = 40; pts.forEach(function(p){ dv.setFloat64(off, p[0], true); dv.setFloat64(off+8, p[1], true); off += 16; });
+    } else {
+      buf = new ArrayBuffer(44 + 4 * parts.length + 16 * all.length); dv = new DataView(buf); dv.setInt32(0, baseType, true);
+      dv.setFloat64(4, bx0, true); dv.setFloat64(12, by0, true); dv.setFloat64(20, bx1, true); dv.setFloat64(28, by1, true);
+      dv.setInt32(36, parts.length, true); dv.setInt32(40, all.length, true);
+      off = 44; var idx = 0; parts.forEach(function(p){ dv.setInt32(off, idx, true); off += 4; idx += p.length; });
+      all.forEach(function(p){ dv.setFloat64(off, p[0], true); dv.setFloat64(off+8, p[1], true); off += 16; });
+    }
+    recs.push(buf);
+  });
+  if (!isFinite(X0)) { X0 = Y0 = X1 = Y1 = 0; }
+  var total = 100, i; recs.forEach(function(r){ total += 8 + (r ? r.byteLength : 4); });
+  var shp = new ArrayBuffer(total), shx = new ArrayBuffer(100 + 8 * recs.length);
+  function head(buf, len){
+    var d = new DataView(buf); d.setInt32(0, 9994); d.setInt32(24, len / 2); d.setInt32(28, 1000, true); d.setInt32(32, shpType, true);
+    d.setFloat64(36, X0, true); d.setFloat64(44, Y0, true); d.setFloat64(52, X1, true); d.setFloat64(60, Y1, true);
+  }
+  head(shp, total); head(shx, 100 + 8 * recs.length);
+  var sd = new DataView(shp), xd = new DataView(shx), o = 100;
+  recs.forEach(function(r, n){
+    var len = r ? r.byteLength : 4;
+    sd.setInt32(o, n + 1); sd.setInt32(o + 4, len / 2);
+    if (r) new Uint8Array(shp, o + 8, len).set(new Uint8Array(r)); else sd.setInt32(o + 8, 0, true);
+    xd.setInt32(100 + 8 * n, o / 2); xd.setInt32(104 + 8 * n, len / 2);
+    o += 8 + len;
+  });
+  return { shp:shp, shx:shx, dbf:buildDbf(feats), skipped:skipped, hadZ:hadZ, count:feats.length, kind:kind };
+}
+
+function buildDbf(feats){
+  var enc = new TextEncoder(), keys = [], seen = {};
+  feats.forEach(function(f){ Object.keys(f.properties || {}).forEach(function(k){ if (!seen[k] && !isVirtualCol(k)) { seen[k] = 1; keys.push(k); } }); });
+  var fields = [], used = {};
+  keys.forEach(function(k){
+    var vals = feats.map(function(f){ var v = (f.properties || {})[k]; return v === undefined || v === null || v === '' ? null : v; });
+    var nn = vals.filter(function(v){ return v !== null; });
+    var type = 'C', len = 1, dec = 0;
+    if (nn.length && nn.every(function(v){ return typeof v === 'number' && isFinite(v); })) {
+      var mi = 1, md = 0;
+      nn.forEach(function(v){
+        var s = Math.abs(v) < 1e-6 && v !== 0 ? v.toFixed(10) : String(v);
+        if (/e/i.test(s)) s = v.toFixed(8);
+        var p = s.split('.'); mi = Math.max(mi, p[0].length); md = Math.max(md, p[1] ? Math.min(p[1].length, 10) : 0);
+      });
+      len = mi + (md ? md + 1 : 0); dec = md;
+      if (len <= 19) type = 'N';
+    } else if (nn.length && nn.every(function(v){ return typeof v === 'boolean'; })) { type = 'L'; len = 1; }
+    else if (nn.length && nn.every(function(v){ return v instanceof Date && !isNaN(v); })) { type = 'D'; len = 8; }
+    if (type === 'C') { len = 1; nn.forEach(function(v){ len = Math.max(len, enc.encode(String(v)).length); }); len = Math.min(254, len); dec = 0; }
+    var nm = k.replace(/[^A-Za-z0-9_]/g, '_').slice(0, 10) || 'FIELD', base = nm, c = 1;
+    while (used[nm.toUpperCase()]) { var suf = String(c++); nm = base.slice(0, 10 - suf.length) + suf; }
+    used[nm.toUpperCase()] = 1;
+    fields.push({ key:k, name:nm, type:type, len:len, dec:dec });
+  });
+  if (!fields.length) fields.push({ key:null, name:'ID', type:'N', len:10, dec:0 });
+  var nf_ = fields.length, hdr = 32 + 32 * nf_ + 1, rec = 1; fields.forEach(function(f){ rec += f.len; });
+  var buf = new ArrayBuffer(hdr + rec * feats.length + 1), dv = new DataView(buf), u8 = new Uint8Array(buf), now = new Date();
+  dv.setUint8(0, 3); dv.setUint8(1, now.getFullYear() - 1900); dv.setUint8(2, now.getMonth() + 1); dv.setUint8(3, now.getDate());
+  dv.setUint32(4, feats.length, true); dv.setUint16(8, hdr, true); dv.setUint16(10, rec, true);
+  fields.forEach(function(f, i){
+    var b = 32 + 32 * i, nb = enc.encode(f.name);
+    for (var j=0;j<nb.length && j<10;j++) u8[b + j] = nb[j];
+    u8[b + 11] = f.type.charCodeAt(0); u8[b + 16] = f.len; u8[b + 17] = f.dec;
+  });
+  u8[32 + 32 * nf_] = 0x0D;
+  feats.forEach(function(ft, r){
+    var o = hdr + r * rec; u8[o] = 0x20; o++;
+    fields.forEach(function(f){
+      var v = f.key === null ? r + 1 : (ft.properties || {})[f.key], s = '';
+      if (v !== undefined && v !== null && v !== '') {
+        if (f.type === 'N') s = (typeof v === 'number' ? v.toFixed(f.dec) : String(v)).padStart(f.len, ' ');
+        else if (f.type === 'L') s = v ? 'T' : 'F';
+        else if (f.type === 'D') s = v.getFullYear() + String(v.getMonth()+1).padStart(2,'0') + String(v.getDate()).padStart(2,'0');
+        else s = String(v);
+      } else if (f.type === 'L') s = '?';
+      var bytes = enc.encode(s);
+      if (f.type === 'N') { for (var q=0;q<f.len;q++) u8[o + q] = 0x20; for (var z=0;z<Math.min(bytes.length,f.len);z++) u8[o + z] = bytes[z]; }
+      else { for (var q2=0;q2<f.len;q2++) u8[o + q2] = 0x20; for (var z2=0;z2<Math.min(bytes.length,f.len);z2++) u8[o + z2] = bytes[z2]; }
+      o += f.len;
+    });
+  });
+  u8[hdr + rec * feats.length] = 0x1A;
+  return buf;
+}
+
+function download(blob, name){
+  var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click();
+  setTimeout(function(){ URL.revokeObjectURL(a.href); if (a.parentNode) a.parentNode.removeChild(a); }, 4000);
+}
+function safeName(s){ return String(s || 'layer').replace(/[^\w\-]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 60) || 'layer'; }
+
+function doExport(l, fmt, crs, zone, south){
+  var base = safeName(l.name) + '_edit';
+  if (fmt === 'geojson') {
+    var fc = { type:'FeatureCollection', features:l.features.filter(function(f){ return f.geometry; }).map(function(f){
+      var pr = {}; Object.keys(f.properties || {}).forEach(function(k){ if (!isVirtualCol(k)) pr[k] = f.properties[k]; });
+      return { type:'Feature', properties:pr, geometry:f.geometry };
+    }) };
+    download(new Blob([JSON.stringify(fc)], { type:'application/geo+json' }), base + '.geojson');
+    say(T('✓ GeoJSON diekspor (WGS 84)','✓ GeoJSON exported (WGS 84)'), 'ok'); return;
+  }
+  if (typeof JSZip === 'undefined') { say(T('JSZip belum termuat — periksa koneksi internet','JSZip not loaded — check your connection'), 'err'); return; }
+  var pj, r;
+  try { pj = makeProj(crs, zone, south); r = buildShapefile(l, pj); } catch(e){ console.error(e); say('❌ ' + e.message, 'err'); return; }
+  var zip = new JSZip();
+  zip.file(base + '.shp', r.shp); zip.file(base + '.shx', r.shx); zip.file(base + '.dbf', r.dbf);
+  zip.file(base + '.prj', pj.prj); zip.file(base + '.cpg', 'UTF-8');
+  zip.generateAsync({ type:'blob', compression:'DEFLATE', compressionOptions:{ level:6 } }).then(function(blob){
+    download(blob, base + '.zip');
+    var msg = '✓ Shapefile ' + r.count.toLocaleString('id-ID') + ' ' + T('fitur','features') + ' (' + (crs === 'utm' ? 'UTM ' + zone + (south ? 'S' : 'N') : 'WGS 84') + ')';
+    if (r.skipped) msg += ' — ' + r.skipped + T(' fitur beda tipe dilewati',' features of another type skipped');
+    if (r.hadZ) msg += ' — ' + T('nilai Z tidak ikut di SHP','Z values are not kept in the SHP');
+    say(msg, r.skipped || r.hadZ ? 'warn' : 'ok');
+  });
+}
+GE.exportDialog = function(id){
+  var l = layerById(id) || S.l; if (!l || !l.features || !l.features.length) { say(T('Tidak ada layer untuk diekspor','No layer to export'), 'warn'); return; }
+  closeModal();
+  var c = layerCenter(l), zone = Math.min(60, Math.max(1, Math.floor((c.lng + 180) / 6) + 1)), south = c.lat < 0;
+  var m = document.createElement('div'); m.className = 'ge-modal'; m.id = 'ge-modal';
+  m.innerHTML = '<div class="bx"><h3>⤓ ' + T('Ekspor layer','Export layer') + ': ' + esc(l.name) + '</h3>' +
+    '<fieldset><legend>' + T('Format','Format') + '</legend>' +
+      '<label><input type="radio" name="ge-f" value="shp" checked> Shapefile (.zip: .shp .shx .dbf .prj .cpg)</label>' +
+      '<label><input type="radio" name="ge-f" value="geojson"> GeoJSON (WGS 84)</label></fieldset>' +
+    '<fieldset id="ge-crs"><legend>' + T('Sistem koordinat Shapefile','Shapefile coordinate system') + '</legend>' +
+      '<label><input type="radio" name="ge-c" value="wgs" checked> WGS 84 (EPSG:4326, ' + T('derajat','degrees') + ')</label>' +
+      '<label><input type="radio" name="ge-c" value="utm"> UTM WGS 84 · ' + T('zona','zone') + ' <input type="number" id="ge-z" min="1" max="60" value="' + zone + '"> ' +
+        '<select id="ge-h"><option value="N"' + (south ? '' : ' selected') + '>' + T('Utara','North') + '</option><option value="S"' + (south ? ' selected' : '') + '>' + T('Selatan','South') + '</option></select></label></fieldset>' +
+    '<p class="ge-note">' + T('Geometri hasil edit ditulis ulang apa adanya. Kolom luas otomatis (_LUAS_M2/_LUAS_HA) tidak ikut diekspor. Berkas asli tidak diubah.',
+      'The edited geometry is written as-is. Auto area columns (_LUAS_M2/_LUAS_HA) are not exported. The original file is untouched.') + '</p>' +
+    '<div class="ge-act"><button type="button" data-x="1">' + T('Batal','Cancel') + '</button><button type="button" class="ge-pri" data-go="1" style="margin-left:0">' + T('Ekspor','Export') + '</button></div></div>';
+  m.addEventListener('click', function(ev){
+    if (ev.target === m) { closeModal(); return; }
+    var b = ev.target.closest && ev.target.closest('button'); if (!b) return;
+    if (b.getAttribute('data-x')) closeModal();
+    else if (b.getAttribute('data-go')) {
+      var fmt = m.querySelector('input[name="ge-f"]:checked').value, crs = m.querySelector('input[name="ge-c"]:checked').value;
+      var z = Math.min(60, Math.max(1, parseInt(m.querySelector('#ge-z').value, 10) || zone)), s = m.querySelector('#ge-h').value === 'S';
+      closeModal(); doExport(l, fmt, crs, z, s);
+    }
+  });
+  m.addEventListener('change', function(){ var g = m.querySelector('input[name="ge-f"]:checked').value === 'geojson'; m.querySelector('#ge-crs').style.opacity = g ? .4 : 1; m.querySelector('#ge-crs').style.pointerEvents = g ? 'none' : ''; });
+  document.body.appendChild(m);
+};
+
+/* ── keyboard ── */
+document.addEventListener('keydown', function(e){
+  if (!GE.active || typing(e.target)) return;
+  if (e.key === 'Escape') {
+    if (document.getElementById('ge-modal')) { closeModal(); return; }
+    if (S.selV) { S.selV = null; refreshSelClass(); updatePanel(); } else if (S.sel) deselect();
+    return;
+  }
+  if ((e.key === 'Delete' || e.key === 'Backspace') && S.selV) { e.preventDefault(); e.stopImmediatePropagation(); delVertex(S.selV.pi, S.selV.vi); }
+}, true);
+
+/* ── kaitan ke kode lama ── */
+function wrap(name, fn){
+  var o = window[name]; if (typeof o !== 'function' || o._geWrapped) return;
+  var w = function(){ fn.apply(this, arguments); return o.apply(this, arguments); }; w._geWrapped = true; window[name] = w;
+}
+wrap('petaAddMode', function(){ if (GE.active) GE.stop(true); });                       /* mulai menggambar → keluar dari edit geometri */
+wrap('shpRemoveLayer', function(id){ if (GE.active && GE.layerId === id) GE.stop(true); });
+wrap('shpClearAll', function(){ if (GE.active) GE.stop(true); });
+wrap('shpToggleLayer', function(id){ if (GE.active && GE.layerId === id) GE.stop(true); });  /* layer disembunyikan → keluar dari edit */
+wrap('_applyProjectState', function(){ if (GE.active) GE.stop(true); });                /* buka project lain */
+})();
+</script>
+<!-- GEOMEDIT:END -->
 </body>
 </html>
