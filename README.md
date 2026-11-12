@@ -53,3 +53,9 @@ Cek setelah deploy: buka `/manifest-v5.webmanifest` (harus tampil JSON berisi `i
 Itu berarti file manifest/ikon lama yang tersaji. Pastikan SEMUA file di zip ter-upload (bukan hanya `index.html`):
 `index.html`, `sw.js`, `manifest-v5.webmanifest`, `vercel.json`, folder `icons/` (isi `icon-v5-*`).
 Buka `/manifest-v5.webmanifest` di browser — harus ada `icon-v5-*`. Lalu uninstall aplikasi, Clear site data (F12 → Application → Storage), muat ulang Ctrl+Shift+R, install ulang.
+
+## Hidrogeologi (menu Analisis → Air Tanah)
+- Layer Produktivitas / Litologi Akuifer dari BIG Satu Peta (ArcGIS REST), tampil di peta dengan opasitas & legenda dari server.
+- **Identifikasi klik**: klik peta → kelas akuifer, keterusan, debit di titik itu.
+- **Analisis luas**: pilih tapak (SHP/DXF poligon atau poligon/persegi gambar) → luas & persen tiap kelas akuifer di dalam tapak (metode grid), ekspor Excel dan GeoJSON.
+- Butuh internet. Alamat layanan bisa diganti di panel (bagian *Alamat layanan*).

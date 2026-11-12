@@ -2587,6 +2587,7 @@ setTimeout(hide,8000);})();
           <div class="sg-item" onclick="sgThOpen()" title="Poligon Thiessen dari lokasi stasiun hujan"><span class="sg-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="1.5"/><path d="M3 11l7-2 4-6"/><path d="M10 9l1 7-8 2"/><path d="M11 16l10 1"/><path d="M14 3l1 8 6 1"/><path d="M15 11l-4 5"/><circle cx="6.5" cy="6" r=".9" fill="currentColor"/><circle cx="17" cy="6.5" r=".9" fill="currentColor"/><circle cx="14.5" cy="16.5" r=".9" fill="currentColor"/><circle cx="6" cy="15" r=".9" fill="currentColor"/></svg></span>Thiessen Hujan</div>
           <div class="sg-item" onclick="sgCatchOpen()" title="Analisis DAS: delineasi sub-DAS dari DEM (TIF) + model debit banjir gaya HEC-HMS"><span class="sg-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 19l5-9 3 4 4-8 6 13z"/><path d="M12 6c1.2 1.4 1.8 2.6 0 4-1.8-1.4-1.2-2.6 0-4z"/></svg></span>Analisis DAS</div>
           <div class="sg-item" onclick="sgFlowOpen()" title="Arah aliran air hujan dari DEM/kontur: panah arah limpasan + warna elevasi, tampil di peta &amp; Layout"><span class="sg-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h10M11 4l3 3-3 3M4 13h14M15 10l3 3-3 3M4 19h8M9 16l3 3-3 3"/></svg></span>Arah Aliran</div>
+          <div class="sg-item" onclick="sgHgOpen()" title="Peta hidrogeologi (akuifer) BIG: tampil di peta, klik identifikasi, dan luas kelas akuifer di dalam tapak"><span class="sg-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 15l9 4 9-4"/><path d="M3 11l9 4 9-4-9-4z"/><path d="M12 2.5c1.6 2 2.4 3.2 2.4 4.3a2.4 2.4 0 0 1-4.8 0c0-1.1.8-2.3 2.4-4.3z"/></svg></span>Hidrogeologi</div>
           <div style="height:1px;background:var(--brd);margin:4px 6px 4px 4px"></div>
           <div class="sg-item" onclick="if(typeof petaClearAll==='function')petaClearAll()" style="color:#ef4444"><span class="sg-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16"/><path d="M9 7V4.5A1.5 1.5 0 0 1 10.5 3h3A1.5 1.5 0 0 1 15 4.5V7"/><path d="M6 7l1 13a1.5 1.5 0 0 0 1.5 1.4h7a1.5 1.5 0 0 0 1.5-1.4L18 7"/><path d="M10 11v6M14 11v6"/></svg></span>Hapus Semua</div>
           <div class="sg-item" onclick="if(typeof petaHardResetShapes==='function')petaHardResetShapes()" style="color:#ef4444" title="Pakai ini kalau garis/poligon lama masih muncul di Generate Peta walau sudah dihapus"><span class="sg-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/><path d="M9 9l6 6M15 9l-6 6"/></svg></span>Reset Total Garis &amp; Poligon</div>
@@ -30704,7 +30705,7 @@ button:focus-visible,.sg-item:focus-visible,.sg-lbl:focus-visible{outline:2px so
     {id:'proyek',label:'Proyek',file:true,groups:[['Berkas',['sgSaveProject()','sgSaveProjectAs()','sgOpenProject()']]]},
     {id:'data',label:'Data',groups:[['Unggah data',["sgUp('shp')","sgUp('dxf')","sgUp('tif')","sgUp('png')","sgUp('kmz')","sgUp('gpkg')","sgUp('gdb')"]],['Konversi',['cvOpenModal()']],['Titik',['petaShowImportModal()']]]},
     {id:'edit',label:'Edit',groups:[['Titik',[A+"sampling')",A+"inlet')",A+"outlet')",A+"outfall')",A+"hulu')",A+"hilir')",'petaShowCustomMarkerModal()']],['Gambar',[A+"garis')",A+"polygon')",A+"rectangle')",A+"circle')","_rulerKind='dist'","_rulerKind='area'"]],['Edit SHP',['geToggle()']],['Kelola',['petaClearAll','petaHardResetShapes']]]},
-    {id:'analisis',label:'Analisis',groups:[['Sungai',['sgtOpen()']],['Hidrologi',['sgThOpen()','sgCatchOpen()','sgFlowOpen()']],['Terrain & KMZ',['sgHsKontur()','sgLabelKmz()']]]},
+    {id:'analisis',label:'Analisis',groups:[['Sungai',['sgtOpen()']],['Hidrologi',['sgThOpen()','sgCatchOpen()','sgFlowOpen()']],['Air Tanah',['sgHgOpen()']],['Terrain & KMZ',['sgHsKontur()','sgLabelKmz()']]]},
     {id:'tampilan',label:'Tampilan',groups:[['Peta',['open3DMap()','petaToggleDMS()']],['Panel',['@panel']]]}
   ];
   function find(h){return document.querySelector('.sg-item[onclick*="'+h+'"]');}
@@ -36885,5 +36886,383 @@ wrap('_applyProjectState', function(){ if (GE.active) GE.stop(true); });        
 })();
 </script>
 <!-- GEOMEDIT:END -->
+<!-- HIDROGEOLOGI:START -->
+<style id="sg-hg-css">
+#sg-hg-card{position:fixed;right:14px;top:78px;width:min(450px,calc(100vw - 28px));max-height:calc(100vh - 96px);overflow:auto;z-index:100000;display:none;background:var(--bg2,#fff);color:var(--txt,#1a1f2b);border:1px solid var(--brd2,#ccd);border-radius:10px;box-shadow:0 12px 40px rgba(0,0,0,.28);font-size:12.5px}
+#sg-hg-card.on{display:block}
+#sg-hg-card .hh{display:flex;align-items:center;justify-content:space-between;padding:11px 14px;border-bottom:1px solid var(--brd,#dde);font-weight:700;position:sticky;top:0;background:inherit;z-index:2}
+#sg-hg-card .hx{border:0;background:none;color:inherit;font-size:16px;cursor:pointer}
+#sg-hg-card .hb{padding:12px 14px;display:grid;gap:10px}
+#sg-hg-card .hn{font-size:11px;color:var(--mute,#6b7a90);line-height:1.5}
+#sg-hg-card .hr{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+#sg-hg-card .hr>label{display:flex;align-items:center;gap:6px;flex:1 1 200px}
+#sg-hg-card .hr>label>span{min-width:96px;color:var(--mute,#6b7a90)}
+#sg-hg-card select,#sg-hg-card input[type=text]{padding:4px 6px;border:1px solid var(--brd2,#ccd);border-radius:5px;background:var(--bg,#fff);color:inherit;min-width:0}
+#sg-hg-card input[type=range]{flex:1;min-width:80px}
+#sg-hg-card .hbtn{padding:7px 12px;border-radius:6px;border:1px solid var(--brd2,#ccd);background:var(--bg,#fff);color:inherit;cursor:pointer;font-size:12px}
+#sg-hg-card .hbtn.pri{background:#1ab0a6;border-color:#1ab0a6;color:#fff;font-weight:700}
+#sg-hg-card .hbtn.del{color:#d33}
+#sg-hg-card .hbtn.on{background:#1ab0a6;border-color:#1ab0a6;color:#fff}
+#sg-hg-card .hbtn[disabled]{opacity:.5;cursor:default}
+#sg-hg-card .hst{min-height:16px;font-size:11px;color:var(--mute,#6b7a90)}
+#sg-hg-card .hst.err{color:#d33}
+#sg-hg-card .hsec{font-weight:700;border-top:1px solid var(--brd,#dde);padding-top:9px}
+#sg-hg-card .hlg{display:grid;gap:3px;max-height:150px;overflow:auto;font-size:11px}
+#sg-hg-card .hlg div{display:flex;align-items:center;gap:7px}
+#sg-hg-card .hlg img{flex:none;border:1px solid rgba(0,0,0,.25)}
+#sg-hg-card table{width:100%;border-collapse:collapse;font-size:11.5px}
+#sg-hg-card th,#sg-hg-card td{border-bottom:1px solid var(--brd,#dde);padding:4px 5px;text-align:left;vertical-align:top}
+#sg-hg-card td.n,#sg-hg-card th.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+#sg-hg-card .hsum{font-size:11.5px;line-height:1.55;background:rgba(26,176,166,.09);border-radius:6px;padding:7px 9px}
+#sg-hg-card details summary{cursor:pointer;color:var(--mute,#6b7a90);font-size:11px}
+.sg-hg-pop{font-size:12px;line-height:1.45;max-width:270px}
+.sg-hg-pop b.t{display:block;margin-top:5px}
+.sg-hg-pop table{border-collapse:collapse;width:100%}
+.sg-hg-pop td{padding:1px 4px 1px 0;vertical-align:top}
+.sg-hg-pop td:first-child{color:#667;white-space:nowrap}
+#sg-map.sg-hg-ident,#sg-map.sg-hg-ident .leaflet-grab,#peta-map.sg-hg-ident,#peta-map.sg-hg-ident .leaflet-grab{cursor:crosshair!important}
+</style>
+<script id="sg-hg-js">
+/* ═══ HIDROGEOLOGI — layer Produktivitas / Litologi Akuifer (BIG Satu Peta, ArcGIS REST).
+   Tampil di peta + klik untuk identifikasi + analisis luas kelas akuifer di dalam tapak (SHP / DXF / poligon gambar). ═══ */
+(function(){
+  var R_E=6378137, D2R=Math.PI/180;
+  var DEF={base:'https://kspservices.big.go.id/satupeta/rest/services/PUBLIK/SUMBER_DAYA_ALAM_DAN_LINGKUNGAN/MapServer',layer:16,opa:70,show:false,site:'',res:600,ident:false};
+  var LAY={16:{name:'Produktivitas Akuifer',field:'prod',extra:['keterusan','debit']},15:{name:'Litologi Akuifer',field:'litologi',extra:[]}};
+  var HIDE=/^(objectid|objectid_1|shape|shape_leng|shape_area|fcode|srs_id|metadata|remark|globalid)$/i;
+  var NICE={prod:'Produktivitas',sys_aq:'Sistem akuifer',keterusan:'Keterusan',debit:'Debit',debit_min:'Debit min',debit_max:'Debit maks',litologi:'Litologi',pulau:'Pulau',namobj:'Nama objek'};
+  var S={p:Object.assign({},DEF),map:null,ov:null,seq:0,timer:null,siteLG:null,res:null,feats:null,legend:{},busy:false,cb:0};
+  var modal=null;
+  function $(s){ return modal.querySelector(s); }
+  function T(m,t){ if(typeof toast==='function') try{ toast(m,t); }catch(e){} }
+  function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+  function tick(){ return new Promise(function(r){ setTimeout(r,15); }); }
+  function fmt(n,d){ return (+n).toLocaleString('id-ID',{minimumFractionDigits:d,maximumFractionDigits:d}); }
+  function status(m,err){ if(!modal) return; var e=$('#hg-st'); e.textContent=m||''; e.className='hst'+(err?' err':''); }
+
+  /* ── Akses layanan: fetch (CORS) → bila diblokir, JSONP ── */
+  function jsonp(url){
+    return new Promise(function(ok,no){
+      var cb='sghg_'+(++S.cb)+'_'+Date.now(), s=document.createElement('script'), t;
+      function done(){ clearTimeout(t); try{ delete window[cb]; }catch(e){ window[cb]=undefined; } if(s.parentNode) s.parentNode.removeChild(s); }
+      window[cb]=function(d){ done(); ok(d); };
+      s.onerror=function(){ done(); no(new Error('Server BIG tidak dapat dihubungi')); };
+      t=setTimeout(function(){ done(); no(new Error('Waktu habis menghubungi server BIG')); },45000);
+      s.src=url+(url.indexOf('?')<0?'?':'&')+'callback='+cb; document.head.appendChild(s);
+    });
+  }
+  function getJSON(url){
+    return fetch(url).then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
+      .catch(function(){ return jsonp(url); })
+      .then(function(d){ if(d&&d.error) throw new Error(d.error.message||'Layanan mengembalikan galat'); return d; });
+  }
+
+  /* ── Tapak proyek (sama dengan Arah Aliran): SHP/DXF poligon, poligon & persegi gambar ── */
+  function siteList(){
+    var out=[];
+    (typeof _shpLayers!=='undefined'?_shpLayers:[]).forEach(function(l){ try{ if(l.features&&l.features.length&&l.features.some(function(f){ return f.geometry&&/Polygon/.test(f.geometry.type); })) out.push({id:'shp:'+l.id,name:l.name+(l.sourceType==='dxf'?' (DXF)':' (SHP)')}); }catch(e){} });
+    (typeof _polygons!=='undefined'?_polygons:[]).forEach(function(q){ if(q.points&&q.points.length>=3&&!q._thiessen) out.push({id:'poly:'+q.id,name:q.name+' (gambar)'}); });
+    return out;
+  }
+  /* → [[outer,hole,…],…], ring = [[lng,lat],…] */
+  function siteGeoms(id){
+    var polys=[]; if(!id) return null;
+    if(id.indexOf('shp:')===0){
+      var l=(_shpLayers||[]).find(function(x){ return x.id===id.slice(4); }); if(!l) return null;
+      l.features.forEach(function(f){ var g=f.geometry; if(!g) return;
+        if(g.type==='Polygon') polys.push(g.coordinates);
+        else if(g.type==='MultiPolygon') g.coordinates.forEach(function(c){ polys.push(c); });
+        else if(g.type==='GeometryCollection') (g.geometries||[]).forEach(function(gg){ if(gg.type==='Polygon') polys.push(gg.coordinates); else if(gg.type==='MultiPolygon') gg.coordinates.forEach(function(c){ polys.push(c); }); });
+      });
+    } else if(id.indexOf('poly:')===0){
+      var q=(_polygons||[]).find(function(x){ return x.id===id.slice(5); }); if(!q||!q.points) return null;
+      polys.push([q.points.map(function(pt){ return [pt[1],pt[0]]; })]);
+    }
+    return polys.length?polys:null;
+  }
+  function siteName(id){ var s=siteList().find(function(x){ return x.id===id; }); return s?s.name:''; }
+
+  /* ══ INTI HITUNG (murni, bisa diuji) ══ */
+  /* isi sel grid yang pusatnya berada di dalam kumpulan ring (even-odd). cb(iy, ixAwal, ixAkhir) */
+  function scan(rings,G,r0,r1,cb){
+    for(var iy=r0;iy<=r1;iy++){
+      var y=G.maxy-(iy+.5)*G.dy, xs=[];
+      for(var k=0;k<rings.length;k++){
+        var rg=rings[k], n=rg.length;
+        for(var i=0,j=n-1;i<n;j=i++){
+          var yi=rg[i][1], yj=rg[j][1];
+          if((yi>y)!==(yj>y)) xs.push(rg[i][0]+(y-yi)*(rg[j][0]-rg[i][0])/(yj-yi));
+        }
+      }
+      if(xs.length<2) continue;
+      xs.sort(function(a,b){ return a-b; });
+      for(var m=0;m+1<xs.length;m+=2){
+        var a=Math.ceil((xs[m]-G.minx)/G.dx-.5), b=Math.ceil((xs[m+1]-G.minx)/G.dx-.5)-1;
+        if(a<0) a=0; if(b>G.nx-1) b=G.nx-1;
+        if(a<=b) cb(iy,a,b);
+      }
+    }
+  }
+  function ringBBox(rings){
+    var x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;
+    rings.forEach(function(rg){ rg.forEach(function(p){ if(p[0]<x0)x0=p[0]; if(p[0]>x1)x1=p[0]; if(p[1]<y0)y0=p[1]; if(p[1]>y1)y1=p[1]; }); });
+    return [x0,y0,x1,y1];
+  }
+  function ringAreaM2(rg,lng0,lat0,kx,ky){
+    var s=0, n=rg.length;
+    for(var i=0;i<n;i++){ var j=(i+1)%n, xi=(rg[i][0]-lng0)*kx, yi=(rg[i][1]-lat0)*ky, xj=(rg[j][0]-lng0)*kx, yj=(rg[j][1]-lat0)*ky; s+=xi*yj-xj*yi; }
+    return Math.abs(s/2);
+  }
+  /* siteBounds dari tapak → definisi grid */
+  function makeGrid(polys,res){
+    var minx=1e9,miny=1e9,maxx=-1e9,maxy=-1e9;
+    polys.forEach(function(pg){ var b=ringBBox([pg[0]]); if(b[0]<minx)minx=b[0]; if(b[1]<miny)miny=b[1]; if(b[2]>maxx)maxx=b[2]; if(b[3]>maxy)maxy=b[3]; });
+    var lat0=(miny+maxy)/2, lng0=(minx+maxx)/2, kx=R_E*Math.cos(lat0*D2R)*D2R, ky=R_E*D2R;
+    var W=(maxx-minx)*kx, H=(maxy-miny)*ky;
+    if(!(W>0&&H>0)) throw new Error('Tapak tidak valid (luas nol).');
+    var step=Math.max(W,H)/res, dx=step/kx, dy=step/ky;
+    return {minx:minx,miny:miny,maxx:maxx,maxy:maxy,lat0:lat0,lng0:lng0,kx:kx,ky:ky,step:step,dx:dx,dy:dy,nx:Math.max(1,Math.ceil((maxx-minx)/dx)),ny:Math.max(1,Math.ceil((maxy-miny)/dy))};
+  }
+  /* feats: [{attributes:{…},geometry:{rings:[…]}}] → baris statistik per kelas */
+  async function computeStats(polys,feats,field,extra,res,progress){
+    var G=makeGrid(polys,res), N=G.nx*G.ny, mask=new Uint8Array(N), cls=new Int16Array(N); cls.fill(-1);
+    polys.forEach(function(pg){ scan(pg,G,0,G.ny-1,function(iy,a,b){ for(var ix=a;ix<=b;ix++) mask[iy*G.nx+ix]=1; }); });
+    var names=[], idx={}, info=[];
+    for(var f=0;f<feats.length;f++){
+      var ft=feats[f], g=ft.geometry; if(!g||!g.rings||!g.rings.length) continue;
+      var raw=ft.attributes?ft.attributes[field]:null, nm=(raw==null||String(raw).trim()==='')?'Tidak ada informasi':String(raw).trim();
+      if(idx[nm]==null){ idx[nm]=names.length; names.push(nm); info.push({k:{},dmin:null,dmax:null}); }
+      var c=idx[nm], bb=ringBBox(g.rings), hit=false;
+      var r0=Math.max(0,Math.floor((G.maxy-bb[3])/G.dy)-1), r1=Math.min(G.ny-1,Math.ceil((G.maxy-bb[1])/G.dy)+1);
+      if(r1>=r0) scan(g.rings,G,r0,r1,function(iy,a,b){ for(var ix=a;ix<=b;ix++){ var i=iy*G.nx+ix; if(cls[i]===-1){ cls[i]=c; if(mask[i]) hit=true; } } });
+      if(hit){
+        var at=ft.attributes||{}, inf=info[c];
+        extra.forEach(function(e){ var v=at[e]; if(v!=null&&String(v).trim()!==''){ (inf.k[e]=inf.k[e]||{})[String(v).trim()]=1; } });
+        var lo=at.debit_min, hi=at.debit_max;
+        if(lo!=null&&lo===lo&&(inf.dmin==null||lo<inf.dmin)) inf.dmin=lo;
+        if(hi!=null&&hi===hi&&(inf.dmax==null||hi>inf.dmax)) inf.dmax=hi;
+      }
+      if(progress&&f%40===39){ progress(f+1,feats.length); await tick(); }
+    }
+    var counts=new Array(names.length+1).fill(0), total=0;
+    for(var i=0;i<N;i++){ if(!mask[i]) continue; total++; var c2=cls[i]; counts[c2>=0?c2:names.length]++; }
+    if(!total) throw new Error('Tapak terlalu kecil untuk resolusi ini — pilih resolusi lebih halus.');
+    var siteArea=0;
+    polys.forEach(function(pg){ pg.forEach(function(rg,k){ var a=ringAreaM2(rg,G.lng0,G.lat0,G.kx,G.ky); siteArea+=k===0?a:-a; }); });
+    var rows=[];
+    names.forEach(function(nm,c){ if(!counts[c]) return; var inf=info[c];
+      rows.push({name:nm,cells:counts[c],area:counts[c]/total*siteArea,pct:counts[c]/total*100,
+        keterusan:Object.keys(inf.k.keterusan||{}),debit:Object.keys(inf.k.debit||{}),dmin:inf.dmin,dmax:inf.dmax}); });
+    rows.sort(function(a,b){ return b.area-a.area; });
+    if(counts[names.length]) rows.push({name:'Tidak ada data (di luar cakupan layer)',cells:counts[names.length],area:counts[names.length]/total*siteArea,pct:counts[names.length]/total*100,keterusan:[],debit:[],dmin:null,dmax:null,nodata:true});
+    return {rows:rows,siteArea:siteArea,step:G.step,cells:total,nFeat:feats.length};
+  }
+  window.__sgHg={scan:scan,makeGrid:makeGrid,computeStats:computeStats,ringAreaM2:ringAreaM2};
+
+  /* ── Unduh fitur yang menyentuh tapak (berhalaman) ── */
+  async function fetchFeats(b,offsetDeg,id){
+    var all=[], off=0;
+    for(var pg=0;pg<30;pg++){
+      var url=S.p.base+'/'+id+'/query?where='+encodeURIComponent('1=1')+'&geometry='+b.join(',')+'&geometryType=esriGeometryEnvelope&inSR=4326&spatialRel=esriSpatialRelIntersects&outFields=*&returnGeometry=true&outSR=4326&maxAllowableOffset='+offsetDeg+'&resultOffset='+off+'&resultRecordCount=1000&f=json';
+      var d=await getJSON(url), fs=d.features||[]; all=all.concat(fs); off+=fs.length;
+      status('Mengunduh data hidrogeologi… '+all.length+' poligon');
+      if(!d.exceededTransferLimit||!fs.length) break;
+    }
+    return all;
+  }
+
+  /* ── Overlay peta (gambar export server, mengikuti tampilan) ── */
+  function setMap(){
+    var m=window._map; if(!m) return null;
+    if(S.map!==m){
+      if(S.map){ try{ S.map.off('moveend',onMove); S.map.off('click',onClick); }catch(e){} clearOv(); drawSite(null); }
+      S.map=m; m.on('moveend',onMove); m.on('click',onClick);
+    }
+    return m;
+  }
+  function onMove(){ if(S.p.show){ clearTimeout(S.timer); S.timer=setTimeout(refreshOv,250); } }
+  function clearOv(){ S.seq++; if(S.ov&&S.map){ try{ S.map.removeLayer(S.ov); }catch(e){} } S.ov=null; }
+  function refreshOv(){
+    var m=setMap(); if(!m) return;
+    if(!S.p.show){ clearOv(); return; }
+    if(!m.getPane('hgPane')){ var pn=m.createPane('hgPane'); pn.style.zIndex=350; pn.style.pointerEvents='none'; }
+    var b=m.getBounds(), z=m.getSize(), C=L.CRS.EPSG3857, a=C.project(b.getSouthWest()), c=C.project(b.getNorthEast());
+    var dpr=Math.min(window.devicePixelRatio||1,2), w=Math.min(4096,Math.round(z.x*dpr)), h=Math.min(4096,Math.round(z.y*dpr));
+    var url=S.p.base+'/export?bbox='+[a.x,a.y,c.x,c.y].join(',')+'&bboxSR=3857&imageSR=3857&size='+w+','+h+'&dpi='+Math.round(96*dpr)+'&format=png32&transparent=true&layers='+encodeURIComponent('show:'+S.p.layer)+'&f=image';
+    var my=++S.seq, im=new Image();
+    im.onload=function(){
+      if(my!==S.seq||!S.p.show) return;
+      var old=S.ov;
+      S.ov=L.imageOverlay(url,b,{pane:'hgPane',opacity:S.p.opa/100,interactive:false}).addTo(m);
+      if(old) setTimeout(function(){ try{ m.removeLayer(old); }catch(e){} },80);
+    };
+    im.onerror=function(){ if(my===S.seq) status('Gambar layer gagal dimuat dari server BIG (cek koneksi / alamat layanan).',true); };
+    im.src=url;
+  }
+  function drawSite(polys){
+    if(S.siteLG&&S.map){ try{ S.map.removeLayer(S.siteLG); }catch(e){} }
+    S.siteLG=null; if(!polys||!S.map) return;
+    S.siteLG=L.featureGroup(polys.map(function(pg){ return L.polygon(pg.map(function(rg){ return rg.map(function(p){ return [p[1],p[0]]; }); }),{color:'#e11d48',weight:2.2,dashArray:'6 4',fill:false,interactive:false}); })).addTo(S.map);
+  }
+
+  /* ── Legenda dari server ── */
+  function legendItems(){ var a=S.legend[S.p.base]||[], l=a.find(function(x){ return x.layerId===+S.p.layer; }); return l&&l.legend?l.legend:[]; }
+  function swatch(it,sz){ return '<img src="data:'+(it.contentType||'image/png')+';base64,'+it.imageData+'" width="'+(sz||it.width||16)+'" height="'+(sz||it.height||16)+'" alt="">'; }
+  function renderLegend(){
+    var el=$('#hg-lg'); var its=legendItems();
+    el.innerHTML=its.length?its.map(function(it){ return '<div>'+(it.imageData?swatch(it):'')+'<span>'+esc(it.label||'')+'</span></div>'; }).join(''):'<span class="hn">Legenda belum tersedia.</span>';
+  }
+  function loadLegend(){
+    if(S.legend[S.p.base]) { renderLegend(); return; }
+    getJSON(S.p.base+'/legend?f=json').then(function(d){ S.legend[S.p.base]=d.layers||[]; renderLegend(); }).catch(function(){ $('#hg-lg').innerHTML='<span class="hn">Legenda tidak dapat dimuat.</span>'; });
+  }
+  function swatchFor(name){
+    var its=legendItems(), it=its.find(function(x){ var lb=x.label||''; return lb===name||lb.split(/;\s*/).indexOf(name)>=0; })||its.find(function(x){ return (x.label||'').indexOf(name)>=0; });
+    return it&&it.imageData?swatch(it,14):'';
+  }
+
+  /* ── Identifikasi klik ── */
+  function onClick(e){
+    if(!S.p.ident||!S.map) return;
+    var ll=e.latlng, ids=[+S.p.layer,+S.p.layer===16?15:16];
+    var pop=L.popup({maxWidth:290}).setLatLng(ll).setContent('<div class="sg-hg-pop">Mengambil data…</div>').openOn(S.map);
+    Promise.all(ids.map(function(id){
+      var url=S.p.base+'/'+id+'/query?where='+encodeURIComponent('1=1')+'&geometry='+ll.lng+','+ll.lat+'&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelIntersects&outFields=*&returnGeometry=false&f=json';
+      return getJSON(url).then(function(d){ return {id:id,f:d.features||[]}; }).catch(function(er){ return {id:id,err:er}; });
+    })).then(function(rs){
+      var h='<div class="sg-hg-pop">';
+      rs.forEach(function(r){
+        h+='<b class="t">'+esc((LAY[r.id]||{}).name||('Layer '+r.id))+'</b>';
+        if(r.err){ h+='<div style="color:#d33">'+esc(r.err.message)+'</div>'; return; }
+        if(!r.f.length){ h+='<div style="color:#889">Tidak ada data di titik ini.</div>'; return; }
+        r.f.slice(0,2).forEach(function(ft){
+          h+='<table>';
+          Object.keys(ft.attributes||{}).forEach(function(k){ var v=ft.attributes[k]; if(HIDE.test(k)||v==null||String(v).trim()==='') return; h+='<tr><td>'+esc(NICE[k]||k)+'</td><td>'+esc(v)+'</td></tr>'; });
+          h+='</table>';
+        });
+      });
+      h+='<div style="margin-top:6px;font-size:10.5px;color:#889">Sumber: BIG – Satu Peta. Bersifat regional, bukan pengganti uji lapangan.</div></div>';
+      pop.setContent(h);
+    });
+  }
+
+  /* ── Analisis luas pada tapak ── */
+  async function analyze(){
+    if(S.busy) return; S.busy=true; $('#hg-go').disabled=true;
+    try{
+      readUI(); setMap();
+      var polys=siteGeoms(S.p.site); if(!polys) throw new Error('Pilih tapak dulu (SHP/DXF poligon, atau gambar poligon/persegi di peta).');
+      drawSite(polys);
+      var G=makeGrid(polys,S.p.res), id=+S.p.layer, lay=LAY[id];
+      status('Mengunduh data hidrogeologi…');
+      var feats=await fetchFeats([G.minx,G.miny,G.maxx,G.maxy],Math.min(G.dx,G.dy)*.5,id);
+      if(!feats.length) throw new Error('Layer tidak memiliki data di area tapak.');
+      status('Menghitung luas per kelas…'); await tick();
+      var R=await computeStats(polys,feats,lay.field,lay.extra,S.p.res,function(a,n){ status('Menghitung luas… '+a+'/'+n+' poligon'); });
+      R.layerId=id; R.layerName=lay.name; R.siteName=siteName(S.p.site); R.field=lay.field;
+      S.res=R; S.feats=feats; showResult();
+      if(!S.p.show){ S.p.show=true; $('#hg-show').checked=true; refreshOv(); }
+      try{ S.map.fitBounds([[G.miny,G.minx],[G.maxy,G.maxx]],{padding:[40,40]}); }catch(e){}
+      status('Selesai: '+R.rows.length+' kelas, resolusi ± '+fmt(R.step,0)+' m/sel.');
+    }catch(e){ status(e.message||String(e),true); T(e.message||String(e),'err'); }
+    S.busy=false; $('#hg-go').disabled=false;
+  }
+  function areaTxt(m2){ return m2>=1e6?fmt(m2/1e6,3)+' km²':fmt(m2/1e4,2)+' ha'; }
+  function showResult(){
+    var R=S.res; if(!R) return;
+    var dom=R.rows.filter(function(r){ return !r.nodata; })[0];
+    var h='<div class="hsum"><b>'+esc(R.layerName)+'</b> pada tapak <b>'+esc(R.siteName)+'</b><br>Luas tapak: <b>'+areaTxt(R.siteArea)+'</b>'+(dom?' · dominan: <b>'+esc(dom.name)+'</b> ('+fmt(dom.pct,1)+'%)':'')+'</div>';
+    h+='<div style="overflow-x:auto"><table><thead><tr><th>Kelas</th><th class="n">Luas (ha)</th><th class="n">%</th><th>Keterusan / Debit</th></tr></thead><tbody>';
+    R.rows.forEach(function(r){
+      var info=[]; if(r.keterusan.length) info.push('Keterusan: '+r.keterusan.join(', ')); if(r.debit.length) info.push('Debit: '+r.debit.join('; ')); else if(r.dmin!=null||r.dmax!=null) info.push('Debit: '+(r.dmin==null?'?':r.dmin)+'–'+(r.dmax==null?'?':r.dmax));
+      h+='<tr><td>'+(r.nodata?'':swatchFor(r.name))+' '+esc(r.name)+'</td><td class="n">'+fmt(r.area/1e4,2)+'</td><td class="n">'+fmt(r.pct,1)+'</td><td>'+esc(info.join(' · '))+'</td></tr>';
+    });
+    h+='</tbody></table></div><div class="hn">Luas dihitung dengan metode grid (± '+fmt(R.step,0)+' m per sel, '+fmt(R.cells,0)+' sel) — perkiraan, bukan hasil overlay vektor eksak. Data regional BIG; bukan pengganti penyelidikan hidrogeologi lapangan.</div>';
+    $('#hg-res').innerHTML=h; $('#hg-res-wrap').style.display='grid';
+  }
+
+  /* ── Ekspor ── */
+  function dl(blob,name){ var a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; document.body.appendChild(a); a.click(); setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); },500); }
+  function xlsx(){
+    var R=S.res; if(!R) return; if(typeof XLSX==='undefined'){ T('Pustaka Excel belum termuat','err'); return; }
+    var a=[['Analisis Hidrogeologi — '+R.layerName],['Tapak',R.siteName],['Luas tapak (ha)',+(R.siteArea/1e4).toFixed(3)],['Resolusi grid (m/sel)',+R.step.toFixed(1)],['Sumber data','BIG – Satu Peta (layanan REST publik); regional'],[],['No','Kelas','Luas (ha)','Luas (m²)','Persen (%)','Keterusan','Debit']];
+    R.rows.forEach(function(r,i){ a.push([i+1,r.name,+(r.area/1e4).toFixed(3),Math.round(r.area),+r.pct.toFixed(2),r.keterusan.join(', '),r.debit.length?r.debit.join('; '):((r.dmin!=null||r.dmax!=null)?(r.dmin==null?'':r.dmin)+'–'+(r.dmax==null?'':r.dmax):'')]); });
+    var wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(a),'Hidrogeologi');
+    XLSX.writeFile(wb,'Hidrogeologi_'+new Date().toISOString().slice(0,10)+'.xlsx');
+  }
+  function sgn(r){ var s=0; for(var i=0;i<r.length;i++){ var j=(i+1)%r.length; s+=r[i][0]*r[j][1]-r[j][0]*r[i][1]; } return s/2; }
+  function toGeo(rings){ var out=[]; rings.forEach(function(r){ if(sgn(r)<0||!out.length) out.push([r]); else out[out.length-1].push(r); }); return out.length===1?{type:'Polygon',coordinates:out[0]}:{type:'MultiPolygon',coordinates:out}; }
+  function geojson(){
+    if(!S.feats||!S.res) return;
+    var fc={type:'FeatureCollection',name:'Hidrogeologi',features:S.feats.filter(function(f){ return f.geometry&&f.geometry.rings&&f.geometry.rings.length; }).map(function(f){ return {type:'Feature',properties:f.attributes||{},geometry:toGeo(f.geometry.rings)}; })};
+    dl(new Blob([JSON.stringify(fc)],{type:'application/geo+json'}),'Hidrogeologi_'+S.res.layerName.replace(/\s+/g,'_')+'.geojson');
+  }
+
+  /* ── UI ── */
+  function readUI(){
+    S.p.layer=+$('#hg-layer').value; S.p.site=$('#hg-site').value; S.p.res=+$('#hg-res-sel').value; S.p.opa=+$('#hg-opa').value; S.p.show=$('#hg-show').checked;
+    var b=$('#hg-base').value.trim().replace(/\/+$/,''); if(b) S.p.base=b;
+  }
+  function writeUI(){
+    $('#hg-layer').value=S.p.layer; $('#hg-res-sel').value=S.p.res; $('#hg-opa').value=S.p.opa; $('#hg-opav').textContent=S.p.opa; $('#hg-show').checked=!!S.p.show; $('#hg-base').value=S.p.base;
+    $('#hg-ident').classList.toggle('on',!!S.p.ident);
+  }
+  function fillSites(){
+    var ss=$('#hg-site'), ks=S.p.site||ss.value, sl=siteList();
+    ss.innerHTML='<option value="">— Pilih tapak —</option>'+sl.map(function(x){ return '<option value="'+esc(x.id)+'">'+esc(x.name)+'</option>'; }).join('');
+    ss.value=sl.some(function(x){ return x.id===ks; })?ks:'';
+    $('#hg-nosite').style.display=sl.length?'none':'block';
+  }
+  function setIdent(on){
+    S.p.ident=on; $('#hg-ident').classList.toggle('on',on);
+    ['sg-map','peta-map'].forEach(function(id){ var el=document.getElementById(id); if(el) el.classList.toggle('sg-hg-ident',on); });
+    if(on) T('Identifikasi aktif — klik peta untuk melihat kelas akuifer di titik itu'); else if(S.map) S.map.closePopup();
+  }
+  function build(){
+    modal=document.createElement('div'); modal.id='sg-hg-card';
+    modal.innerHTML='<div class="hh"><span>💧 Hidrogeologi (Akuifer)</span><button class="hx" id="hg-x" aria-label="Tutup">✕</button></div><div class="hb">'+
+      '<div class="hn">Menampilkan peta hidrogeologi regional Indonesia (Badan Informasi Geospasial) dan menghitung luas kelas akuifer di dalam tapak Anda. Panel ini tidak menutup peta, jadi Anda bisa klik/geser peta saat panel terbuka.</div>'+
+      '<div class="hr"><label><span>Layer</span><select id="hg-layer" style="flex:1"><option value="16">Produktivitas Akuifer</option><option value="15">Litologi Akuifer</option></select></label></div>'+
+      '<div class="hr"><label><span>Opasitas (%)</span><input type="range" id="hg-opa" min="10" max="100" step="5"><b id="hg-opav" style="min-width:28px;text-align:right"></b></label><label><input type="checkbox" id="hg-show"> Tampil di peta</label></div>'+
+      '<div class="hr"><button class="hbtn" id="hg-ident" title="Klik peta untuk melihat produktivitas, keterusan, debit di titik">🖱️ Identifikasi klik</button><button class="hbtn del" id="hg-del">Hapus dari peta</button></div>'+
+      '<div class="hsec">Legenda</div><div class="hlg" id="hg-lg"><span class="hn">Memuat legenda…</span></div>'+
+      '<div class="hsec">Analisis luas pada tapak</div>'+
+      '<div class="hr"><label><span>Tapak</span><select id="hg-site" style="flex:1"></select></label></div>'+
+      '<div id="hg-nosite" class="hn" style="display:none;color:#d98200;margin-top:-4px">Belum ada tapak — unggah SHP/DXF poligon (tab Data) atau gambar poligon/persegi (tab Edit).</div>'+
+      '<div class="hr"><label><span>Resolusi hitung</span><select id="hg-res-sel" style="flex:1"><option value="300">Cepat (300 sel)</option><option value="600">Sedang (600 sel)</option><option value="1000">Halus (1000 sel)</option></select></label></div>'+
+      '<div class="hr"><button class="hbtn pri" id="hg-go">Analisis luas pada tapak</button></div>'+
+      '<div id="hg-res-wrap" style="display:none;gap:8px"><div id="hg-res"></div><div class="hr"><button class="hbtn" id="hg-xl">⬇ Excel (.xlsx)</button><button class="hbtn" id="hg-gj">⬇ GeoJSON poligon akuifer</button></div></div>'+
+      '<div class="hst" id="hg-st">Pilih layer lalu centang “Tampil di peta”, atau pilih tapak dan klik Analisis.</div>'+
+      '<details><summary>Alamat layanan (lanjutan)</summary><div class="hr" style="margin-top:6px"><input type="text" id="hg-base" style="flex:1" spellcheck="false"></div><div class="hn">Layanan ArcGIS REST MapServer dengan layer 15 = Litologi Akuifer dan 16 = Produktivitas Akuifer. Ganti hanya jika BIG memindahkan layanannya.</div></details>'+
+      '</div>';
+    document.body.appendChild(modal);
+    modal.addEventListener('keydown',function(e){ e.stopPropagation(); });
+    $('#hg-x').onclick=function(){ modal.classList.remove('on'); };
+    $('#hg-go').onclick=analyze;
+    $('#hg-xl').onclick=xlsx; $('#hg-gj').onclick=geojson;
+    $('#hg-ident').onclick=function(){ setMap(); setIdent(!S.p.ident); };
+    $('#hg-del').onclick=function(){ S.p.show=false; $('#hg-show').checked=false; clearOv(); drawSite(null); setIdent(false); status('Layer dihapus dari peta.'); };
+    $('#hg-layer').onchange=function(){ readUI(); S.res=null; $('#hg-res-wrap').style.display='none'; renderLegend(); if(S.p.show) refreshOv(); };
+    $('#hg-show').onchange=function(){ readUI(); refreshOv(); if(S.p.show) loadLegend(); };
+    $('#hg-opa').oninput=function(){ readUI(); $('#hg-opav').textContent=S.p.opa; if(S.ov) S.ov.setOpacity(S.p.opa/100); };
+    $('#hg-site').onchange=readUI; $('#hg-res-sel').onchange=readUI;
+    $('#hg-base').onchange=function(){ readUI(); S.legend={}; loadLegend(); if(S.p.show) refreshOv(); };
+  }
+  window.sgHgOpen=function(){
+    if(!modal) build(); setMap(); fillSites(); writeUI(); loadLegend(); modal.classList.add('on');
+  };
+
+  /* ── Ikut di file proyek ── */
+  var oc=window._collectProjectState;
+  if(typeof oc==='function'){ window._collectProjectState=function(){ var st=oc.apply(this,arguments); try{ if(st&&typeof st==='object'&&modal){ readUI(); st.hgMap=Object.assign({},S.p,{ident:false}); } }catch(e){} return st; }; }
+  var oa=window._applyProjectState;
+  if(typeof oa==='function'){ window._applyProjectState=function(data){
+      var r=oa.apply(this,arguments);
+      try{ if(data&&data.hgMap){ S.p=Object.assign({},DEF,data.hgMap,{ident:false}); setTimeout(function(){ setMap(); if(S.p.show) refreshOv(); },1200); } }catch(e){ console.warn('[Hidrogeologi] pulihkan gagal',e); }
+      return r; }; }
+})();
+</script>
+<!-- HIDROGEOLOGI:END -->
+
 </body>
 </html>
