@@ -87,3 +87,18 @@ Arah aliran dari topografi **bergantung pada skala**: lereng lokal di dalam tapa
 - Latar, panel, dan garis tepi ikut condong kehijauan tipis. Mode terang/gelap tetap lewat tombol bulan di bilah atas.
 - Warna data (pin survei, ikon alat gambar, palet layer SHP) sengaja tidak diubah agar tetap bisa dibedakan.
 - Warna bilah browser (`theme-color`) dan manifest PWA ikut hijau; setelah deploy, hapus cache sekali agar versi baru termuat.
+
+## Tab awal
+- Saat app dibuka, ribbon langsung menampilkan tab **Data** (unggah SHP/DXF/TIF dll.), bukan Edit.
+
+## Track GPS → layer garis
+- Survey → **Mulai Tracking** merekam jalur (Kalman, jeda, perhentian). Saat **Selesai**, jalur otomatis menjadi **layer garis** di panel Layer (bisa dimatikan di Survey → Atur → "Otomatis jadikan layer garis").
+- Atribut layer: Nama, Mulai, Selesai, Jarak_m, Durasi_mnt, KecKmJam, Moda, JmlTitik, ElevMin, ElevMax. Garis putus sinyal disimpan sebagai MultiLineString.
+- Layer ikut tersimpan di file `.sandgis`, bisa diberi label/gaya, dipakai di Layout, dan diekspor seperti layer SHP lainnya.
+- Jalur lama: Survey → Linimasa → **Jadikan layer**, atau tombol **Jalur → Layer** di ribbon Survey (semua perjalanan selesai sekaligus). Tidak menggandakan layer yang sudah ada.
+
+## Segmentasi Sungai: profil elevasi & penampang melintang (butuh DEM)
+- Setelah **Hitung Segmentasi** dan ada DEM (TIF/DEMNAS atau kontur DXF berelevasi), kartu **Profil & Penampang (DEM)** muncul di panel. Bisa juga klik garis tengah sungai (profil), baris tabel segmen, atau garis kuning batas segmen (penampang) di peta.
+- **Profil elevasi:** elevasi sepanjang sungai dari hulu, batas segmen, kemiringan tiap segmen (m/km), hover sinkron dengan titik di peta, ekspor PNG/CSV.
+- **Penampang melintang tiap segmen:** potongan DEM tegak lurus sungai (posisi sisi hulu/tengah/sisi hilir, lebar bisa diatur), muka air dari kedalaman manual atau dari debit (Manning), hasil lebar muka air, luas/keliling basah, jari-jari hidrolis, kecepatan, debit, Froude. Ekspor PNG, CSV penampang, dan CSV hidrolika semua segmen.
+- Catatan: DEM tidak merekam dasar sungai di bawah muka air, jadi kedalaman dan luas basah bersifat indikatif. Untuk desain atau Qual2Kw, ganti dengan data ukur lapangan.

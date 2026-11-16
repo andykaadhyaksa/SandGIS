@@ -2481,6 +2481,16 @@ setTimeout(hide,8000);})();
           <div id="sgt-result-text" style="font-family:Arial,sans-serif;font-size:9.5px;color:var(--txt);line-height:1.7"></div>
         </div>
 
+        <!-- Profil & penampang (muncul setelah hitung) -->
+        <div id="sgp-card" style="display:none;margin-top:8px;padding:8px 10px;background:var(--sg3);border-radius:var(--rs);border:1px solid var(--brd)">
+          <div style="font-family:Arial,sans-serif;font-size:9px;font-weight:700;color:var(--mute);text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px">📈 Profil &amp; Penampang (DEM)</div>
+          <div id="sgp-card-info" style="font-family:Arial,sans-serif;font-size:9.5px;color:var(--txt2);line-height:1.5;margin-bottom:7px"></div>
+          <div style="display:flex;gap:6px">
+            <button onclick="sgpOpen('prof')" style="flex:1;font-family:Arial,sans-serif;font-size:10px;font-weight:700;padding:8px 4px;border-radius:var(--rs);cursor:pointer;background:var(--card);color:var(--sg);border:1px solid var(--sg)">📈 Profil elevasi sungai</button>
+            <button onclick="sgpOpen('sec')" style="flex:1;font-family:Arial,sans-serif;font-size:10px;font-weight:700;padding:8px 4px;border-radius:var(--rs);cursor:pointer;background:var(--card);color:var(--sg);border:1px solid var(--sg)">📐 Penampang melintang</button>
+          </div>
+        </div>
+
         <!-- Titik di segmen (muncul setelah hitung) -->
         <div id="sgt-points-box" style="margin-top:8px;display:none">
           <div style="font-family:Arial,sans-serif;font-size:9px;font-weight:700;color:var(--mute);text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px">📍 Titik di Segmen</div>
@@ -26880,7 +26890,8 @@ function sgtRenderResult(data) {
     clPolyline.addTo(_sgtResultLayer);
     clPolyline.on('click', function(e) {
       L.DomEvent.stopPropagation(e);
-      sgtOpenElevProfile(data.centerline.coordinates);
+      if (window.sgpOpen && typeof _elevAvailableSources === 'function' && _elevAvailableSources().length) sgpOpen('prof');
+      else sgtOpenElevProfile(data.centerline.coordinates);
     });
     if (_elevAvailableSources && _elevAvailableSources().length) {
       clPolyline.bindTooltip('📈 Klik untuk profil elevasi memanjang', {sticky:true, direction:'top', opacity:0.9});
@@ -26895,6 +26906,7 @@ function sgtRenderResult(data) {
     var pl = L.polyline(coords,{color:'#f5c030',weight:2.5,opacity:0.95,renderer:renderer});
     pl._sgtFeatureProps = f.properties; // simpan props asli untuk re-tooltip
     pl.addTo(_sgtResultLayer);
+    pl.on('click', function(ev) { try { L.DomEvent.stopPropagation(ev); } catch (e) {} if (window.sgpOpenBoundary) sgpOpenBoundary(pl._sgtFeatureProps); });
     _sgtCrossPolylines.push(pl);
     var mid=[(coords[0][0]+coords[1][0])/2,(coords[0][1]+coords[1][1])/2];
     L.circleMarker(mid,{radius:4,fillColor:'#f5c030',color:'#1a1a1a',weight:1,fillOpacity:1,renderer:renderer})
@@ -26996,7 +27008,7 @@ function sgtApplyArah(data, arah) {
   if (segs.length) {
     var arahLblTbl = (arah === 'hilir_hulu') ? 'Hilir → Hulu' : 'Hulu → Hilir';
     var refLabel = (arah === 'hilir_hulu') ? 'hilir' : 'hulu';
-    html += '<div style="font-family:Arial,sans-serif;font-size:8.5px;font-weight:700;color:var(--mute);text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px">Detail Tiap Segmen — Referensi: '+arahLblTbl+'</div>';
+    html += '<div style="font-family:Arial,sans-serif;font-size:8.5px;font-weight:700;color:var(--mute);text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px">Detail Tiap Segmen — Referensi: '+arahLblTbl+'</div><div style="font-size:8.5px;color:var(--mute);margin:-2px 0 5px">Klik baris = penampang melintang segmen (butuh DEM)</div>';
     html += '<div style="max-height:220px;overflow-y:auto;border-radius:4px;border:1px solid var(--brd2)">' +
       '<table style="width:100%;border-collapse:collapse;font-family:Arial,sans-serif;font-size:9px">' +
       '<thead><tr style="background:var(--card2);position:sticky;top:0">' +
@@ -27008,7 +27020,7 @@ function sgtApplyArah(data, arah) {
       '</tr></thead><tbody>';
     segs.forEach(function(s, i) {
       var bg = i%2===0 ? 'transparent' : 'rgba(255,255,255,0.03)';
-      html += '<tr style="background:'+bg+'">' +
+      html += '<tr data-sgp-seg="'+i+'" onclick="window.sgpOpen&&sgpOpen(\'sec\','+i+')" title="Klik: penampang melintang segmen '+s.segmen+'" style="cursor:pointer;background:'+bg+'">' +
         '<td style="padding:3px 6px;text-align:center;color:#f5c030;font-weight:700">'+s.segmen+'</td>' +
         '<td style="padding:3px 6px;text-align:right;color:var(--txt)">'+s.dari_m.toLocaleString('id')+'</td>' +
         '<td style="padding:3px 6px;text-align:right;color:var(--txt)">'+s.sampai_m.toLocaleString('id')+'</td>' +
@@ -30758,7 +30770,7 @@ button:focus-visible,.sg-item:focus-visible,.sg-lbl:focus-visible{outline:2px so
     var n=all[(i+(e.key==='ArrowRight'?1:-1)+all.length)%all.length]; n.focus(); n.click();
   });
   col.addEventListener('click',function(){setCollapsed(!rb.classList.contains('rg-collapsed'));});
-  show('edit');
+  show('data');
   try{setCollapsed(localStorage.getItem('sg_rb_col')==='1');}catch(e){}
   tabs.addEventListener('dblclick',function(e){if(e.target.closest('.rg-tab')) setCollapsed(!rb.classList.contains('rg-collapsed'));});
 
@@ -34991,7 +35003,7 @@ function dl(blob,name){ var a=document.createElement('a'); a.href=URL.createObje
 function safeName(s){ return String(s||'survey').replace(/[^a-z0-9\-_ ]/gi,'').trim().replace(/\s+/g,'-')||'survey'; }
 
 /* ─── Pengaturan ─── */
-var DEF={maxAcc:30,minDist:4,kalman:true,avgN:12,avgMax:30,keepAwake:true,follow:true,stampMap:'osm',photoMax:2048,showOnMap:true,arrows:true};
+var DEF={maxAcc:30,minDist:4,kalman:true,avgN:12,avgMax:30,keepAwake:true,follow:true,stampMap:'osm',photoMax:2048,showOnMap:true,arrows:true,autoLayer:true};
 var S=(function(){ var o={}; try{ o=JSON.parse(localStorage.getItem('sv_settings')||'{}'); }catch(e){} var r={}; for(var k in DEF) r[k]=(o[k]!==undefined?o[k]:DEF[k]); return r; })();
 function saveS(){ try{ localStorage.setItem('sv_settings',JSON.stringify(S)); }catch(e){} }
 
@@ -35149,7 +35161,7 @@ SV.pauseTrack=function(){ if(!st.tracking) return; if(!st.paused){ st.paused=tru
 SV.stopTrack=function(){ if(!st.tracking) return; var t=st.track; if(st.paused){ t.pausedMs=(t.pausedMs||0)+(Date.now()-st.pausedAt); st.paused=false; }
   t.end=Date.now(); t.active=false; st.tracking=false; st.track=null; wake(false);
   if(t.pts.length<2&&!st.points.some(function(p){return p.trackId===t.id;})){ undrawTrack(t.id); st.tracks.splice(st.tracks.indexOf(t),1); dbDel('tracks',t.id); T('Tracking dihentikan (tidak ada pergerakan terekam, dibuang)','warn'); }
-  else{ dbPut('tracks',t); drawTrack(t); T('⏹ Tracking selesai · '+fmtDist(t.dist)+' · '+fmtDur(trackElapsed(t)),'ok'); var m=M(); if(m&&t.pts.length>1){ try{ m.fitBounds(L.latLngBounds(t.pts.map(function(p){return [p[0],p[1]];})),{padding:[40,40],maxZoom:19}); }catch(e){} } }
+  else{ dbPut('tracks',t); drawTrack(t); T('⏹ Tracking selesai · '+fmtDist(t.dist)+' · '+fmtDur(trackElapsed(t)),'ok'); if(S.autoLayer&&t.pts.length>1){ try{ var mk=SV.toLayer(t.id,{silent:true}); if(mk&&mk.length) T('✅ Jalur dijadikan layer garis: '+t.name,'ok'); }catch(e){} } var m=M(); if(m&&t.pts.length>1){ try{ m.fitBounds(L.latLngBounds(t.pts.map(function(p){return [p[0],p[1]];})),{padding:[40,40],maxZoom:19}); }catch(e){} } }
   if(!panelOn()&&!st.modal) stopWatch(); stopTickIfIdle(); refreshUI(); };
 SV.toggleTrack=function(){ if(st.tracking) SV.stopTrack(); else SV.startTrack(); };
 /* Layar tetap menyala */
@@ -35390,7 +35402,7 @@ function tlHtml(){ var items=[]; st.tracks.forEach(function(t){ items.push({k:'t
      +'<div class="sv-tl" style="margin-top:10px"><div class="sv-ev s" data-a="fly" data-id="'+t.id+'" data-k="ts"><b>Mulai</b><small>'+fmtClock(t.start)+'</small></div>'
      +evHtml(t,pts)
      +(t.active?'':'<div class="sv-ev e" data-a="fly" data-id="'+t.id+'" data-k="te"><b>Selesai</b><small>'+fmtClock(t.end)+(t.interrupted?' (terputus)':'')+'</small></div>')+'</div>'
-     +'<div class="sv-row" style="margin:8px 0 0"><button class="sv-btn sm" data-a="showtr" data-id="'+t.id+'">Lihat di peta</button><button class="sv-btn sm" data-a="gpx1" data-id="'+t.id+'">GPX</button></div></div>'; });
+     +'<div class="sv-row" style="margin:8px 0 0"><button class="sv-btn sm" data-a="showtr" data-id="'+t.id+'">Lihat di peta</button>'+(t.active?'':'<button class="sv-btn sm'+(hasLayer(t)?' on':'')+'" data-a="tolayer" data-id="'+t.id+'" title="Jadikan layer garis di panel Layer proyek">'+(hasLayer(t)?'✓ Layer garis':'⇢ Jadikan layer')+'</button>')+'<button class="sv-btn sm" data-a="gpx1" data-id="'+t.id+'">GPX</button></div></div>'; });
   return h; }
 function setHtml(){ return '<div class="sv-h" style="margin-top:0">Akurasi</div>'
   +'<label class="sv-field"><span>Abaikan titik track bila akurasi lebih buruk dari (m)</span><input type="number" min="5" max="200" data-s="maxAcc" value="'+S.maxAcc+'"></label>'
@@ -35399,11 +35411,13 @@ function setHtml(){ return '<div class="sv-h" style="margin-top:0">Akurasi</div>
   +'<label class="sv-chk"><input type="checkbox" data-s="kalman" '+(S.kalman?'checked':'')+'> Haluskan posisi (filter Kalman)</label>'
   +'<label class="sv-chk"><input type="checkbox" data-s="keepAwake" '+(S.keepAwake?'checked':'')+'> Jaga layar tetap menyala saat tracking</label>'
   +'<label class="sv-chk"><input type="checkbox" data-s="showOnMap" '+(S.showOnMap?'checked':'')+'> Tampilkan data survey di peta</label>'
+  +'<label class="sv-chk"><input type="checkbox" data-s="autoLayer" '+(S.autoLayer?'checked':'')+'> Otomatis jadikan layer garis saat Selesai Tracking</label>'
   +'<label class="sv-chk"><input type="checkbox" data-s="arrows" '+(S.arrows?'checked':'')+'> Panah arah pergerakan pada jalur</label>'
   +'<div class="sv-h">Foto</div>'
   +'<label class="sv-field"><span>Peta mini pada stempel foto</span><select data-s="stampMap"><option value="osm"'+(S.stampMap==='osm'?' selected':'')+'>Peta jalan</option><option value="sat"'+(S.stampMap==='sat'?' selected':'')+'>Satelit</option></select></label>'
   +'<label class="sv-field"><span>Ukuran maks. foto (px sisi terpanjang)</span><select data-s="photoMax">'+[1280,1600,2048,3000].map(function(v){return '<option'+(S.photoMax===v?' selected':'')+'>'+v+'</option>';}).join('')+'</select></label>'
-  +'<div class="sv-h">Data &amp; ekspor</div><div class="sv-sub" style="margin-bottom:8px">Data survey tersimpan otomatis di perangkat ini (tidak ikut file .sandgis). Ekspor untuk cadangan.</div>'
+  +'<div class="sv-h">Data &amp; ekspor</div><div class="sv-sub" style="margin-bottom:8px">Data mentah survey tersimpan otomatis di perangkat ini. Jalur yang dijadikan <b>layer garis</b> ikut tersimpan di file .sandgis dan bisa dipakai di Layout / ekspor SHP. Titik dikirim lewat tab Titik.</div>'
+  +'<div class="sv-row"><button class="sv-btn sm" data-a="tolayerall" title="Semua perjalanan selesai → layer garis di panel Layer">⇢ Semua jalur jadi layer garis</button></div>'
   +'<div class="sv-row"><button class="sv-btn sm" data-a="zip">ZIP (+foto)</button><button class="sv-btn sm" data-a="geojson">GeoJSON</button></div><div class="sv-row"><button class="sv-btn sm" data-a="gpx">GPX</button><button class="sv-btn sm" data-a="csv">CSV titik</button></div>'
   +'<div class="sv-row"><button class="sv-btn sm" data-a="wipe" style="color:#d64545">Hapus semua data survey</button></div>'; }
 function onSetChange(e){ var el=e.target.closest('[data-s]'); if(!el) return; var k=el.dataset.s, v=el.type==='checkbox'?el.checked:(el.tagName==='SELECT'&&(k==='photoMax')?+el.value:(el.type==='number'?+el.value:el.value)); if(el.type==='number'&&(!isFinite(v)||v<+el.min)) v=Math.max(+el.min,DEF[k]); S[k]=v; saveS(); if(k==='kalman') st.kf=v?new KF(3):null; if(k==='showOnMap'){ ensureGrp(); redrawAll(); } if(k==='arrows') st.tracks.forEach(function(t){ updateArrows(t,true); }); }
@@ -35413,13 +35427,37 @@ function onBody(e){ var b=e.target.closest('[data-a],[data-pt]'); if(!b) return;
     case 'mark': SV.markPoint(); break; case 'markphoto': SV.markPoint({photo:'cam'}); break; case 'gpsoff': SV.gpsOff(); break; case 'editpt': e.stopPropagation(); SV.editPoint(id); break;
     case 'fly': flyTo(b.dataset.k,id,b.dataset.i); break; case 'showtr': SV.showTrack(id); break;
     case 'ren': var t=st.tracks.filter(function(x){return x.id===id;})[0]; var n=t&&prompt('Nama perjalanan:',t.name); if(n&&n.trim()){ t.name=n.trim(); dbPut('tracks',t); renderBody(true); } break;
-    case 'deltr': SV.delTrack(id); break; case 'gpx1': SV.exportGPX(id); break; case 'toslm': SV.toSandGIS(); break;
+    case 'deltr': SV.delTrack(id); break; case 'tolayer': SV.toLayer(id); break; case 'tolayerall': SV.toLayer(); break; case 'gpx1': SV.exportGPX(id); break; case 'toslm': SV.toSandGIS(); break;
     case 'zip': SV.exportZip(); break; case 'geojson': SV.exportGeoJSON(); break; case 'gpx': SV.exportGPX(); break; case 'csv': SV.exportCSV(); break; case 'wipe': SV.wipe(); break; } }
 SV.flyPoint=function(id){ var p=st.points.filter(function(x){return x.id===id;})[0]; var m=M(); if(!p||!m) return; ensureGrp(); st.follow=false; m._svUserMoved=true; m.setView([p.lat,p.lng],Math.max(m.getZoom(),18)); var mk=st.ptMks[id]; if(mk) setTimeout(function(){ mk.openPopup(); },300); };
 function flyTo(k,id,ix){ var m=M(); if(!m) return; if(k==='p') return SV.flyPoint(id); var t=st.tracks.filter(function(x){return x.id===id;})[0]; if(!t||!t.pts.length) return; var p=k==='te'?t.pts[t.pts.length-1]:(k==='st'?(t.pts[+ix]||t.pts[0]):t.pts[0]); st.follow=false; m._svUserMoved=true; m.setView([p[0],p[1]],Math.max(m.getZoom(),17)); }
 SV.showTrack=function(id){ var t=st.tracks.filter(function(x){return x.id===id;})[0], m=M(); if(!t||!m||t.pts.length<2) return; ensureGrp(); drawTrack(t); st.follow=false; m._svUserMoved=true; m.fitBounds(L.latLngBounds(t.pts.map(function(p){return [p[0],p[1]];})),{padding:[40,40],maxZoom:19}); if(window.matchMedia('(max-width:768px)').matches) toggleMin(); };
 SV.delTrack=function(id){ var t=st.tracks.filter(function(x){return x.id===id;})[0]; if(!t) return; if(t.active){ T('Selesaikan tracking dulu','warn'); return; } if(!confirm('Hapus "'+t.name+'"? Titik yang ditandai pada perjalanan ini tetap tersimpan.')) return;
   undrawTrack(id); st.tracks.splice(st.tracks.indexOf(t),1); dbDel('tracks',id); st.points.forEach(function(p){ if(p.trackId===id){ delete p.trackId; dbPut('points',p); } }); renderBody(true); T('Perjalanan dihapus'); };
+
+/* ─── Jalur GPS → layer garis proyek (muncul di panel Layer, ikut file .sandgis, Layout, ekspor SHP) ─── */
+function trackFeature(t){ var sg=trackSegs(t).segs.filter(function(q){return q.length>1;}); if(!sg.length) return null;
+  var el=trackElapsed(t), avg=el>0?t.dist/(el/1000)*3.6:0, md=trkMode(t), alts=t.pts.map(function(p){return p[4];}).filter(function(v){return v!=null&&isFinite(v);});
+  function co(q){ return q.map(function(c){ return [+(+c[1]).toFixed(7),+(+c[0]).toFixed(7)]; }); }
+  var geom=sg.length===1?{type:'LineString',coordinates:co(sg[0])}:{type:'MultiLineString',coordinates:sg.map(co)};
+  return {type:'Feature',properties:{Nama:t.name,Mulai:fmtFull(t.start),Selesai:t.end?fmtFull(t.end):'',Jarak_m:Math.round(t.dist),Durasi_mnt:+(el/60000).toFixed(1),KecKmJam:+avg.toFixed(1),Moda:md.label,JmlTitik:t.pts.length,ElevMin:alts.length?Math.round(Math.min.apply(null,alts)):null,ElevMax:alts.length?Math.round(Math.max.apply(null,alts)):null},geometry:geom}; }
+function layerIdFor(t){ return 'trk_'+t.id; }
+function hasLayer(t){ return typeof _shpLayers!=='undefined'&&_shpLayers.some(function(l){ return l.id===layerIdFor(t); }); }
+SV.toLayer=function(ids,opt){ opt=opt||{};
+  if(typeof _shpLayers==='undefined'||typeof _shpBuildLeafletLayer!=='function'||typeof _map==='undefined'||!_map){ if(!opt.silent) T('Peta SandGIS belum siap','err'); return null; }
+  var list=(ids==null?st.tracks.filter(function(t){return !t.active;}):[].concat(ids).map(function(id){ return st.tracks.filter(function(t){return t.id===id;})[0]; }).filter(Boolean));
+  var made=[], skip=0;
+  list.forEach(function(t){ if(t.active) return; if(hasLayer(t)){ skip++; return; } var f=trackFeature(t); if(!f){ return; }
+    var color=trkColor(t), fc={type:'FeatureCollection',features:[f]};
+    var lo={ id:layerIdFor(t), name:t.name, color:color, layer:null, count:1, features:[f], geomType:'Line',
+      fillStyle:'solid', fillOpacity:0, fillBaseColor:color, lineStyle:'solid', weight:3, opacity:95,
+      outlineColorMode:'single', outlineColorField:null, outlineStyleMap:{}, fillColorMode:'single', fillColorField:null, fillStyleMap:{},
+      labelField:null, labelFontSize:11, labelColor:'#1a1a1a', labelVisible:true, labelLayer:null };
+    try{ lo.layer=_shpBuildLeafletLayer(fc,lo,lo.name); lo.layer.addTo(_map); _shpLayers.push(lo); made.push(lo); }catch(e){ console.warn('[Survey] layer gagal',e); } });
+  if(made.length){ try{ if(typeof _layerOrderSync==='function') _layerOrderSync(); }catch(e){} try{ if(typeof shpUpdateLayerList==='function') shpUpdateLayerList(); }catch(e){} try{ if(typeof _persist==='function') _persist(); }catch(e){} }
+  if(!opt.silent){ if(made.length) T('✅ '+(made.length===1?'"'+made[0].name+'"':made.length+' perjalanan')+' dijadikan layer garis (panel Layer)','ok'); else if(skip) T('Perjalanan ini sudah menjadi layer garis','warn'); else T('Belum ada perjalanan yang selesai direkam','warn'); }
+  if(st.tab==='tl'&&panelOn()) renderBody(true);
+  return made; };
 SV.toSandGIS=function(){ if(typeof _markers==='undefined'||typeof _addLeafletMarker!=='function'){ T('Fitur peta SandGIS belum siap','err'); return; } var n=0, have={};
   _markers.forEach(function(m){ have[m.name+'|'+m.lat+'|'+m.lng]=1; });
   st.points.forEach(function(p){ var k=p.name+'|'+p.lat+'|'+p.lng; if(have[k]) return; var mk={id:'mk_'+(_uid++),type:'sampling',name:p.name,lat:p.lat,lng:p.lng,note:(p.note||'')+(p.note?' · ':'')+fmtFull(p.t)}; _markers.push(mk); try{ _addLeafletMarker(mk); }catch(e){} n++; });
@@ -35461,6 +35499,7 @@ var I={
  pin:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s7-6.5 7-12a7 7 0 10-14 0c0 5.5 7 12 7 12z"/><circle cx="12" cy="10" r="2.5"/></svg>',
  cam:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3a1 1 0 011 1v9a1 1 0 01-1 1H4a1 1 0 01-1-1V9a1 1 0 011-1z"/><circle cx="12" cy="13" r="3.5"/></svg>',
  tl:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4v16"/><circle cx="6" cy="6" r="2"/><circle cx="6" cy="12" r="2"/><circle cx="6" cy="18" r="2"/><path d="M11 6h9M11 12h7M11 18h9"/></svg>',
+ lyr:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17c3-1 4-6 8-6s4 5 10-5"/><circle cx="3" cy="17" r="1.6"/><circle cx="21" cy="6" r="1.6"/></svg>',
  exp:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5"/><path d="M4 19h16"/></svg>' };
 var sItems={};
 function mkItem(key,label,svg,fn){ var d=document.createElement('div'); d.className='sg-item'; d.tabIndex=0; d.setAttribute('role','button'); d.title=label; d.dataset.noTr='1';
@@ -35476,7 +35515,7 @@ function installRibbon(){ var tabs=$('#rg-tabs'), setting=tabs&&tabs.querySelect
   grp('Posisi',[mkItem('loc','Lokasi Saya',I.loc,SV.locate),mkItem('panel','Panel Survey',I.panel,function(){ SV.openPanel('pos'); })]);
   grp('Tracking',[mkItem('rec','Mulai Tracking',I.rec,SV.toggleTrack),mkItem('pause','Jeda',I.pause,function(){ if(st.tracking) SV.pauseTrack(); else T('Mulai tracking dulu','warn'); })]);
   grp('Titik',[mkItem('mark','Tandai Titik',I.pin,function(){ SV.markPoint(); }),mkItem('photo','Titik + Foto',I.cam,function(){ SV.markPoint({photo:'cam'}); })]);
-  grp('Data',[mkItem('tl','Linimasa',I.tl,function(){ SV.openPanel('tl'); }),mkItem('exp','Ekspor',I.exp,function(){ SV.openPanel('set'); })]);
+  grp('Data',[mkItem('tl','Linimasa',I.tl,function(){ SV.openPanel('tl'); }),mkItem('lyr','Jalur → Layer',I.lyr,function(){ SV.toLayer(); }),mkItem('exp','Ekspor',I.exp,function(){ SV.openPanel('set'); })]);
   panels.appendChild(pn); setSurveyItems(); return true; }
 
 /* ═══ INISIALISASI ═══ */
@@ -38214,6 +38253,363 @@ wrap('_applyProjectState', function(){ if (GE.active) GE.stop(true); });        
 })();
 </script>
 <!-- HIDROGEOLOGI:END -->
+
+<!-- SEGMENTASI-PROFIL:START -->
+<script>
+/* ═══ PROFIL ELEVASI & PENAMPANG MELINTANG SUNGAI (Segmentasi Sungai + DEM) ═══
+   Tab 1  Profil memanjang: elevasi DEM sepanjang garis tengah hulu→hilir, batas segmen, kemiringan tiap segmen.
+   Tab 2  Penampang melintang tiap segmen: potongan DEM tegak lurus sungai, muka air, luas basah, Manning.
+   Memakai sumber elevasi yang sama dengan fitur profil elevasi lain (TIF/DEMNAS + kontur DXF).            */
+(function(){
+'use strict';
+var G={tab:'prof',seg:0,pos:'mid',customD:null,width:null,dmode:'depth',depth:1,q:5,n:0.035,smooth:true,src:'all',
+       prof:null,sec:null,lg:null,hov:null,secLine:null,built:false,timer:null};
+var VW=900, VH=390, ML=60, MR=18, MT=42, MB=46;
+function sizeChart(){ var b=document.getElementById('sgp-body'), w=b?b.clientWidth-26:700; VW=clamp(Math.round(w),300,900); VH=Math.round(clamp(VW*0.54,250,420)); var sm=VW<500; ML=sm?46:60; MR=sm?12:18; MT=42; MB=sm?44:46; }
+
+function $(id){ return document.getElementById(id); }
+function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+function num(v,d){ if(v==null||!isFinite(v)) return '—'; return Number(v).toLocaleString('id-ID',{minimumFractionDigits:d,maximumFractionDigits:d}); }
+function tst(m,t){ try{ toast(m,t); }catch(e){} }
+function clamp(v,a,b){ return Math.max(a,Math.min(b,v)); }
+
+/* ─── data segmentasi ─── */
+function lastData(){ try{ return _sgtLastData; }catch(e){ return null; } }
+var _pi=null;
+function PI(){ var d=lastData(), cl=d&&d.centerline&&d.centerline.coordinates; if(!cl||cl.length<2) return null;
+  if(_pi&&_pi.P===cl) return _pi;
+  var cum=[0]; for(var i=1;i<cl.length;i++) cum.push(cum[i-1]+_sgtGeoM(cl[i-1],cl[i]));
+  _pi={P:cl,cum:cum,total:cum[cum.length-1]}; return _pi; }
+function SEGS(){ var d=lastData(), pi=PI(); if(!d||!pi) return [];
+  var tot=(d.meta&&d.meta.total_m)||pi.total, hh=(typeof _sgtArah==='undefined'||_sgtArah!=='hilir_hulu');
+  return (_sgtSegments||[]).map(function(s,i){
+    var g0=hh?s.dari_m:tot-s.sampai_m, g1=hh?s.sampai_m:tot-s.dari_m;
+    return {i:i,num:s.segmen,dari:s.dari_m,sampai:s.sampai_m,g0:clamp(g0,0,pi.total),g1:clamp(g1,0,pi.total)}; }); }
+
+/* ─── sumber elevasi ─── */
+function allSources(){ try{ return _elevAvailableSources()||[]; }catch(e){ return []; } }
+function handles(){ var all=allSources(); if(!all.length) return [];
+  var sel=all.map(function(s){ return {kind:s.kind,id:s.id}; });
+  if(G.src!=='all') sel=sel.filter(function(s){ return s.kind+':'+s.id===G.src; });
+  try{ return _elevBuildSourceHandles(sel); }catch(e){ return []; } }
+function bil(g,lat,lng){
+  if(!g||lng<g.xmin||lng>g.xmax||lat<g.ymin||lat>g.ymax) return null;
+  var fx=(lng-g.xmin)/g.pixelWidth-0.5, fy=(g.ymax-lat)/g.pixelHeight-0.5, c0=Math.floor(fx), r0=Math.floor(fy), tx=fx-c0, ty=fy-r0;
+  var V=g.values&&g.values[0]; if(!V) return null; var nd=g.noDataValue, sum=0, w=0;
+  for(var dr=0;dr<2;dr++) for(var dc=0;dc<2;dc++){
+    var r=clamp(r0+dr,0,g.height-1), c=clamp(c0+dc,0,g.width-1), v=V[r]&&V[r][c];
+    if(v===null||v===undefined||isNaN(v)||v===nd||v<-9000) continue;
+    var k=(dc?tx:1-tx)*(dr?ty:1-ty); sum+=v*k; w+=k; }
+  return w>1e-4?sum/w:null; }
+function elevAt(hs,lat,lng){
+  for(var i=0;i<hs.length;i++){ var h=hs[i], v=h.kind==='dxf'?_dxfSampleElevIndex(h.index,lng,lat,10,30):bil(h.obj.georaster,lat,lng);
+    if(v!==null&&v!==undefined&&isFinite(v)) return {z:v,src:h.name}; }
+  return null; }
+function resM(hs){ var r=Infinity; hs.forEach(function(h){ if(h.kind==='tif'&&h.obj&&h.obj.georaster){ var g=h.obj.georaster, lat=(g.ymin+g.ymax)/2;
+    var m=Math.min(g.pixelWidth*111320*Math.cos(lat*Math.PI/180),g.pixelHeight*110574); if(m>0&&m<r) r=m; } }); return isFinite(r)?r:10; }
+
+function fillGaps(a){ var n=a.length,o=a.slice(),i=0; while(i<n){ if(o[i]==null){ var j=i; while(j<n&&o[j]==null) j++;
+    if(i>0&&j<n){ for(var k=i;k<j;k++) o[k]=o[i-1]+(o[j]-o[i-1])*(k-i+1)/(j-i+1); } i=j; } else i++; } return o; }
+function movAvg(a,W){ var n=a.length,h=(W-1)>>1,o=new Array(n); for(var i=0;i<n;i++){ var s=0,c=0; for(var j=Math.max(0,i-h);j<=Math.min(n-1,i+h);j++) if(a[j]!=null){ s+=a[j]; c++; } o[i]=c?s/c:null; } return o; }
+
+/* ─── profil memanjang ─── */
+function computeProfile(){
+  var pi=PI(), hs=handles(); if(!pi||!hs.length) return null;
+  var res=resM(hs), interval=clamp(Math.max(res*0.75,pi.total/300,1),1,100), n=Math.max(2,Math.ceil(pi.total/interval)+1), step=pi.total/(n-1);
+  var pts=[], raw=[], valid=0, srcs={};
+  for(var k=0;k<n;k++){ var d=k*step, sp=_sgtPathSample(pi.P,pi.cum,d), e=elevAt(hs,sp.pt[1],sp.pt[0]);
+    pts.push({d:d,lat:sp.pt[1],lng:sp.pt[0]}); raw.push(e?e.z:null); if(e){ valid++; srcs[e.src]=1; } }
+  if(valid<2) return {pts:pts,raw:raw,zs:raw,valid:valid,n:n,total:pi.total,step:step,res:res,srcs:Object.keys(srcs)};
+  var filled=fillGaps(raw), W=G.smooth?Math.max(3,2*Math.floor(Math.round(2.5*res/step)/2)+1):1, zs=W>1?movAvg(filled,W):filled;
+  return {pts:pts,raw:filled,zs:zs,valid:valid,n:n,total:pi.total,step:step,res:res,W:W,srcs:Object.keys(srcs),cov:valid/n}; }
+function zAt(P,d){ var x=clamp(d/P.step,0,P.zs.length-1), i=Math.floor(x), f=x-i, a=P.zs[i], b=P.zs[Math.min(i+1,P.zs.length-1)];
+  if(a==null) return b; if(b==null) return a; return a+(b-a)*f; }
+function segStats(P,segs){ return segs.map(function(s){
+  var zA=zAt(P,s.g0), zB=zAt(P,s.g1), L=Math.max(1e-6,s.g1-s.g0), mn=Infinity, mx=-Infinity;
+  P.pts.forEach(function(p,i){ if(p.d>=s.g0-1e-6&&p.d<=s.g1+1e-6&&P.zs[i]!=null){ mn=Math.min(mn,P.zs[i]); mx=Math.max(mx,P.zs[i]); } });
+  return {zA:zA,zB:zB,dh:(zA!=null&&zB!=null)?zA-zB:null,S:(zA!=null&&zB!=null)?(zA-zB)/L:null,min:isFinite(mn)?mn:null,max:isFinite(mx)?mx:null}; }); }
+
+/* ─── penampang melintang ─── */
+function segDist(s){ if(G.pos==='custom'&&G.customD!=null) return G.customD; return G.pos==='start'?s.g0:(G.pos==='end'?s.g1:(s.g0+s.g1)/2); }
+function sectionAt(gd,w){
+  var pi=PI(), hs=handles(); if(!pi||!hs.length) return null;
+  var sp=_sgtPathSample(pi.P,pi.cum,clamp(gd,0,pi.total)), k=Math.cos(sp.pt[1]*Math.PI/180), nx=-sp.ty, ny=sp.tx;   /* normal kiri menghadap hilir */
+  var res=resM(hs), N=clamp(Math.round(w/Math.max(res/3,0.5)),81,401), x=[], z=[], pts=[], valid=0;
+  for(var j=0;j<N;j++){ var off=-w/2+j*w/(N-1);                        /* + = ke kanan (menghadap hilir) */
+    var lat=sp.pt[1]-ny*off/110574, lng=sp.pt[0]-nx*off/(111320*k), e=elevAt(hs,lat,lng);
+    x.push(off); pts.push([lat,lng]); z.push(e?e.z:null); if(e) valid++; }
+  if(valid<N*0.5) return {x:x,z:z,pts:pts,valid:valid,N:N,fail:true,w:w,gd:gd,res:res,center:[sp.pt[1],sp.pt[0]],line:[pts[0],pts[N-1]]};
+  var zf=fillGaps(z); var a=0; while(a<N&&zf[a]==null) a++; var b=N-1; while(b>=0&&zf[b]==null) b--;
+  zf=zf.map(function(v,i){ return v==null?(i<a?zf[a]:zf[b]):v; });
+  return {x:x,z:zf,pts:pts,valid:valid,N:N,w:w,gd:gd,res:res,center:[sp.pt[1],sp.pt[0]],line:[pts[0],pts[N-1]]}; }
+function thalweg(x,z,w){ var lim=Math.max(8,0.1*w), best=-1; for(var i=0;i<x.length;i++) if(Math.abs(x[i])<=lim&&(best<0||z[i]<z[best])) best=i; return best<0?0:best; }
+function hyd(x,z,wse,iT){
+  var n=z.length; if(!(wse>z[iT])) return {A:0,B:0,P:0,R:0,dmax:0,poly:[],overtop:false,xL:x[iT],xR:x[iT]};
+  var iL=iT; while(iL>0&&z[iL-1]<wse) iL--; var iR=iT; while(iR<n-1&&z[iR+1]<wse) iR++;
+  var xL=iL>0?x[iL-1]+(wse-z[iL-1])*(x[iL]-x[iL-1])/(z[iL]-z[iL-1]):x[0], xR=iR<n-1?x[iR]+(wse-z[iR])*(x[iR+1]-x[iR])/(z[iR+1]-z[iR]):x[n-1];
+  var poly=[[xL,wse]]; for(var i=iL;i<=iR;i++) poly.push([x[i],z[i]]); poly.push([xR,wse]);
+  var A=0,P=0; for(i=0;i<poly.length-1;i++){ var a=poly[i], b=poly[i+1]; A+=(b[0]-a[0])*((wse-a[1])+(wse-b[1]))/2; P+=Math.sqrt(Math.pow(b[0]-a[0],2)+Math.pow(b[1]-a[1],2)); }
+  return {A:A,B:xR-xL,P:P,R:P>0?A/P:0,dmax:wse-z[iT],xL:xL,xR:xR,poly:poly,overtop:(iL===0||iR===n-1)}; }
+function solveDepth(x,z,iT,Q,S,nM){
+  var hi=Math.max.apply(null,z)-z[iT]; if(!(hi>0.01)) return {d:0.01,capped:true};
+  function q(d){ var h=hyd(x,z,z[iT]+d,iT); return h.A>0?(1/nM)*Math.pow(h.R,2/3)*Math.sqrt(S)*h.A:0; }
+  if(q(hi)<Q) return {d:hi,capped:true};
+  var lo=0.01; for(var i=0;i<45;i++){ var m=(lo+hi)/2; if(q(m)<Q) lo=m; else hi=m; } return {d:(lo+hi)/2,capped:false}; }
+function analyze(sec,Sx){
+  var iT=thalweg(sec.x,sec.z,sec.w), zT=sec.z[iT], depth=G.depth, capped=false;
+  if(G.dmode==='q'){ if(Sx>0){ var r=solveDepth(sec.x,sec.z,iT,G.q,Sx,G.n); depth=r.d; capped=r.capped; } else depth=0; }
+  var wse=zT+depth, h=hyd(sec.x,sec.z,wse,iT), V=null,Q=null,Fr=null;
+  if(Sx>0&&h.A>0){ V=(1/G.n)*Math.pow(h.R,2/3)*Math.sqrt(Sx); Q=V*h.A; Fr=V/Math.sqrt(9.81*h.A/h.B); }
+  return {iT:iT,zT:zT,depth:depth,wse:wse,h:h,S:Sx,V:V,Q:Q,Fr:Fr,capped:capped}; }
+function slopeFor(P,st,i){ if(!P||P.valid<2||!st) return null; var s=st[i]&&st[i].S; if(s>0) return s;
+  var z0=zAt(P,0), z1=zAt(P,P.total), m=(z0-z1)/P.total; return m>0?m:null; }
+
+/* ─── gambar SVG ─── */
+function niceTicks(a,b,target){ var r=b-a; if(!(r>0)) return {t:[a],st:1}; var raw=r/target,p=Math.pow(10,Math.floor(Math.log10(raw))),f=raw/p,s=(f<1.5?1:f<3?2:f<7?5:10)*p,t=[];
+  for(var v=Math.ceil(a/s-1e-9)*s;v<=b+1e-9;v+=s) t.push(Math.round(v/s)*s||0); return {t:t,st:s}; }
+function tf(v,st){ return num(v,st>=1?0:(st>=0.1?1:2)); }
+function frame(title,zmin,zmax,xmin,xmax,xTitle,yTitle){
+  var pw=VW-ML-MR, ph=VH-MT-MB;
+  var X=function(v){ return ML+(v-xmin)/(xmax-xmin)*pw; }, Y=function(z){ return MT+(zmax-z)/(zmax-zmin)*ph; };
+  var s='<svg id="sgp-svg" class="sgp-svg" viewBox="0 0 '+VW+' '+VH+'" xmlns="http://www.w3.org/2000/svg" font-family="Arial,sans-serif">'
+    +'<rect width="'+VW+'" height="'+VH+'" style="fill:var(--card)"/>'
+    +'<text x="'+ML+'" y="17" font-size="14" font-weight="700" style="fill:var(--txt)">'+esc(title)+'</text>';
+  var ty=niceTicks(zmin,zmax,6); ty.t.forEach(function(v){ var y=Y(v); s+='<line x1="'+ML+'" x2="'+(VW-MR)+'" y1="'+y+'" y2="'+y+'" style="stroke:var(--brd2)" stroke-width="1"/><text x="'+(ML-7)+'" y="'+(y+4)+'" text-anchor="end" font-size="11" style="fill:var(--txt2)">'+tf(v,ty.st)+'</text>'; });
+  var tx=niceTicks(xmin,xmax,8); tx.t.forEach(function(v){ var x=X(v); s+='<line x1="'+x+'" x2="'+x+'" y1="'+MT+'" y2="'+(VH-MB)+'" style="stroke:var(--brd2)" stroke-width="1" stroke-dasharray="2,4"/><text x="'+x+'" y="'+(VH-MB+16)+'" text-anchor="middle" font-size="11" style="fill:var(--txt2)">'+tf(v,tx.st)+'</text>'; });
+  s+='<rect x="'+ML+'" y="'+MT+'" width="'+pw+'" height="'+ph+'" fill="none" style="stroke:var(--brd)"/>'
+    +'<text x="'+(ML+pw/2)+'" y="'+(VH-8)+'" text-anchor="middle" font-size="12" style="fill:var(--txt2)">'+esc(xTitle)+'</text>'
+    +'<text transform="translate(15,'+(MT+ph/2)+') rotate(-90)" text-anchor="middle" font-size="12" style="fill:var(--txt2)">'+esc(yTitle)+'</text>';
+  return {s:s,X:X,Y:Y,pw:pw,ph:ph}; }
+function profSvg(P,segs){
+  var all=P.zs.concat(P.raw).filter(function(v){ return v!=null; }), zmin=Math.min.apply(null,all), zmax=Math.max.apply(null,all), pad=Math.max((zmax-zmin)*0.1,0.5);
+  zmin-=pad; zmax+=pad; var F=frame('Profil elevasi memanjang sungai',zmin,zmax,0,P.total,'Jarak dari hulu (m)','Elevasi (m dpl)'), X=F.X, Y=F.Y, s=F.s;
+  var bset={}; segs.forEach(function(g){ bset[g.g0.toFixed(2)]=g.g0; bset[g.g1.toFixed(2)]=g.g1; });
+  Object.keys(bset).forEach(function(k){ var x=X(bset[k]); s+='<line x1="'+x+'" x2="'+x+'" y1="'+MT+'" y2="'+(VH-MB)+'" stroke="#f5a623" stroke-width="1" stroke-dasharray="5,4" opacity=".75"/>'; });
+  var every=Math.max(1,Math.ceil(segs.length/18)); segs.forEach(function(g,i){ if(i%every) return; s+='<text x="'+X((g.g0+g.g1)/2)+'" y="'+(MT-7)+'" text-anchor="middle" font-size="10.5" font-weight="700" style="fill:var(--txt2)">'+g.num+'</text>'; });
+  var line='', area='', first=-1, last=-1; P.pts.forEach(function(p,i){ if(P.zs[i]==null) return; if(first<0) first=i; last=i; line+=(line?' L':'M')+X(p.d).toFixed(1)+','+Y(P.zs[i]).toFixed(1); });
+  area=line+' L'+X(P.pts[last].d).toFixed(1)+','+Y(zmin).toFixed(1)+' L'+X(P.pts[first].d).toFixed(1)+','+Y(zmin).toFixed(1)+' Z';
+  s+='<path d="'+area+'" fill="#1f78c1" opacity=".16"/>';
+  if(P.W>1){ var rl=''; P.pts.forEach(function(p,i){ if(P.raw[i]==null) return; rl+=(rl?' L':'M')+X(p.d).toFixed(1)+','+Y(P.raw[i]).toFixed(1); }); s+='<path d="'+rl+'" fill="none" style="stroke:var(--mute)" stroke-width="1" opacity=".8"/>'; }
+  s+='<path d="'+line+'" fill="none" stroke="#1f78c1" stroke-width="2.6" stroke-linejoin="round"/>';
+  var z0=P.zs[first], z1=P.zs[last];
+  s+='<circle cx="'+X(P.pts[first].d)+'" cy="'+Y(z0)+'" r="5" fill="#1f78c1" stroke="#fff" stroke-width="1.5"/><text x="'+(ML+8)+'" y="'+(Y(z0)-10)+'" font-size="11" font-weight="700" style="fill:var(--txt)">Hulu '+num(z0,1)+' m</text>'
+    +'<circle cx="'+X(P.pts[last].d)+'" cy="'+Y(z1)+'" r="5" fill="#e0457b" stroke="#fff" stroke-width="1.5"/><text x="'+(VW-MR-8)+'" y="'+(Y(z1)-10)+'" text-anchor="end" font-size="11" font-weight="700" style="fill:var(--txt)">Hilir '+num(z1,1)+' m</text>';
+  s+='<g id="sgp-cur" style="display:none"><line y1="'+MT+'" y2="'+(VH-MB)+'" style="stroke:var(--txt)" stroke-width="1"/><circle r="5" fill="#f5a623" stroke="#fff" stroke-width="1.5"/></g>'
+    +'<rect id="sgp-ov" x="'+ML+'" y="'+MT+'" width="'+F.pw+'" height="'+F.ph+'" fill="transparent" style="touch-action:none;cursor:crosshair"/></svg>';
+  return {svg:s,X:X,Y:Y,pw:F.pw}; }
+function secSvg(sec,an){
+  var zmin=Math.min.apply(null,sec.z), zmax=Math.max(Math.max.apply(null,sec.z),an.wse), pad=Math.max((zmax-zmin)*0.12,0.5); zmin-=pad; zmax+=pad*0.6;
+  var xmin=sec.x[0], xmax=sec.x[sec.x.length-1], F=frame('Penampang melintang — '+(sec.label||''),zmin,zmax,xmin,xmax,(VW<560?'Jarak dari as (m) · kiri ← → kanan':'Jarak dari as sungai (m) · kiri ← → kanan, menghadap hilir'),'Elevasi (m dpl)'), X=F.X, Y=F.Y, s=F.s;
+  var terr=''; sec.x.forEach(function(xv,i){ terr+=(i?' L':'M')+X(xv).toFixed(1)+','+Y(sec.z[i]).toFixed(1); });
+  s+='<path d="'+terr+' L'+X(xmax)+','+Y(zmin)+' L'+X(xmin)+','+Y(zmin)+' Z" fill="#b08a5a" opacity=".32"/>';
+  var h=an.h;
+  if(h.poly.length){ var wp=''; h.poly.forEach(function(p,i){ wp+=(i?' L':'M')+X(p[0]).toFixed(1)+','+Y(p[1]).toFixed(1); }); s+='<path d="'+wp+' Z" fill="#2b8fc9" opacity=".78"/>'; }
+  s+='<line x1="'+X(0)+'" x2="'+X(0)+'" y1="'+MT+'" y2="'+(VH-MB)+'" style="stroke:var(--mute)" stroke-width="1" stroke-dasharray="1,5"/><text x="'+(X(0)+4)+'" y="'+(MT+12)+'" font-size="10" style="fill:var(--mute)">as sungai</text>';
+  s+='<path d="'+terr+'" fill="none" style="stroke:var(--txt)" stroke-width="2" stroke-linejoin="round"/>';
+  s+='<line x1="'+ML+'" x2="'+(VW-MR)+'" y1="'+Y(an.wse)+'" y2="'+Y(an.wse)+'" stroke="#1f8fd8" stroke-width="1.8" stroke-dasharray="7,4"/>'
+    +'<text x="'+(VW-MR-6)+'" y="'+(Y(an.wse)-6)+'" text-anchor="end" font-size="11.5" font-weight="700" fill="#1f8fd8" style="stroke:var(--card);stroke-width:3.5px;paint-order:stroke">Muka air '+num(an.wse,2)+' m  (d = '+num(an.depth,2)+' m)</text>';
+  s+='<path d="M'+X(sec.x[an.iT])+','+(Y(an.zT)+3)+' l-5,9 h10 z" fill="#e0457b"/><text x="'+(X(sec.x[an.iT])+8)+'" y="'+(Y(an.zT)+13)+'" font-size="10.5" style="fill:var(--txt2);stroke:var(--card);stroke-width:3px;paint-order:stroke">dasar '+num(an.zT,2)+' m</text>';
+  s+='<text x="'+(ML+6)+'" y="'+(MT+14)+'" font-size="10.5" font-weight="700" style="fill:var(--mute)">KIRI</text><text x="'+(VW-MR-6)+'" y="'+(MT+14)+'" text-anchor="end" font-size="10.5" font-weight="700" style="fill:var(--mute)">KANAN</text>';
+  var ve=(F.ph/(zmax-zmin))/(F.pw/(xmax-xmin)); s+='<text x="'+(ML+6)+'" y="'+(VH-MB-8)+'" font-size="10.5" style="fill:var(--mute)">skala vertikal ≈ '+num(ve,1)+'× lebih besar</text>';
+  s+='<g id="sgp-cur" style="display:none"><line y1="'+MT+'" y2="'+(VH-MB)+'" style="stroke:var(--txt)" stroke-width="1"/><circle r="5" fill="#f5a623" stroke="#fff" stroke-width="1.5"/></g>'
+    +'<rect id="sgp-ov" x="'+ML+'" y="'+MT+'" width="'+F.pw+'" height="'+F.ph+'" fill="transparent" style="touch-action:none;cursor:crosshair"/></svg>';
+  return {svg:s,X:X,Y:Y,pw:F.pw}; }
+
+/* ─── peta: overlay ─── */
+function mapOK(){ try{ return !!_map; }catch(e){ return false; } }
+function lg(){ if(!mapOK()) return null; if(G.lg&&_map.hasLayer(G.lg)) return G.lg; G.lg=L.layerGroup().addTo(_map); return G.lg; }
+function clearLG(){ if(G.lg&&mapOK()){ try{ _map.removeLayer(G.lg); }catch(e){} } G.lg=null; G.hov=null; G.secLine=null; }
+function hoverAt(lat,lng){ var g=lg(); if(!g) return; if(!G.hov){ G.hov=L.circleMarker([lat,lng],{radius:7,color:'#fff',weight:2,fillColor:'#f5a623',fillOpacity:1,interactive:false}).addTo(g); } else G.hov.setLatLng([lat,lng]); }
+function drawSecOnMap(sec){ clearLG(); var g=lg(); if(!g||!sec||!sec.line) return;
+  L.polyline(sec.line,{color:'#fff',weight:8,opacity:.9,interactive:false}).addTo(g);
+  G.secLine=L.polyline(sec.line,{color:'#ff7a00',weight:4,opacity:1,interactive:false}).addTo(g);
+  L.circleMarker(sec.center,{radius:6,color:'#fff',weight:2,fillColor:'#ff7a00',fillOpacity:1,interactive:false}).addTo(g);
+  try{ if(_map.getZoom()<15) _map.setView(sec.center,16,{animate:false}); else if(!_map.getBounds().contains(sec.center)) _map.panTo(sec.center); }catch(e){} }
+
+/* ─── modal ─── */
+var CSS='#sgp-modal{position:fixed;z-index:10040;display:none;flex-direction:column;background:var(--card);color:var(--txt);border:1px solid var(--brd);box-shadow:0 10px 36px rgba(0,0,0,.38);border-radius:10px;font-family:Arial,sans-serif;overflow:hidden}'
+ +'#sgp-modal.on{display:flex}#sgp-modal *{box-sizing:border-box}'
+ +'.sgp-h{display:flex;align-items:center;gap:8px;padding:9px 12px;border-bottom:1px solid var(--brd);flex-shrink:0}.sgp-h b{flex:1;font-size:12.5px;letter-spacing:.2px}'
+ +'.sgp-x{background:none;border:none;color:var(--mute);font-size:21px;cursor:pointer;line-height:1;padding:0 4px}'
+ +'.sgp-tabs{display:flex;gap:4px;padding:7px 12px 0;border-bottom:1px solid var(--brd);flex-shrink:0}'
+ +'.sgp-tab{padding:7px 13px;font-size:12px;font-weight:700;border:1px solid transparent;border-bottom:none;border-radius:6px 6px 0 0;background:none;color:var(--mute);cursor:pointer}.sgp-tab.on{background:var(--sg3);color:var(--sg);border-color:var(--brd)}'
+ +'.sgp-b{flex:1;min-height:0;overflow:auto;padding:10px 12px}'
+ +'.sgp-row{display:flex;flex-wrap:wrap;gap:7px;align-items:center;margin-bottom:8px;font-size:11.5px}.sgp-row>label,.sgp-row>span.l{color:var(--mute);font-size:10.5px}'
+ +'.sgp-in,.sgp-sel{font-size:12px;padding:5px 7px;background:var(--inp);color:var(--txt);border:1px solid var(--brd);border-radius:6px;min-width:0;max-width:100%}.sgp-in{width:74px}'
+ +'.sgp-btn{font-size:11.5px;font-weight:700;padding:6px 10px;border-radius:6px;cursor:pointer;background:var(--card2);color:var(--txt);border:1px solid var(--brd)}.sgp-btn.on{background:var(--sg3);color:var(--sg);border-color:var(--sg)}.sgp-btn:hover{border-color:var(--sg)}'
+ +'.sgp-st{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:6px;margin:8px 0}.sgp-st>div{background:var(--card2);border:1px solid var(--brd2);border-radius:6px;padding:5px 8px}'
+ +'.sgp-st small{display:block;font-size:9.5px;color:var(--mute);text-transform:uppercase;letter-spacing:.3px}.sgp-st b{font-size:13.5px}.sgp-st i{font-style:normal;font-size:10px;color:var(--mute)}'
+ +'.sgp-svg{width:100%;height:auto;display:block;border:1px solid var(--brd2);border-radius:6px}'
+ +'.sgp-info{min-height:18px;font-size:11.5px;color:var(--txt2);padding:5px 2px}.sgp-note{font-size:10.5px;line-height:1.5;color:var(--mute);margin:6px 0}'
+ +'.sgp-warn{font-size:11px;line-height:1.5;padding:7px 9px;border-radius:6px;background:rgba(245,166,35,.14);border:1px solid rgba(245,166,35,.45);margin:6px 0}'
+ +'.sgp-t{width:100%;border-collapse:collapse;font-size:11px;margin-top:6px}.sgp-t th{position:sticky;top:0;background:var(--card2);color:var(--mute);padding:5px 6px;text-align:right;border-bottom:1px solid var(--brd);font-size:10px}.sgp-t td{padding:4px 6px;text-align:right;border-bottom:1px solid var(--brd2)}.sgp-t tr[data-seg]{cursor:pointer}.sgp-t tr[data-seg]:hover td{background:var(--sg3)}'
+ +'.sgp-t th:first-child,.sgp-t td:first-child{text-align:center;font-weight:700;color:var(--sg)}'
+ +'.sgp-f{display:flex;flex-wrap:wrap;gap:6px;padding:8px 12px;border-top:1px solid var(--brd);flex-shrink:0}';
+function build(){ if(G.built) return; G.built=true;
+  var st=document.createElement('style'); st.id='sgp-css'; st.textContent=CSS; document.head.appendChild(st);
+  var m=document.createElement('div'); m.id='sgp-modal'; m.setAttribute('role','dialog'); m.setAttribute('aria-label','Profil dan penampang sungai');
+  m.innerHTML='<div class="sgp-h"><b>📈 Profil &amp; Penampang Sungai</b><button class="sgp-x" data-a="close" title="Tutup">✕</button></div>'
+   +'<div class="sgp-tabs"><button class="sgp-tab" data-a="tab-prof">📈 Profil elevasi</button><button class="sgp-tab" data-a="tab-sec">📐 Penampang melintang</button></div>'
+   +'<div class="sgp-b" id="sgp-body"></div><div class="sgp-f" id="sgp-foot"></div>';
+  document.body.appendChild(m);
+  m.addEventListener('click',onClick); m.addEventListener('change',onInput); m.addEventListener('input',onInput);
+  document.addEventListener('keydown',function(e){ if(e.key==='Escape'&&m.classList.contains('on')) close(); });
+  window.addEventListener('resize',function(){ place(); clearTimeout(G.rt); G.rt=setTimeout(function(){ var mm=$('sgp-modal'); if(mm&&mm.classList.contains('on')) render(); },250); }); }
+function place(){ var m=$('sgp-modal'); if(!m||!m.classList.contains('on')) return; var W=window.innerWidth,H=window.innerHeight,r=null;
+  try{ r=_map.getContainer().getBoundingClientRect(); }catch(e){}
+  var s=m.style; if(W<820||!r){ s.left='0'; s.right='0'; s.bottom='0'; s.top='auto'; s.width='auto'; s.height='74vh'; s.borderRadius='14px 14px 0 0'; }
+  else { s.top=(r.top+8)+'px'; s.bottom=(H-r.bottom+8)+'px'; s.right=(W-r.right+8)+'px'; s.left='auto'; s.height='auto'; s.width=Math.min(680,Math.round(r.width*0.6))+'px'; s.borderRadius='10px'; } }
+function open_(tab){ build(); if(tab) G.tab=tab; var m=$('sgp-modal'); m.classList.add('on'); place(); render(); }
+function close(){ var m=$('sgp-modal'); if(m) m.classList.remove('on'); clearLG(); }
+
+/* ─── tampilan ─── */
+function common(){ var all=allSources(), opts='<option value="all"'+(G.src==='all'?' selected':'')+'>Semua sumber (mozaik, urut prioritas)</option>';
+  all.forEach(function(s){ var k=s.kind+':'+s.id; opts+='<option value="'+esc(k)+'"'+(G.src===k?' selected':'')+'>'+esc(s.name)+'</option>'; });
+  return '<div class="sgp-row"><label>Sumber DEM</label><select class="sgp-sel" id="sgp-src" style="flex:1;min-width:150px">'+opts+'</select>'
+    +'<label style="display:flex;align-items:center;gap:4px;cursor:pointer"><input type="checkbox" id="sgp-sm" '+(G.smooth?'checked':'')+'> Haluskan profil</label></div>'; }
+function render(){ var m=$('sgp-modal'); if(!m) return;
+  [].forEach.call(m.querySelectorAll('.sgp-tab'),function(b){ b.classList.toggle('on',b.dataset.a==='tab-'+G.tab); });
+  if(!lastData()||!PI()){ $('sgp-body').innerHTML='<div class="sgp-warn">Belum ada hasil segmentasi. Tentukan hulu &amp; hilir lalu klik <b>Hitung Segmentasi</b>.</div>'; $('sgp-foot').innerHTML=''; return; }
+  if(!handles().length){ $('sgp-body').innerHTML='<div class="sgp-warn">Belum ada DEM. Unggah <b>TIF / DEMNAS</b> (tab Data) atau kontur DXF berelevasi, lalu buka lagi.</div>'; $('sgp-foot').innerHTML=''; return; }
+  if(G.width==null){ var w=parseFloat(($('sgt-lebar')||{}).value); G.width=isFinite(w)&&w>=10?w:100; }
+  var segs=SEGS(); G.seg=clamp(G.seg,0,Math.max(0,segs.length-1));
+  if(G.tab==='prof') renderProf(); else renderSec(); }
+
+function renderProf(){
+  sizeChart(); var P=G.prof=computeProfile(), segs=SEGS(), b=$('sgp-body'); clearLG();
+  if(!P||P.valid<2){ b.innerHTML=common()+'<div class="sgp-warn">⚠ DEM tidak mencakup garis sungai (titik tercakup: '+(P?P.valid:0)+'). Periksa wilayah DEM atau pilih sumber lain.</div>'; $('sgp-foot').innerHTML=''; return; }
+  var st=segStats(P,segs), z0=zAt(P,0), z1=zAt(P,P.total), dh=z0-z1, S=dh/P.total, mn=Math.min.apply(null,P.zs.filter(function(v){return v!=null;})), mx=Math.max.apply(null,P.zs.filter(function(v){return v!=null;}));
+  var h=common()+'<div class="sgp-st">'
+   +'<div><small>Panjang</small><b>'+num(P.total,0)+' m</b></div><div><small>Elev. hulu</small><b>'+num(z0,1)+' m</b></div><div><small>Elev. hilir</small><b>'+num(z1,1)+' m</b></div>'
+   +'<div><small>Beda tinggi</small><b>'+num(dh,1)+' m</b></div><div><small>Kemiringan rata-rata</small><b>'+num(S*1000,2)+' m/km</b><br><i>'+num(S*100,3)+' %</i></div>'
+   +'<div><small>Min / Maks</small><b>'+num(mn,1)+' / '+num(mx,1)+'</b></div></div>';
+  if(P.cov<0.98) h+='<div class="sgp-warn">⚠ DEM hanya mencakup '+num(P.cov*100,0)+'% panjang sungai; bagian di luar cakupan diisi interpolasi/diabaikan di ujung.</div>';
+  var R=profSvg(P,segs); G.profR=R; G.redraw=function(){ return profSvg(P,segs).svg; };
+  h+='<div id="sgp-chart">'+R.svg+'</div><div class="sgp-info" id="sgp-info">Arahkan kursor atau sentuh grafik untuk membaca elevasi; titik oranye di peta mengikuti. Garis oranye putus-putus = batas segmen (angka = nomor segmen).</div>';
+  h+='<div style="max-height:230px;overflow:auto;border:1px solid var(--brd2);border-radius:6px"><table class="sgp-t"><thead><tr><th>Seg</th><th>Dari–sampai (m)</th><th>Elev. sisi hulu</th><th>Elev. sisi hilir</th><th>Δh (m)</th><th>Kemiringan (m/km)</th></tr></thead><tbody>';
+  segs.forEach(function(g,i){ var q=st[g.i]; h+='<tr data-seg="'+g.i+'" title="Klik: penampang melintang segmen '+g.num+'"><td>'+g.num+'</td><td>'+num(g.dari,0)+' – '+num(g.sampai,0)+'</td><td>'+num(q.zA,1)+'</td><td>'+num(q.zB,1)+'</td><td>'+num(q.dh,2)+'</td><td>'+num(q.S!=null?q.S*1000:null,2)+'</td></tr>'; });
+  h+='</tbody></table></div><div class="sgp-note">Sumber: '+esc(P.srcs.join(', '))+' · resolusi ≈ '+num(P.res,0)+' m · '+P.n+' titik sampel tiap ≈ '+num(P.step,1)+' m. Kemiringan segmen dari selisih elevasi ujung-ujung segmen pada profil yang dihaluskan. Klik baris untuk melihat penampang segmennya.</div>';
+  b.innerHTML=h;
+  $('sgp-foot').innerHTML='<button class="sgp-btn" data-a="png">🖼 Simpan gambar (PNG)</button><button class="sgp-btn" data-a="csv">⬇ CSV profil</button>';
+  var ov=$('sgp-ov'), cur=$('sgp-cur'), info=$('sgp-info'), svg=$('sgp-svg');
+  function mv(e){ var r=svg.getBoundingClientRect(), vx=(e.clientX-r.left)/r.width*VW, d=clamp((vx-ML)/R.pw*P.total,0,P.total), i=clamp(Math.round(d/P.step),0,P.pts.length-1), p=P.pts[i], z=P.zs[i];
+    if(z==null) return; cur.style.display=''; cur.firstChild.setAttribute('x1',R.X(p.d)); cur.firstChild.setAttribute('x2',R.X(p.d)); cur.lastChild.setAttribute('cx',R.X(p.d)); cur.lastChild.setAttribute('cy',R.Y(z));
+    var sg=segs.filter(function(g){ return p.d>=g.g0-1e-6&&p.d<=g.g1+1e-6; })[0];
+    info.innerHTML='<b>'+num(p.d,0)+' m</b> dari hulu · elevasi <b>'+num(z,2)+' m</b>'+(P.W>1?' (mentah '+num(P.raw[i],2)+')':'')+(sg?' · segmen <b>'+sg.num+'</b>':'')+' · '+num(p.lat,5)+', '+num(p.lng,5); hoverAt(p.lat,p.lng); }
+  ov.addEventListener('pointermove',mv); ov.addEventListener('pointerdown',mv); ov.addEventListener('pointerleave',function(){ cur.style.display='none'; if(G.hov&&G.lg){ G.lg.removeLayer(G.hov); G.hov=null; } }); }
+
+function secControls(segs){
+  var o=''; segs.forEach(function(g){ o+='<option value="'+g.i+'"'+(g.i===G.seg?' selected':'')+'>Segmen '+g.num+' ('+num(g.dari,0)+'–'+num(g.sampai,0)+' m)</option>'; });
+  function ch(a,t,on){ return '<button class="sgp-btn'+(on?' on':'')+'" data-a="'+a+'">'+t+'</button>'; }
+  return common()+'<div class="sgp-row"><button class="sgp-btn" data-a="prev" title="Segmen sebelumnya">◀</button><select class="sgp-sel" id="sgp-seg" style="flex:1;min-width:150px">'+o+'</select><button class="sgp-btn" data-a="next" title="Segmen berikutnya">▶</button></div>'
+   +'<div class="sgp-row"><span class="l">Posisi potongan</span><span id="sgp-pos">'+ch('pos-start','Sisi hulu',G.pos==='start')+' '+ch('pos-mid','Tengah',G.pos==='mid')+' '+ch('pos-end','Sisi hilir',G.pos==='end')+'</span></div>'
+   +'<div class="sgp-row"><label>Lebar potongan (m)</label><input class="sgp-in" id="sgp-w" type="number" min="10" max="3000" step="10" value="'+G.width+'">'
+   +[25,50,100,200].map(function(w){ return '<button class="sgp-btn" data-a="w'+w+'">'+w+'</button>'; }).join('')+'</div>'
+   +'<div class="sgp-row"><label>Muka air</label><select class="sgp-sel" id="sgp-dm"><option value="depth"'+(G.dmode==='depth'?' selected':'')+'>Kedalaman manual</option><option value="q"'+(G.dmode==='q'?' selected':'')+'>Dari debit (Manning)</option></select>'
+   +'<span id="sgp-dwrap" style="'+(G.dmode==='depth'?'':'display:none')+'"><input class="sgp-in" id="sgp-d" type="number" min="0.05" step="0.1" value="'+G.depth+'"> m</span>'
+   +'<span id="sgp-qwrap" style="'+(G.dmode==='q'?'':'display:none')+'"><input class="sgp-in" id="sgp-q" type="number" min="0.01" step="0.5" value="'+G.q+'"> m³/s</span>'
+   +'<label>n Manning</label><input class="sgp-in" id="sgp-n" type="number" min="0.01" max="0.2" step="0.005" value="'+G.n+'"></div>'
+   +'<div id="sgp-res"></div>'; }
+function renderSec(){ var segs=SEGS(); if(!segs.length){ $('sgp-body').innerHTML='<div class="sgp-warn">Tidak ada segmen.</div>'; return; }
+  $('sgp-body').innerHTML=secControls(segs);
+  $('sgp-foot').innerHTML='<button class="sgp-btn" data-a="png">🖼 Simpan gambar (PNG)</button><button class="sgp-btn" data-a="csvsec">⬇ CSV penampang</button><button class="sgp-btn" data-a="csvall" title="Hasil hidrolika semua segmen (potongan di tengah segmen)">⬇ CSV semua segmen</button>';
+  renderSecResult(); }
+function renderSecResult(){
+  var segs=SEGS(), g=segs[G.seg], box=$('sgp-res'); if(!g||!box) return;
+  var P=G.prof=computeProfile(), st=P&&P.valid>=2?segStats(P,segs):null, gd=segDist(g), sec=sectionAt(gd,G.width);
+  if(!sec||sec.fail){ box.innerHTML='<div class="sgp-warn">⚠ DEM tidak mencakup potongan ini'+(sec?' (hanya '+sec.valid+' dari '+sec.N+' titik)':'')+'. Geser posisi / perkecil lebar, atau pilih sumber DEM lain.</div>'; if(sec) drawSecOnMap(sec); G.sec=null; return; }
+  sec.label='Segmen '+g.num+(G.pos==='custom'?' · batas, '+num(gd,0)+' m dari hulu':' · '+num(gd,0)+' m dari hulu'); G.sec=sec;
+  var Sx=slopeFor(P,st,g.i), an=analyze(sec,Sx); G.an=an;
+  sizeChart(); var R=secSvg(sec,an), h=an.h, warn=''; G.redraw=function(){ return secSvg(sec,an).svg; };
+  if(h.overtop) warn+='<div class="sgp-warn">⚠ Muka air melampaui tepi penampang — perbesar lebar potongan atau kurangi kedalaman/debit.</div>';
+  if(G.dmode==='q'&&!(Sx>0)) warn+='<div class="sgp-warn">⚠ Kemiringan segmen ≤ 0 (DEM datar/terbalik) sehingga kedalaman tidak bisa dihitung dari debit. Pakai kedalaman manual.</div>';
+  if(an.capped) warn+='<div class="sgp-warn">⚠ Debit melebihi kapasitas potongan ini; kedalaman dibatasi tinggi tepi tertinggi.</div>';
+  var stats='<div class="sgp-st">'
+   +'<div><small>Elev. dasar (thalweg)</small><b>'+num(an.zT,2)+' m</b></div><div><small>Muka air</small><b>'+num(an.wse,2)+' m</b></div><div><small>Kedalaman</small><b>'+num(an.depth,2)+' m</b></div>'
+   +'<div><small>Lebar muka air (B)</small><b>'+num(h.B,1)+' m</b></div><div><small>Luas basah (A)</small><b>'+num(h.A,2)+' m²</b></div><div><small>Keliling basah (P)</small><b>'+num(h.P,1)+' m</b></div>'
+   +'<div><small>Jari-jari hidrolis (R)</small><b>'+num(h.R,3)+' m</b></div><div><small>Kemiringan (S)</small><b>'+num(Sx!=null?Sx*1000:null,2)+' m/km</b></div>'
+   +'<div><small>Kecepatan (V)</small><b>'+num(an.V,2)+' m/s</b></div><div><small>Debit (Q)</small><b>'+num(an.Q,2)+' m³/s</b></div><div><small>Froude</small><b>'+num(an.Fr,2)+'</b><br><i>'+(an.Fr==null?'':(an.Fr<1?'subkritis':'superkritis'))+'</i></div></div>';
+  box.innerHTML=warn+'<div id="sgp-chart">'+R.svg+'</div><div class="sgp-info" id="sgp-info">Arahkan kursor / sentuh grafik untuk membaca elevasi; titik oranye di peta mengikuti. Garis oranye tebal di peta = lokasi potongan.</div>'+stats
+   +'<div class="sgp-note">Elevasi dari DEM (resolusi ≈ '+num(sec.res,0)+' m, interpolasi bilinear). <b>DEM tidak merekam dasar sungai di bawah muka air</b> — kedalaman, luas basah, dan debit di sini bersifat indikatif (dasar = titik terendah DEM dekat as sungai + kedalaman yang Anda isi). Untuk desain/Qual2Kw, ganti dengan data ukur lapangan. Kemiringan S diambil dari profil memanjang segmen ini.</div>';
+  drawSecOnMap(sec);
+  var ov=$('sgp-ov'), cur=$('sgp-cur'), info=$('sgp-info'), svg=$('sgp-svg');
+  function mv(e){ var r=svg.getBoundingClientRect(), vx=(e.clientX-r.left)/r.width*VW, xv=sec.x[0]+(vx-ML)/R.pw*(sec.x[sec.N-1]-sec.x[0]), i=clamp(Math.round((xv-sec.x[0])/(sec.w/(sec.N-1))),0,sec.N-1), z=sec.z[i];
+    cur.style.display=''; cur.firstChild.setAttribute('x1',R.X(sec.x[i])); cur.firstChild.setAttribute('x2',R.X(sec.x[i])); cur.lastChild.setAttribute('cx',R.X(sec.x[i])); cur.lastChild.setAttribute('cy',R.Y(z));
+    info.innerHTML='<b>'+(sec.x[i]<0?'kiri ':'kanan ')+num(Math.abs(sec.x[i]),1)+' m</b> dari as · elevasi <b>'+num(z,2)+' m</b>'+(z<an.wse?' · di bawah muka air '+num(an.wse-z,2)+' m':' · di atas muka air '+num(z-an.wse,2)+' m'); hoverAt(sec.pts[i][0],sec.pts[i][1]); }
+  ov.addEventListener('pointermove',mv); ov.addEventListener('pointerdown',mv); ov.addEventListener('pointerleave',function(){ cur.style.display='none'; if(G.hov&&G.lg){ G.lg.removeLayer(G.hov); G.hov=null; } }); }
+
+/* ─── interaksi ─── */
+function setSeg(i){ var n=SEGS().length; G.seg=clamp(i,0,n-1); if(G.pos==='custom'){ G.pos='mid'; } renderSec(); }
+function onClick(e){ var b=e.target.closest('[data-a],[data-seg]'); if(!b) return; var a=b.dataset.a;
+  if(!a&&b.dataset.seg!=null){ G.tab='sec'; G.pos='mid'; G.seg=+b.dataset.seg; render(); return; }
+  if(a==='close') close(); else if(a==='tab-prof'){ G.tab='prof'; render(); } else if(a==='tab-sec'){ G.tab='sec'; render(); }
+  else if(a==='prev') setSeg(G.seg-1); else if(a==='next') setSeg(G.seg+1);
+  else if(/^pos-/.test(a)){ G.pos=a.slice(4); G.customD=null; renderSec(); }
+  else if(/^w\d+$/.test(a)){ G.width=+a.slice(1); var w=$('sgp-w'); if(w) w.value=G.width; renderSecResult(); }
+  else if(a==='png') exportPng(); else if(a==='csv') exportCsv('prof'); else if(a==='csvsec') exportCsv('sec'); else if(a==='csvall') exportCsv('all'); }
+function onInput(e){ var t=e.target; if(!t.id) return; if(e.type==='input'&&(t.tagName==='SELECT'||t.type==='checkbox')) return;
+  if(t.id==='sgp-src'){ G.src=t.value; render(); return; }
+  if(t.id==='sgp-sm'){ G.smooth=t.checked; render(); return; }
+  if(t.id==='sgp-seg'){ G.seg=+t.value; if(G.pos==='custom') G.pos='mid'; renderSec(); return; }
+  if(t.id==='sgp-dm'){ G.dmode=t.value; $('sgp-dwrap').style.display=G.dmode==='depth'?'':'none'; $('sgp-qwrap').style.display=G.dmode==='q'?'':'none'; renderSecResult(); return; }
+  var v=parseFloat(t.value); if(!isFinite(v)) return;
+  if(t.id==='sgp-w') G.width=clamp(v,10,3000); else if(t.id==='sgp-d') G.depth=Math.max(0.05,v); else if(t.id==='sgp-q') G.q=Math.max(0.01,v); else if(t.id==='sgp-n') G.n=clamp(v,0.01,0.2); else return;
+  clearTimeout(G.timer); G.timer=setTimeout(renderSecResult,160); }
+
+/* ─── ekspor ─── */
+function dlBlob(blob,name){ var a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; a.style.display='none'; document.body.appendChild(a); a.click(); setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); },4000); }
+function stamp(){ var d=new Date(),p=function(n){ return (n<10?'0':'')+n; }; return d.getFullYear()+p(d.getMonth()+1)+p(d.getDate())+'-'+p(d.getHours())+p(d.getMinutes()); }
+function resolveVars(s){ var cs=getComputedStyle(document.documentElement); return s.replace(/var\((--[a-z0-9-]+)\)/gi,function(m,n){ return cs.getPropertyValue(n).trim()||'#888'; }); }
+function exportPng(){ if(!$('sgp-svg')||!G.redraw){ tst('Tidak ada grafik','warn'); return; }
+  var o=[VW,VH,ML,MR,MT,MB]; VW=1000; VH=520; ML=64; MR=20; MT=44; MB=50; var s; try{ s=G.redraw(); } finally { VW=o[0]; VH=o[1]; ML=o[2]; MR=o[3]; MT=o[4]; MB=o[5]; }
+  s=resolveVars(s.replace(/<g id="sgp-cur"[\s\S]*?<\/g>/,'').replace(/<rect id="sgp-ov"[^>]*\/>/,'').replace('<svg ','<svg width="2000" height="1040" '));
+  var img=new Image(); img.onload=function(){ var c=document.createElement('canvas'); c.width=2000; c.height=1040; var x=c.getContext('2d'); x.drawImage(img,0,0,c.width,c.height);
+      c.toBlob(function(b){ dlBlob(b,(G.tab==='prof'?'profil-sungai-':'penampang-segmen'+(SEGS()[G.seg]||{}).num+'-')+stamp()+'.png'); tst('Gambar disimpan','ok'); },'image/png'); };
+  img.onerror=function(){ tst('Gagal membuat gambar','err'); }; img.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(s); }
+function csvq(v){ return '"'+String(v==null?'':v).replace(/"/g,'""')+'"'; }
+function f(v,d){ return v==null||!isFinite(v)?'':(+v).toFixed(d); }
+function exportCsv(kind){ var rows=[], name;
+  if(kind==='prof'){ var P=G.prof; if(!P||P.valid<2){ tst('Belum ada profil','warn'); return; } var segs=SEGS();
+    rows.push('Jarak_dari_hulu_m,Latitude,Longitude,Elevasi_mentah_m,Elevasi_halus_m,Segmen');
+    P.pts.forEach(function(p,i){ var sg=segs.filter(function(g){ return p.d>=g.g0-1e-6&&p.d<=g.g1+1e-6; })[0]; rows.push([f(p.d,1),p.lat.toFixed(7),p.lng.toFixed(7),f(P.raw[i],2),f(P.zs[i],2),sg?sg.num:''].join(',')); }); name='profil-sungai-'; }
+  else if(kind==='sec'){ var sec=G.sec; if(!sec){ tst('Belum ada penampang','warn'); return; }
+    rows.push('Offset_dari_as_m(kiri-/kanan+),Latitude,Longitude,Elevasi_m'); sec.x.forEach(function(x,i){ rows.push([f(x,2),sec.pts[i][0].toFixed(7),sec.pts[i][1].toFixed(7),f(sec.z[i],2)].join(',')); });
+    name='penampang-segmen'+(SEGS()[G.seg]||{}).num+'-'; }
+  else { var segs2=SEGS(), P2=computeProfile(); if(!segs2.length){ tst('Tidak ada segmen','warn'); return; } var st2=P2&&P2.valid>=2?segStats(P2,segs2):null, keep=G.pos, kd=G.customD;
+    rows.push('Segmen,Dari_m,Sampai_m,Panjang_m,Lat_tengah,Lng_tengah,Elev_dasar_m,Muka_air_m,Kedalaman_m,Lebar_muka_air_m,Luas_basah_m2,Keliling_basah_m,Jari2_hidrolis_m,Kemiringan_m_per_m,Kecepatan_m_s,Debit_m3_s,Froude,Catatan');
+    segs2.forEach(function(g){ G.pos='mid'; G.customD=null; var sec=sectionAt(segDist(g),G.width); G.pos=keep; G.customD=kd;
+      if(!sec||sec.fail){ rows.push([g.num,f(g.dari,1),f(g.sampai,1),f(g.g1-g.g0,1),'','','','','','','','','','','','','',csvq('DEM tidak mencakup')].join(',')); return; }
+      var an=analyze(sec,slopeFor(P2,st2,g.i)), h=an.h; rows.push([g.num,f(g.dari,1),f(g.sampai,1),f(g.g1-g.g0,1),sec.center[0].toFixed(6),sec.center[1].toFixed(6),f(an.zT,2),f(an.wse,2),f(an.depth,2),f(h.B,2),f(h.A,3),f(h.P,2),f(h.R,3),an.S!=null?an.S.toFixed(6):'',f(an.V,3),f(an.Q,3),f(an.Fr,3),csvq((h.overtop?'muka air melampaui tepi potongan; ':'')+(an.capped?'debit melebihi kapasitas; ':'')+'lebar potongan '+G.width+' m, n '+G.n+(G.dmode==='q'?', Q '+G.q+' m3/s':', kedalaman '+G.depth+' m'))].join(',')); });
+    name='hidrolika-segmen-'; }
+  dlBlob(new Blob(['﻿'+rows.join('\r\n')],{type:'text/csv;charset=utf-8'}),name+stamp()+'.csv'); tst('CSV disimpan','ok'); }
+
+/* ─── API & kartu di panel ─── */
+function srcInfo(){ var a=allSources(); return a; }
+window.sgpRefreshCard=function(){ var c=$('sgp-card'); if(!c) return; var d=lastData(), has=!!(d&&d.centerline&&d.centerline.coordinates&&d.centerline.coordinates.length>1);
+  c.style.display=has?'block':'none'; if(!has) return; var a=srcInfo(), inf=$('sgp-card-info');
+  if(inf) inf.innerHTML=a.length?'✓ DEM terdeteksi: <b>'+a.length+'</b> sumber. Klik baris tabel segmen atau garis kuning di peta untuk penampang tiap segmen.':'⚠ Belum ada DEM — unggah <b>TIF / DEMNAS</b> (tab Data) untuk mengaktifkan profil &amp; penampang.';
+  [].forEach.call(c.querySelectorAll('button'),function(b){ b.style.opacity=a.length?'1':'.55'; }); };
+window.sgpOpen=function(tab,segIdx,pos){
+  if(!lastData()||!PI()){ tst('Hitung segmentasi dulu','warn'); return; }
+  if(!allSources().length){ tst('Belum ada DEM — unggah TIF/DEMNAS (tab Data) dulu','err'); return; }
+  if(segIdx!=null) G.seg=segIdx; if(pos){ G.pos=pos; G.customD=null; } open_(tab||'prof'); };
+window.sgpOpenBoundary=function(props){ if(!lastData()||!PI()){ return; } if(!allSources().length){ tst('Belum ada DEM — unggah TIF/DEMNAS (tab Data) dulu','err'); return; }
+  var g=props&&props.dist_hulu_m; if(g==null){ window.sgpOpen('sec',0); return; }
+  var segs=SEGS(), best=0, bd=Infinity; segs.forEach(function(s){ var dd=Math.abs(s.g1-g); if(dd<bd){ bd=dd; best=s.i; } });
+  G.seg=best; G.pos='custom'; G.customD=g; open_('sec'); };
+window.sgpClose=close;
+window.sgpOnResult=function(){ window.sgpRefreshCard(); var m=$('sgp-modal'); if(m&&m.classList.contains('on')){ G.pos=(G.pos==='custom')?'mid':G.pos; render(); } };
+window.sgpOnClear=function(){ close(); window.sgpRefreshCard(); };
+window.__sgp=G;
+
+/* membungkus fungsi segmentasi yang ada */
+function wrap(name,after){ var o=window[name]; if(typeof o!=='function'||o.__sgpw) return; var w=function(){ var r=o.apply(this,arguments); try{ after(); }catch(e){ console.warn('[SGP]',e); } return r; }; w.__sgpw=true; window[name]=w; }
+function install(){ wrap('sgtApplyArah',window.sgpOnResult); wrap('sgtClearResult',window.sgpOnClear); wrap('sgtReset',window.sgpOnClear);
+  var c=$('sgp-card'); if(c&&!c.__h){ c.__h=1; ['mouseenter','touchstart'].forEach(function(ev){ c.addEventListener(ev,window.sgpRefreshCard,{passive:true}); }); } }
+if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',install); else install();
+})();
+</script>
+<!-- SEGMENTASI-PROFIL:END -->
 
 </body>
 </html>
