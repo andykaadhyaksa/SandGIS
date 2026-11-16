@@ -59,3 +59,31 @@ Buka `/manifest-v5.webmanifest` di browser — harus ada `icon-v5-*`. Lalu unins
 - **Identifikasi klik**: klik peta → kelas akuifer, keterusan, debit di titik itu.
 - **Analisis luas**: pilih tapak (SHP/DXF poligon atau poligon/persegi gambar) → luas & persen tiap kelas akuifer di dalam tapak (metode grid), ekspor Excel dan GeoJSON.
 - Butuh internet. Alamat layanan bisa diganti di panel (bagian *Alamat layanan*).
+
+### Arah aliran air tanah (tab kedua panel Hidrogeologi)
+- Masukkan titik sumur/piezometer (nama, koordinat desimal/DMS, elevasi muka air tanah m dpl): ketik, tempel dari Excel, atau klik di peta. Minimal 3 titik tidak segaris.
+- Hasil: arah aliran (azimut), gradien hidrolik, panah aliran, kontur muka air tanah; opsional kecepatan Darcy & rembesan bila K dan porositas diisi. Ekspor Excel & GeoJSON.
+- Layer akuifer kini dipotong sesuai batas tapak (opsi *Potong sesuai batas tapak*), dan panel bisa digeser/dikecilkan.
+
+### Gaya tampilan: Halus atau Kotak (grid sel)
+Di tab *Arah Aliran Air Tanah* → grup **Tampilan di peta** → **Gaya tampilan**:
+- **Halus** (bawaan): gradasi warna muka air tanah + panah tersebar + kontur.
+- **Kotak (grid sel)**: peta dibagi kotak-kotak; tiap sel berwarna dan memuat satu panah arah aliran, seperti raster *Flow Direction* (kode D8: E=1, SE=2, S=4, SW=8, W=16, NW=32, N=64, NE=128). Hanya sel di dalam tapak yang digambar.
+  - *Jumlah sel* (20–150 pada sisi terpanjang), *Warna sel*: kelas arah (D8) / elevasi-muka air (gradasi) / tanpa warna, *Panah di tiap sel*, *Garis tepi kotak*, warna panah, dan transparansi.
+  - *Sumber arah tiap sel* (mode C, topografi): **langsung dari DEM tiap sel** (cekungan diisi, lalu lereng terjal ke 8 arah — arah bervariasi mengikuti relief) atau dari model bidang/IDW (arah seragam bila bidang).
+  - Saat beralih ke Kotak, kontur, panah besar, dan kotak label dimatikan agar mirip contoh peta; beralih kembali ke Halus memulihkan pengaturan sebelumnya.
+  - Ikut tampil di Layout / Generate Peta (legenda kelas otomatis), tersimpan di file `.sandgis`, dan bisa diekspor sebagai **GeoJSON kotak (sel)** dengan atribut `kode_d8`, `arah`, `elevasi_m`.
+
+### Mode C (topografi): skala analisis
+Arah aliran dari topografi **bergantung pada skala**: lereng lokal di dalam tapak bisa berlawanan dengan tren regional di sekelilingnya.
+- Kisi DEM 61×61 mencakup 4× lebar tapak. Pilih **Skala analisis**: *Tapak saja* (lokal), *2×*, atau *4× (regional)*.
+- Hasil menampilkan **tabel arah untuk ketiga skala** (azimut + R²) dan peringatan bila selisihnya >45°.
+- Metode IDW di mode ini diganti **permukaan DEM (bilinear)**: tidak ada pola "bull's-eye" di tiap titik sampel, dan ada ukuran *Konsistensi arah* (100% = semua panah searah).
+- Untuk arah yang sahih secara hidrogeologi tetap perlu muka air tanah terukur (mode A/B, ≥3 sumur/piezometer).
+- Bila layer DEM proyek (TIF/DEMNAS) tidak mencakup skala yang lebih lebar, skala itu ditandai *di luar cakupan DEM terpilih* di tabel dan tidak menghentikan perhitungan; hanya skala yang dipilih wajib tercakup penuh.
+
+## Tema hijau (selaras logo)
+- Warna aksen utama diganti dari karat/oranye ke hijau logo SandGIS: `#1a7f3c` (terang) dan `#4cc06a` (gelap), aksen kedua hijau-limau.
+- Latar, panel, dan garis tepi ikut condong kehijauan tipis. Mode terang/gelap tetap lewat tombol bulan di bilah atas.
+- Warna data (pin survei, ikon alat gambar, palet layer SHP) sengaja tidak diubah agar tetap bisa dibedakan.
+- Warna bilah browser (`theme-color`) dan manifest PWA ikut hijau; setelah deploy, hapus cache sekali agar versi baru termuat.
