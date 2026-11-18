@@ -5057,6 +5057,53 @@ function petaInit() {
       { maxZoom: 22, maxNativeZoom: 13, crossOrigin: true })
   ]);
 
+  /* ── Citra tambahan + citra berwaktu (riwayat) ─────────────────────────
+     Google Maps TIDAK menyediakan parameter tanggal pada tile-nya, jadi citra Google
+     selalu versi terbaru. Untuk "waktu mundur" dipakai sumber yang memang berarsip:
+     Esri World Imagery Wayback (rilis 2014→kini), Sentinel-2 cloudless tahunan (EOX),
+     dan NASA GIBS harian. Status waktu disimpan di window.__citraState. */
+  (function(){
+    var BLANK = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+    function ymd(d){ return d.toISOString().slice(0,10); }
+    var yest = new Date(Date.now() - 36*3600*1000);
+    var S = window.__citraState = window.__citraState || {};
+    S.wb   = S.wb   || { rel: null };
+    S.s2   = S.s2   || { lyr: 's2cloudless-2025' };
+    S.gibs = S.gibs || { date: ymd(yest) };
+    var WB = L.TileLayer.extend({
+      getTileUrl: function(c){ if (!this.options.rel) return BLANK; return L.TileLayer.prototype.getTileUrl.call(this, c); }
+    });
+    var ESRI = 'Tiles &copy; Esri &mdash; Maxar, Earthstar Geographics, dan kontributor GIS';
+    window.__citraMake = function(kind){
+      var l;
+      if (kind === 'wayback') {
+        l = new WB('https://wayback.maptiles.arcgis.com/arcgis/rest/services/World_Imagery/WMTS/1.0.0/default028mm/MapServer/tile/{rel}/{z}/{y}/{x}',
+          { rel: S.wb.rel || 0, maxZoom: 21, maxNativeZoom: 19, errorTileUrl: BLANK, crossOrigin: true,
+            attribution: 'Esri World Imagery Wayback &mdash; ' + ESRI });
+      } else if (kind === 's2') {
+        l = L.tileLayer('https://tiles.maps.eox.at/wmts/1.0.0/{lyr}_3857/default/g/{z}/{y}/{x}.jpg',
+          { lyr: S.s2.lyr, maxZoom: 21, maxNativeZoom: 14, errorTileUrl: BLANK, crossOrigin: true,
+            attribution: '<a href="https://s2maps.eu" target="_blank" rel="noopener">Sentinel-2 cloudless - s2maps.eu</a> by <a href="https://eox.at" target="_blank" rel="noopener">EOX IT Services GmbH</a> (Contains modified Copernicus Sentinel data)' });
+      } else if (kind === 'viirs' || kind === 'modis') {
+        var nm = kind === 'viirs' ? 'VIIRS_SNPP_CorrectedReflectance_TrueColor' : 'MODIS_Terra_CorrectedReflectance_TrueColor';
+        l = L.tileLayer('https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/{lyr}/default/{date}/GoogleMapsCompatible_Level9/{z}/{y}/{x}.jpg',
+          { lyr: nm, date: S.gibs.date, maxZoom: 21, maxNativeZoom: 9, errorTileUrl: BLANK, crossOrigin: true,
+            attribution: 'Imagery &copy; NASA EOSDIS GIBS' });
+      } else if (kind === 'clarity') {
+        l = L.tileLayer('https://clarity.maptiles.arcgis.com/arcgis/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+          { maxZoom: 21, maxNativeZoom: 19, crossOrigin: true, attribution: 'Esri World Imagery (Clarity) &mdash; ' + ESRI });
+      } else if (kind === 'firefly') {
+        l = L.tileLayer('https://fly.maptiles.arcgis.com/arcgis/rest/services/World_Imagery_Firefly/MapServer/tile/{z}/{y}/{x}',
+          { maxZoom: 21, maxNativeZoom: 19, crossOrigin: true, attribution: 'Esri World Imagery (Firefly) &mdash; ' + ESRI });
+      }
+      if (l) { l._citraKind = kind; if (kind === 'wayback' || kind === 's2' || kind === 'viirs' || kind === 'modis') l._noProbe = true; }
+      return l;
+    };
+  })();
+  var citraWayback = window.__citraMake('wayback'), citraS2 = window.__citraMake('s2'),
+      citraViirs = window.__citraMake('viirs'), citraModis = window.__citraMake('modis'),
+      citraClarity = window.__citraMake('clarity'), citraFirefly = window.__citraMake('firefly');
+
   var _mapBaseLayers = {
       /* ── OSM / Open ── */
       '\uD83D\uDDFA\uFE0F OSM Standard': osm,
@@ -5083,6 +5130,13 @@ function petaInit() {
       '\u2B1B Esri Dark Gray Canvas': esriDarkGray,
       '\uD83C\uDF0A Laut & Oseanografi Esri': esriOcean,
       '\uD83C\uDF0A Laut + Label Esri': esriOceanLabel,
+      /* ── Citra tambahan & riwayat ── */
+      '\uD83D\uDEF0\uFE0F Esri Clarity (Citra Tajam)': citraClarity,
+      '\uD83C\uDF19 Esri Firefly (Citra Gelap)': citraFirefly,
+      '\uD83D\uDD70\uFE0F Esri Wayback (Riwayat Citra)': citraWayback,
+      '\uD83D\uDCC5 Sentinel-2 Cloudless (Tahunan)': citraS2,
+      '\uD83C\uDF0D NASA VIIRS (Harian)': citraViirs,
+      '\uD83C\uDF0D NASA MODIS Terra (Harian)': citraModis,
       /* ── Topo ── */
       '\uD83C\uDFD4\uFE0F Topografi (OpenTopoMap)': topo,
       /* ── Stadia / Carto ── */
@@ -18719,6 +18773,7 @@ function _collectProjectState() {
     uid: _uid,
     view: view,
     activeBasemap: activeBasemap,
+    citraState: (window.__citraState ? JSON.parse(JSON.stringify(window.__citraState)) : null),
     markers: _markers || [],
     customPtTypes: (function(){ var o={}; Object.keys(PETA_PT_TYPES).forEach(function(k){ var t=PETA_PT_TYPES[k]; if(t&&t.isCustom) o[k]={label:t.label,short:t.short,color:t.color,shape:t.shape||'pin',isCustom:true,autoRegistered:!!t.autoRegistered}; }); return o; })(),
     rivers: _rivers || [],
@@ -19007,6 +19062,7 @@ function _applyProjectState(data) {
           }
         }
         // Pasang basemap yang tersimpan
+        if (data.citraState && window.__citraApply) window.__citraApply(data.citraState);
         if (window._mapBaseLayers[data.activeBasemap]) {
           window._mapBaseLayers[data.activeBasemap].addTo(_map);
         } else {
@@ -20418,6 +20474,11 @@ function genInit() {
       '\uD83C\uDDEE\uD83C\uDDE9 INARUPA BIG (RBI 1:50K)': genInarupa
   };
 
+  /* citra tambahan/berwaktu: buat instance baru memakai waktu yang sedang dipilih di peta utama */
+  if (window.__citraMake && window._mapBaseLayers) Object.keys(window._mapBaseLayers).forEach(function(k){
+    var l0 = window._mapBaseLayers[k];
+    if (l0 && l0._citraKind && !_genBaseLayers[k]) { var l1 = window.__citraMake(l0._citraKind); if (l1) _genBaseLayers[k] = l1; }
+  });
   if (window.__bmBad) Object.keys(window.__bmBad).forEach(function(k){ if (window.__bmBad[k] && _genBaseLayers[k] && _genBaseLayers[k] !== genOsm) delete _genBaseLayers[k]; });
   L.control.layers(
     _genBaseLayers,
@@ -31062,7 +31123,9 @@ button:focus-visible,.sg-item:focus-visible,.sg-lbl:focus-visible{outline:2px so
     line:'<path d="M3 17l5-7 4 4 6-8 3 3"/>',
     trash:'<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v6M14 11v6"/>',
     noov:'<rect x="4" y="5" width="16" height="14" rx="2" stroke-dasharray="3 2"/><path d="M13 13l5 5M18 13l-5 5"/>',
-    bars:'<path d="M5 20V10M10 20V5M15 20v-7M20 20V8"/>'};
+    bars:'<path d="M5 20V10M10 20V5M15 20v-7M20 20V8"/>',
+    clock:'<circle cx="12" cy="12" r="8.5"/><path d="M12 7v5l3.5 2"/>',
+    cal:'<rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/>'};
   function ico(k){return '<span class="sg-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">'+(SV[k]||SV.map)+'</svg></span>';}
   function guess(n){return /laut|ocean/i.test(n)?'sea':/dark/i.test(n)?'dark':/sat|imagery|hybrid/i.test(n)?'img':/topo|terrain|relief|outdoor|cycl|kontur|usgs/i.test(n)?'topo':/carto|stadia|smooth|watercolor/i.test(n)?'cloud':'map';}
   function clean(n){return n.replace(/^[^\p{L}\p{N}]+/u,'').trim();}
@@ -31072,11 +31135,15 @@ button:focus-visible,.sg-item:focus-visible,.sg-lbl:focus-visible{outline:2px so
   var DD=[ /* grup, label, ikon, daftar */
     ['Jalan','OpenStreetMap','map',['OSM Standard','OSM France','OSM CyclOSM (Kontur)','Humanitarian (HOT)','Google Road']],
     ['Jalan','Esri','map',['Street Map Esri','National Geographic Esri','Esri Gray Canvas','Esri Dark Gray Canvas']],
-    ['Citra & Medan','Citra','img',['Satelit Esri','Satelit Esri + Label','Google Satellite','Google Satellite HD (Retina)','Google Hybrid (Sat+Jalan)','Google Hybrid HD (Retina)','Google Sat HD + Label OSM']],
+    ['Citra & Medan','Citra','img',['Satelit Esri','Satelit Esri + Label','Esri Clarity (Citra Tajam)','Esri Firefly (Citra Gelap)','Google Satellite','Google Satellite HD (Retina)','Google Hybrid (Sat+Jalan)','Google Hybrid HD (Retina)','Google Sat HD + Label OSM']],
+    ['Riwayat Citra','Esri Wayback','clock',['Esri Wayback (Riwayat Citra)']],
+    ['Riwayat Citra','Sentinel-2 Tahunan','cal',['Sentinel-2 Cloudless (Tahunan)']],
+    ['Riwayat Citra','NASA VIIRS Harian','globe',['NASA VIIRS (Harian)']],
+    ['Riwayat Citra','NASA MODIS Harian','globe',['NASA MODIS Terra (Harian)']],
     ['Citra & Medan','Medan','topo',['Topografi Esri','Terrain Esri','Shaded Relief Esri','Google Terrain','Topografi (OpenTopoMap)','Laut & Oseanografi Esri','Laut + Label Esri']],
     ['Carto','Carto','cloud',['Carto Light','Carto (Tanpa Label)','Carto Dark']],
     ['Indonesia','INARUPA','map',['INARUPA BIG (RBI 1:50K)']]];
-  var GROUPS=['Populer','Jalan','Citra & Medan','Carto','Indonesia','Overlay','Kelola'];
+  var GROUPS=['Populer','Jalan','Citra & Medan','Riwayat Citra','Carto','Indonesia','Overlay','Kelola'];
 
   /* Overlay (label & garis) di atas peta dasar */
   var OV=null;
@@ -31176,7 +31243,7 @@ button:focus-visible,.sg-item:focus-visible,.sg-lbl:focus-visible{outline:2px so
   function testUrls(layer){
     var arr=(layer&&layer.getLayers&&!layer._url)?layer.getLayers():[layer],out=[];
     arr.forEach(function(l){
-      if(!l||!l._url) return; var o=l.options||{},sub=o.subdomains,sc=Array.isArray(sub)?sub[0]:(typeof sub==='string'&&sub?sub.charAt(0):'a');
+      if(!l||!l._url||l._noProbe) return; var o=l.options||{},sub=o.subdomains,sc=Array.isArray(sub)?sub[0]:(typeof sub==='string'&&sub?sub.charAt(0):'a');
       var big=/big\.go\.id/.test(l._url),z=big?12:6,x=big?3263:50,y=big?2118:33;
       out.push(l._url.replace('{s}',sc).replace('{r}','').replace('{x}',x).replace('{y}',y).replace('{z}',z));});
     return out;}
@@ -31205,6 +31272,161 @@ button:focus-visible,.sg-item:focus-visible,.sg-lbl:focus-visible{outline:2px so
     last=null; upd();}
   var _chk=false;
   setInterval(function(){if(!built){if(window._mapBaseLayers&&mapNow()) build(window._mapBaseLayers);} else {upd(); if(!_chk){_chk=true; setTimeout(checkAll,600);}}},700);
+})();
+</script>
+
+<style id="rustgis-citra-css">
+.cw-box{background:var(--card,#fff);color:var(--txt,#222);border:1px solid var(--brd,#cfd8d1);border-radius:10px;box-shadow:0 2px 10px rgba(0,0,0,.25);padding:8px 10px;width:300px;max-width:calc(100vw - 24px);font:12.5px/1.35 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;box-sizing:border-box}
+.cw-box[hidden]{display:none}
+.cw-h{display:flex;align-items:center;gap:6px;font-weight:600;cursor:pointer}
+.cw-h b{flex:1;font-size:12.5px}
+.cw-h .cw-x{border:0;background:transparent;color:inherit;font-size:16px;line-height:1;cursor:pointer;padding:0 4px}
+.cw-body{margin-top:6px}
+.cw-box.cw-min .cw-body{display:none}
+.cw-row{display:flex;gap:5px;align-items:center;margin:5px 0}
+.cw-row select,.cw-row input[type=date]{flex:1;min-width:0;padding:5px 6px;border:1px solid var(--brd,#cfd8d1);border-radius:6px;background:var(--card,#fff);color:inherit;font:inherit}
+.cw-b{border:1px solid var(--brd,#cfd8d1);background:var(--card,#fff);color:inherit;border-radius:6px;padding:5px 9px;cursor:pointer;font:inherit;min-height:30px}
+.cw-b:hover{border-color:var(--sg,#1a7f3c);color:var(--sg,#1a7f3c)}
+.cw-b.cw-pri{background:var(--sg,#1a7f3c);border-color:var(--sg,#1a7f3c);color:#fff}
+.cw-b.cw-pri:hover{color:#fff;filter:brightness(1.08)}
+.cw-rng{width:100%;margin:2px 0}
+.cw-info{color:var(--mute,#667);font-size:11.5px}
+.cw-note{color:var(--mute,#667);font-size:11px;margin-top:5px;border-top:1px dashed var(--brd,#cfd8d1);padding-top:5px}
+.cw-err{color:#c0392b;font-size:11.5px;margin:4px 0}
+.cw-btns{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}
+</style>
+<script id="rustgis-citra-waktu">
+(function(){
+  var S=window.__citraState=window.__citraState||{};
+  S.wb=S.wb||{rel:null}; S.s2=S.s2||{lyr:'s2cloudless-2025'}; S.gibs=S.gibs||{date:new Date(Date.now()-36*3600*1000).toISOString().slice(0,10)};
+  var MONTHS=['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
+  var S2Y=[['s2cloudless','2016'],['s2cloudless-2017','2017'],['s2cloudless-2018','2018'],['s2cloudless-2019','2019'],['s2cloudless-2020','2020'],['s2cloudless-2021','2021'],['s2cloudless-2022','2022'],['s2cloudless-2023','2023'],['s2cloudless-2024','2024'],['s2cloudless-2025','2025']];
+  var box,body,ctl,builtFor=null,collapsed=false,wb={list:null,err:'',busy:false};
+
+  function mapNow(){return typeof _map!=='undefined'?_map:null;}
+  function esc(t){return String(t).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+  function kindLayers(kind){var B=window._mapBaseLayers,o=[]; if(B) Object.keys(B).forEach(function(k){if(B[k]&&B[k]._citraKind===kind) o.push(B[k]);}); return o;}
+  function keyOfKind(kind){var B=window._mapBaseLayers,r=null; if(B) Object.keys(B).forEach(function(k){if(!r&&B[k]&&B[k]._citraKind===kind) r=k;}); return r;}
+  function activeKey(){var B=window._mapBaseLayers,m=mapNow(),a=null; if(!B||!m) return null; Object.keys(B).forEach(function(k){if(!a&&m.hasLayer(B[k])) a=k;}); return a;}
+  function activeInfo(){
+    var k=activeKey(); if(!k) return null; var l=window._mapBaseLayers[k];
+    if(l&&l._citraKind&&/^(wayback|s2|viirs|modis)$/.test(l._citraKind)) return {key:k,kind:l._citraKind};
+    if(/Google/i.test(k)) return {key:k,kind:'google'};
+    return null;}
+  function saveLocal(){try{localStorage.setItem('sg-citra-state',JSON.stringify(S));}catch(e){}}
+  try{var raw=localStorage.getItem('sg-citra-state'); if(raw){var o=JSON.parse(raw); if(o&&o.wb&&o.wb.rel) S.wb.rel=o.wb.rel; if(o&&o.s2&&o.s2.lyr) S.s2.lyr=o.s2.lyr; if(o&&o.gibs&&/^\d{4}-\d\d-\d\d$/.test(o.gibs.date||'')) S.gibs.date=o.gibs.date; syncAll();}}catch(e){}
+
+  /* terapkan status waktu ke semua instance layer berwaktu */
+  function syncAll(){
+    kindLayers('wayback').forEach(function(l){l.options.rel=S.wb.rel||0; if(l._map) l.redraw();});
+    kindLayers('s2').forEach(function(l){l.options.lyr=S.s2.lyr; if(l._map) l.redraw();});
+    ['viirs','modis'].forEach(function(k){kindLayers(k).forEach(function(l){l.options.date=S.gibs.date; if(l._map) l.redraw();});});}
+  window.__citraApply=function(st){ if(!st) return; try{
+    if(st.wb&&st.wb.rel) S.wb.rel=st.wb.rel; if(st.s2&&st.s2.lyr) S.s2.lyr=st.s2.lyr;
+    if(st.gibs&&/^\d{4}-\d\d-\d\d$/.test(st.gibs.date||'')) S.gibs.date=st.gibs.date; syncAll(); saveLocal(); builtFor=null; render();}catch(e){}};
+
+  /* ── Esri Wayback: daftar rilis dimuat saat runtime (butuh internet) ── */
+  var CFG='https://s3-us-west-2.amazonaws.com/config.maptiles.arcgis.com/waybackconfig.json';
+  function parseCfg(j){var out=[]; Object.keys(j||{}).forEach(function(k){var e=j[k]||{}; var rel=String(e.releaseNum||k);
+      var d=e.releaseDateLabel||((/\d{4}-\d{2}-\d{2}/.exec(e.itemTitle||'')||[])[0]); if(!d&&e.releaseDatetime){try{d=new Date(+e.releaseDatetime).toISOString().slice(0,10);}catch(x){}}
+      if(rel&&/^\d{4}-\d{2}-\d{2}$/.test(d||'')) out.push([rel,d]);});
+    out.sort(function(a,b){return a[1]<b[1]?-1:a[1]>b[1]?1:(+a[0])-(+b[0]);}); return out;}
+  function loadWB(force){
+    if(wb.list&&!force) return; if(wb.busy) return; wb.busy=true; wb.err='';
+    var done=function(list,err){wb.busy=false; if(list&&list.length){wb.list=list; try{localStorage.setItem('sg-wayback-cfg',JSON.stringify(list));}catch(e){}
+        if(!S.wb.rel||!list.some(function(x){return x[0]===String(S.wb.rel);})) S.wb.rel=list[list.length-1][0]; syncAll(); saveLocal();}
+      else{ var c=null; try{c=JSON.parse(localStorage.getItem('sg-wayback-cfg')||'null');}catch(e){}
+        if(c&&c.length){wb.list=c; wb.err='Daftar rilis diambil dari cache (offline).'; if(!S.wb.rel) S.wb.rel=c[c.length-1][0]; syncAll();}
+        else wb.err='Daftar rilis Wayback gagal dimuat ('+(err||'tidak ada koneksi')+'). Periksa internet lalu coba lagi.';}
+      builtFor=null; render();};
+    try{fetch(CFG,{mode:'cors',credentials:'omit'}).then(function(r){if(!r.ok) throw new Error('HTTP '+r.status); return r.json();})
+      .then(function(j){var l=parseCfg(j); if(!l.length) throw new Error('format tidak dikenal'); done(l);}).catch(function(e){done(null,e&&e.message);});}
+    catch(e){done(null,e&&e.message);}
+    builtFor=null; render();}
+
+  function fmtDate(d){var p=d.split('-'); return (+p[2])+' '+MONTHS[+p[1]-1]+' '+p[0];}
+  function ymd(d){return d.toISOString().slice(0,10);}
+  function addDays(s,n){var d=new Date(s+'T00:00:00Z'); d.setUTCDate(d.getUTCDate()+n); return ymd(d);}
+
+  function html(info){
+    if(info.kind==='google'){
+      return '<div class="cw-info">Google Maps hanya menyediakan citra <b>versi terbaru</b>; tile-nya tidak punya parameter tanggal, jadi citra lama Google tidak bisa ditampilkan.</div>'+
+        '<div class="cw-info" style="margin-top:4px">Untuk melihat <b>waktu lampau</b>, pindah ke:</div>'+
+        '<div class="cw-btns"><button class="cw-b cw-pri" data-cw="go" data-k="wayback">Esri Wayback (2014→kini)</button><button class="cw-b" data-cw="go" data-k="s2">Sentinel-2 tahunan</button><button class="cw-b" data-cw="go" data-k="viirs">NASA harian</button></div>';}
+    if(info.kind==='wayback'){
+      if(!wb.list){return wb.busy?'<div class="cw-info">Memuat daftar rilis Wayback…</div>':'<div class="cw-err">'+esc(wb.err||'Daftar rilis belum dimuat.')+'</div><div class="cw-btns"><button class="cw-b cw-pri" data-cw="retry">Coba lagi</button></div>';}
+      var L=wb.list,idx=Math.max(0,L.map(function(x){return x[0];}).indexOf(String(S.wb.rel)));
+      var opts=''; for(var i=L.length-1;i>=0;i--) opts+='<option value="'+i+'"'+(i===idx?' selected':'')+'>'+esc(fmtDate(L[i][1]))+'</option>';
+      return '<div class="cw-row"><button class="cw-b" data-cw="older" title="Rilis sebelumnya">◀</button><select class="cw-sel" aria-label="Tanggal rilis">'+opts+'</select><button class="cw-b" data-cw="newer" title="Rilis berikutnya">▶</button></div>'+
+        '<input class="cw-rng" type="range" min="0" max="'+(L.length-1)+'" value="'+idx+'" aria-label="Geser waktu">'+
+        '<div class="cw-info" data-cw="inf">Rilis '+esc(fmtDate(L[idx][1]))+' · #'+esc(L[idx][0])+' · '+(idx+1)+' dari '+L.length+'</div>'+
+        (wb.err?'<div class="cw-err">'+esc(wb.err)+'</div>':'')+
+        '<div class="cw-btns"><button class="cw-b cw-pri" data-cw="latest">Terbaru</button><button class="cw-b" data-cw="first">Terlama</button></div>'+
+        '<div class="cw-note">Tanggal = tanggal <b>rilis</b> Esri, bukan tanggal pemotretan; lokasi tanpa citra baru tampil sama dengan rilis sebelumnya. Detail penuh hanya di area yang punya citra resolusi tinggi. Tambah label lewat Peta dasar → Overlay.</div>';}
+    if(info.kind==='s2'){
+      var yi=Math.max(0,S2Y.map(function(x){return x[0];}).indexOf(S.s2.lyr)),o2='';
+      for(var j=S2Y.length-1;j>=0;j--) o2+='<option value="'+j+'"'+(j===yi?' selected':'')+'>Mosaik '+S2Y[j][1]+'</option>';
+      return '<div class="cw-row"><button class="cw-b" data-cw="older" title="Tahun sebelumnya">◀</button><select class="cw-sel" aria-label="Tahun">'+o2+'</select><button class="cw-b" data-cw="newer" title="Tahun berikutnya">▶</button></div>'+
+        '<div class="cw-note">Mosaik bebas awan per tahun, resolusi ±10 m (detail terbatas, diperbesar setelah zoom 14). Lisensi: 2016 CC BY 4.0; 2018+ CC BY-NC-SA 4.0 (non-komersial) — untuk laporan komersial hubungi EOX.</div>';}
+    var nm=info.kind==='viirs'?'NASA VIIRS':'NASA MODIS Terra',td=ymd(new Date());
+    return '<div class="cw-row"><button class="cw-b" data-cw="older" title="Hari sebelumnya">◀</button><input type="date" class="cw-dt" max="'+td+'" min="2012-01-19" value="'+esc(S.gibs.date)+'" aria-label="Tanggal"><button class="cw-b" data-cw="newer" title="Hari berikutnya">▶</button></div>'+
+      '<div class="cw-btns"><button class="cw-b cw-pri" data-cw="yest">Terbaru</button><button class="cw-b" data-cw="ago" data-n="30">−30 hari</button><button class="cw-b" data-cw="ago" data-n="365">−1 tahun</button></div>'+
+      '<div class="cw-note">'+nm+' citra harian (true color), resolusi kasar ±250–375 m — cocok untuk awan, asap, banjir besar, bukan detail lahan. Data terbaru biasanya tertunda ±1 hari.</div>';}
+
+  function title(info){return info.kind==='google'?'🕰️ Citra Google: hanya terbaru':info.kind==='wayback'?'🕰️ Riwayat Citra — Esri Wayback':info.kind==='s2'?'📅 Sentinel-2 Cloudless — Tahunan':'🌍 '+(info.kind==='viirs'?'NASA VIIRS':'NASA MODIS')+' — Harian';}
+
+  function render(){
+    if(!box) return; var info=activeInfo();
+    if(!info){box.hidden=true; builtFor=null; return;}
+    box.hidden=false; var sig=info.key+'|'+info.kind;
+    if(info.kind==='wayback'&&!wb.list&&!wb.busy&&!wb.err) loadWB();
+    if(builtFor===sig&&!box._force) return; builtFor=sig;
+    box.querySelector('.cw-h b').textContent=title(info); body.innerHTML=html(info);}
+
+  function step(info,dir){ /* dir: -1 lebih lama, +1 lebih baru */
+    if(info.kind==='wayback'&&wb.list){var L=wb.list,i=L.map(function(x){return x[0];}).indexOf(String(S.wb.rel)); i=Math.min(L.length-1,Math.max(0,i+dir)); S.wb.rel=L[i][0];}
+    else if(info.kind==='s2'){var y=S2Y.map(function(x){return x[0];}).indexOf(S.s2.lyr); y=Math.min(S2Y.length-1,Math.max(0,y+dir)); S.s2.lyr=S2Y[y][0];}
+    else if(info.kind==='viirs'||info.kind==='modis'){var n=addDays(S.gibs.date,dir),t=ymd(new Date()); if(n>t) n=t; S.gibs.date=n;}
+    commit();}
+  function commit(){syncAll(); saveLocal(); builtFor=null; render();}
+
+  function onClick(e){
+    var b=e.target.closest('[data-cw]'); if(!b) return; var info=activeInfo(); if(!info) return; var a=b.dataset.cw;
+    if(a==='older') step(info,-1); else if(a==='newer') step(info,1);
+    else if(a==='latest'&&wb.list){S.wb.rel=wb.list[wb.list.length-1][0]; commit();}
+    else if(a==='first'&&wb.list){S.wb.rel=wb.list[0][0]; commit();}
+    else if(a==='retry') loadWB(true);
+    else if(a==='yest'){S.gibs.date=ymd(new Date(Date.now()-36*3600*1000)); commit();}
+    else if(a==='ago'){var t=addDays(ymd(new Date()),-(+b.dataset.n)); S.gibs.date=t; commit();}
+    else if(a==='go'){var k=keyOfKind(b.dataset.k),B=window._mapBaseLayers,m=mapNow(); if(k&&m){Object.keys(B).forEach(function(x){if(x!==k&&m.hasLayer(B[x])) m.removeLayer(B[x]);}); B[k].addTo(m);}}}
+  function onInput(e){
+    var info=activeInfo(); if(!info) return;
+    if(e.target.classList.contains('cw-rng')&&wb.list){var i=+e.target.value; S.wb.rel=wb.list[i][0]; var inf=box.querySelector('[data-cw=inf]'); if(inf) inf.textContent='Rilis '+fmtDate(wb.list[i][1])+' · #'+wb.list[i][0]+' · '+(i+1)+' dari '+wb.list.length; syncAll(); saveLocal();}
+  }
+  function onChange(e){
+    var info=activeInfo(); if(!info) return;
+    if(e.target.classList.contains('cw-sel')){var i=+e.target.value; if(info.kind==='wayback'&&wb.list) S.wb.rel=wb.list[i][0]; else if(info.kind==='s2') S.s2.lyr=S2Y[i][0]; commit();}
+    else if(e.target.classList.contains('cw-dt')){var v=e.target.value,t=ymd(new Date()); if(/^\d{4}-\d\d-\d\d$/.test(v)){S.gibs.date=v>t?t:v; commit();}}
+    else if(e.target.classList.contains('cw-rng')) commit();}
+
+  function init(){
+    var m=mapNow(); if(!m||box||!window._mapBaseLayers||typeof L==='undefined') return false;
+    ctl=L.control({position:'bottomleft'});
+    ctl.onAdd=function(){
+      box=L.DomUtil.create('div','cw-box'); box.hidden=true;
+      box.innerHTML='<div class="cw-h" role="button" tabindex="0" aria-label="Lipat/buka kontrol waktu citra"><b></b><button type="button" class="cw-x" aria-label="Lipat">–</button></div><div class="cw-body"></div>';
+      body=box.querySelector('.cw-body');
+      L.DomEvent.disableClickPropagation(box); L.DomEvent.disableScrollPropagation(box);
+      box.addEventListener('click',function(e){
+        if(e.target.closest('.cw-h')){collapsed=!collapsed; box.classList.toggle('cw-min',collapsed); box.querySelector('.cw-x').textContent=collapsed?'+':'–'; return;}
+        onClick(e);});
+      box.addEventListener('keydown',function(e){if((e.key==='Enter'||e.key===' ')&&e.target.classList.contains('cw-h')){e.preventDefault(); e.target.click();}});
+      box.addEventListener('input',onInput); box.addEventListener('change',onChange);
+      return box;};
+    ctl.addTo(m);
+    m.on('layeradd layerremove',function(){setTimeout(render,0);});
+    render(); return true;}
+  var iv=setInterval(function(){if(init()) clearInterval(iv);},600);
 })();
 </script>
 

@@ -102,3 +102,12 @@ Arah aliran dari topografi **bergantung pada skala**: lereng lokal di dalam tapa
 - **Profil elevasi:** elevasi sepanjang sungai dari hulu, batas segmen, kemiringan tiap segmen (m/km), hover sinkron dengan titik di peta, ekspor PNG/CSV.
 - **Penampang melintang tiap segmen:** potongan DEM tegak lurus sungai (posisi sisi hulu/tengah/sisi hilir, lebar bisa diatur), muka air dari kedalaman manual atau dari debit (Manning), hasil lebar muka air, luas/keliling basah, jari-jari hidrolis, kecepatan, debit, Froude. Ekspor PNG, CSV penampang, dan CSV hidrolika semua segmen.
 - Catatan: DEM tidak merekam dasar sungai di bawah muka air, jadi kedalaman dan luas basah bersifat indikatif. Untuk desain atau Qual2Kw, ganti dengan data ukur lapangan.
+
+## Peta dasar: citra tambahan & riwayat citra (waktu mundur)
+- Tab **Peta dasar** → grup **Riwayat Citra**: Esri Wayback, Sentinel-2 Tahunan, NASA VIIRS/MODIS Harian. Saat salah satunya aktif, kontrol waktu muncul di kiri bawah peta (pilih tanggal/tahun, tombol ◀ ▶, slider).
+- **Esri Wayback** (rilis 2014→kini): daftar rilis diunduh saat dipakai (butuh internet) lalu di-cache di browser. Tanggal = tanggal rilis Esri, bukan tanggal pemotretan.
+- **Sentinel-2 cloudless** (EOX) 2016–2025: mosaik tahunan ±10 m. Lisensi 2018+ CC BY-NC-SA (non-komersial).
+- **NASA GIBS** harian: resolusi kasar (±250–375 m), untuk awan/asap/banjir besar.
+- Citra baru lain: Esri Clarity, Esri Firefly.
+- **Citra Google tidak punya parameter tanggal** pada tile-nya, jadi selalu versi terbaru. Saat peta dasar Google aktif, kontrol waktu menawarkan pindah ke sumber berarsip di atas.
+- Waktu terpilih ikut tersimpan di file proyek dan terbawa ke Generate Peta.
