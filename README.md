@@ -117,3 +117,10 @@ Layer SHP bertipe titik kini punya tombol **📍 Jadikan Titik** di daftar layer
 
 ## Input koordinat UTM
 Bar koordinat (mode tambah titik) kini punya format **UTM (Easting / Northing)** dengan pilihan zona 46–54 dan belahan N/S. Titik dan koma desimal sama-sama dikenali.
+
+## Tampilan: font & form titik
+- Font antarmuka diganti ke **Inter** (variabel, tertanam di `index.html`, jadi tetap tampil offline; lisensi SIL OFL 1.1). Ukuran teks kecil dinaikkan ±1px. Teks di dalam peta/Layout/ekspor tetap Arial agar hasil cetak tidak berubah.
+- Form tambah titik dirapikan: kartu dengan kolom Nama, pilihan format koordinat (DD/DMS/DMM/UTM) berbentuk tombol segmen, kolom koordinat bersusun, pratinjau, dan tombol "Tambahkan Titik" selebar form.
+
+## Bar atas & ribbon responsif
+Label ribbon boleh 2 baris, tab/pencarian/tombol menyesuaikan lebar jendela (≤1400 / 1240 / 1180 px), roda mouse menggeser ribbon yang lebih lebar dari layar, dan item Riwayat Citra digabung jadi satu dropdown di Peta dasar.
