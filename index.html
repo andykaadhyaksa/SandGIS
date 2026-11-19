@@ -2733,6 +2733,7 @@ setTimeout(hide,8000);})();
     <option value="dd">DD (Desimal)</option>
     <option value="dms">DMS (° ′ ″)</option>
     <option value="dmm">DMM (° ′ desimal)</option>
+    <option value="utm">UTM (Easting / Northing)</option>
   </select>
 
   <!-- Kolom input koordinat — dirender dinamis sesuai format terpilih -->
@@ -5384,6 +5385,17 @@ function petaCoordRenderFields() {
       + _coordInp('peta-coord-lng-m', 34, '25', 'Menit') + '<span style="'+unit+'">′</span>'
       + _coordInp('peta-coord-lng-s', 52, '0,00', 'Detik (boleh desimal, koma)') + '<span style="'+unit+'">″</span>'
       + _coordDirSel('peta-coord-lng-dir', false) + '</div>';
+  } else if (v === 'utm') {
+    var zs = window._utmZ || '51', hs = window._utmH || 'N', zo = '';
+    for (var z = 46; z <= 54; z++) zo += '<option value="'+z+'"'+(String(z)===zs?' selected':'')+'>'+z+'</option>';
+    html += '<div style="display:flex;align-items:center;gap:3px;flex-shrink:0"><span style="'+lbl+'">Zona</span>'
+      + '<select id="peta-coord-zone" style="'+_COORD_SEL_STYLE+'" title="Zona UTM (Indonesia 46–54)" onchange="window._utmZ=this.value;petaCoordPreview()">'+zo+'</select>'
+      + '<select id="peta-coord-hemi" style="'+_COORD_SEL_STYLE+'" title="Belahan bumi" onchange="window._utmH=this.value;petaCoordPreview()">'
+      + '<option value="N"'+(hs==='N'?' selected':'')+'>N (Utara)</option><option value="S"'+(hs==='S'?' selected':'')+'>S (Selatan)</option></select></div>';
+    html += '<div style="display:flex;align-items:center;gap:3px;flex-shrink:0"><span style="'+lbl+'">E</span>'
+      + _coordInp('peta-coord-e', 100, '385650,452', 'Easting (m) — titik atau koma boleh') + '</div>';
+    html += '<div style="display:flex;align-items:center;gap:3px;flex-shrink:0"><span style="'+lbl+'">N</span>'
+      + _coordInp('peta-coord-n', 100, '62647,805', 'Northing (m)') + '</div>';
   } else { // dmm
     html += '<div style="display:flex;align-items:center;gap:3px;flex-shrink:0"><span style="'+lbl+'">Lat</span>'
       + _coordInp('peta-coord-lat-d', 38, '7', 'Derajat') + '<span style="'+unit+'">°</span>'
@@ -5428,6 +5440,18 @@ function _coordReadAxis(prefix, isLat) {
 }
 
 function petaCoordGetLatLng() {
+  var _f = document.getElementById('peta-coord-format');
+  if (_f && _f.value === 'utm') {
+    var eEl = document.getElementById('peta-coord-e'), nEl = document.getElementById('peta-coord-n');
+    var eS = eEl ? eEl.value.trim() : '', nS = nEl ? nEl.value.trim() : '';
+    if (!eS && !nS) return { lat: null, lng: null };
+    if (!eS || !nS) return { lat: eS ? NaN : null, lng: nS ? NaN : null };
+    var E = _parseIDNum(eS), N = _parseIDNum(nS);
+    var zEl = document.getElementById('peta-coord-zone'), hEl = document.getElementById('peta-coord-hemi');
+    if (isNaN(E) || isNaN(N) || E < 100000 || E > 900000 || N < 0 || N > 10000000) return { lat: NaN, lng: NaN };
+    var ll = _utmToLonLat(E, N, +(zEl ? zEl.value : 51), (hEl ? hEl.value : 'N') === 'S');
+    return { lat: ll[1], lng: ll[0] };
+  }
   return {
     lat: _coordReadAxis('peta-coord-lat', true),
     lng: _coordReadAxis('peta-coord-lng', false)

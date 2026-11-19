@@ -114,3 +114,6 @@ Arah aliran dari topografi **bergantung pada skala**: lereng lokal di dalam tapa
 
 ## SHP titik → Titik SandGIS
 Layer SHP bertipe titik kini punya tombol **📍 Jadikan Titik** di daftar layer: titik dikonversi jadi Titik SandGIS (jenis baru atau yang sudah ada, nama dari kolom atribut), sehingga terbaca di Layout, legenda, dan tabel titik.
+
+## Input koordinat UTM
+Bar koordinat (mode tambah titik) kini punya format **UTM (Easting / Northing)** dengan pilihan zona 46–54 dan belahan N/S. Titik dan koma desimal sama-sama dikenali.
