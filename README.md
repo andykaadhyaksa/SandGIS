@@ -129,3 +129,4 @@ Tinggi ribbon sama di semua tab (66 px), label satu baris, tab selalu tampil pen
 - Popup titik/garis/poligon: kartu bersih (ikon berwarna, koordinat DD/DMS/UTM dengan tombol salin, tombol Edit/Hapus jelas), terbaca di mode terang & gelap.
 - Tombol **Edit** membuka form modal: titik (nama, jenis, koordinat + UTM langsung, catatan) dan objek (nama, warna garis/isi, tebal, transparansi, label).
 - Ikon ribbon diberi chip berwarna; titik di ribbon memakai ikon pin.
+- Popup tambah titik, picker warna, dan picker bentuk didesain ulang agar konsisten (kartu rapi, grid warna dengan tanda centang, bentuk dengan ikon vektor). Status autosave: "Belum tersimpan" (tanpa titik-titik).

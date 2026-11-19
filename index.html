@@ -2050,6 +2050,31 @@ html[data-theme="dark"] .sgp-b.pri{color:#07210f}
 #rg-ribbon .rg-panel .sg-dot{width:20px!important;height:22px!important;margin:2px 0!important;border-radius:0!important;-webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 22s7-6.2 7-12a7 7 0 1 0-14 0c0 5.8 7 12 7 12z'/%3E%3Ccircle cx='12' cy='10' r='2.6' fill='%23000' fill-opacity='.0'/%3E%3C/svg%3E") center/contain no-repeat;mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill-rule='evenodd' d='M12 22s7-6.2 7-12a7 7 0 1 0-14 0c0 5.8 7 12 7 12zm0-15a3 3 0 1 1 0 6 3 3 0 0 1 0-6z'/%3E%3C/svg%3E") center/contain no-repeat;filter:drop-shadow(0 1px 1px rgba(0,0,0,.25))}
 }
 </style>
+<style id="rustgis-popup-css2">
+.sgp-in{width:100%;box-sizing:border-box;height:36px;padding:0 11px;border:1px solid var(--brd);border-radius:9px;background:var(--inp);color:var(--txt);font:500 13px var(--ui);outline:none}
+textarea.sgp-in{height:62px;padding:8px 11px;resize:vertical;line-height:1.4}
+.sgp-in::placeholder{color:var(--mute);opacity:1}
+.sgp-in:focus{border-color:var(--sg);box-shadow:0 0 0 3px var(--sg3)}
+.sgp .sgm-l{margin-bottom:5px}
+.sgp-coord{margin:-2px 0 12px;padding:7px 10px;border-radius:9px;background:var(--card2);border:1px solid var(--brd2);font:550 11.5px/1.4 var(--ui);color:var(--txt2);font-variant-numeric:tabular-nums}
+.sgp-z{color:var(--mute);font-weight:600}
+.sgp-v{line-height:1.45}
+.sgp-k{flex:0 0 38px}
+.sgp-grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:7px}
+.sgp-pk{display:flex;flex-direction:column;align-items:center;gap:5px;padding:9px 2px 7px;border-radius:10px;border:1px solid var(--brd);background:var(--card);color:var(--txt2);font:600 10.5px var(--ui);cursor:pointer}
+.sgp-pk svg{width:22px;height:22px}
+.sgp-pk:hover{border-color:var(--sg);background:var(--sg3)}
+.sgp-pk.on{border-color:var(--c);color:var(--c);background:color-mix(in srgb,var(--c) 12%,transparent);box-shadow:inset 0 0 0 1px var(--c)}
+.sgp-grid4.sq{gap:8px}
+.sgp-sq{position:relative;aspect-ratio:1;width:100%;border-radius:10px;border:1px solid color-mix(in srgb,var(--txt) 18%,transparent);cursor:pointer;padding:0;display:grid;place-items:center;transition:transform .1s}
+.sgp-sq:hover{transform:scale(1.07)}
+.sgp-sq.on{box-shadow:0 0 0 2px var(--card),0 0 0 4px var(--c)}
+.sgp-sq svg{width:18px;height:18px}
+.sgp-sq-c{background:var(--card2);color:var(--txt2);overflow:hidden}
+.sgp-sq-c input{position:absolute;inset:0;opacity:0;width:100%;height:100%;cursor:pointer;padding:0;border:0}
+.sgp-sq-c .sgp-i{width:18px;height:18px}
+.leaflet-popup-content{min-width:288px!important}
+</style>
 </head>
 <body>
 <style id="sg-splash-css">
@@ -11660,25 +11685,21 @@ function _addPopup(latlng, type) {
   var id    = 'p' + (_uid++);
   var label = _ptType(type).label;
   var color = _ptColor(type);
-  var dmsLat = _ddToDMS(latlng.lat, true);
-  var dmsLng = _ddToDMS(latlng.lng, false);
-
-  L.popup({ minWidth:260, closeButton:true, autoPan:false })
+  var dms = _ddToDMS(latlng.lat, true)+' &nbsp;'+_ddToDMS(latlng.lng, false);
+  L.popup({ minWidth:288, closeButton:true, autoPan:true })
     .setLatLng(latlng)
     .setContent(
-      '<div style="font-family:var(--ui);font-size:12px;padding:2px 0">'
-    + '<div style="font-weight:700;color:'+color+';margin-bottom:8px;font-size:11px;letter-spacing:1.2px;text-transform:uppercase">＋ '+label+'</div>'
-    + '<div style="color:#8bb8b0;font-size:9.5px;margin-bottom:8px">'+dmsLat+' / '+dmsLng+'</div>'
-    + '<input id="pn-'+id+'" placeholder="Nama titik..." autofocus '
-    +   'style="width:100%;padding:7px 9px;margin-bottom:7px;background:#060f17;border:1px solid rgba(26,176,166,0.25);border-radius:3px;color:#d4f0e8;font-family:var(--ui);font-size:12px;outline:none;box-sizing:border-box">'
-    + '<textarea id="pt-'+id+'" placeholder="Catatan..." rows="2" '
-    +   'style="width:100%;padding:6px 9px;margin-bottom:9px;background:#060f17;border:1px solid rgba(26,176,166,0.25);border-radius:3px;color:#d4f0e8;font-family:var(--ui);font-size:11px;outline:none;box-sizing:border-box;resize:vertical"></textarea>'
-    + '<button onclick="_saveMarker(\''+id+'\','+latlng.lat+','+latlng.lng+',\''+type+'\')" '
-    +   'style="width:100%;padding:7px 0;background:'+color+';border:none;border-radius:3px;color:#060f17;font-family:var(--ui);font-size:11px;font-weight:700;cursor:pointer;letter-spacing:1px">SIMPAN</button>'
+      '<div class="sgp" style="--c:'+color+'">'
+    + '<div class="sgp-h"><span class="sgp-ico">'+_sgpIcon('pin')+'</span><div class="sgp-hd"><div class="sgp-t">Titik baru</div><div class="sgp-s">'+_e(label)+'</div></div></div>'
+    + '<div class="sgp-coord">'+dms+'</div>'
+    + '<label class="sgm-l" for="pn-'+id+'">Nama titik</label>'
+    + '<input id="pn-'+id+'" class="sgp-in" type="text" placeholder="Contoh: Outlet SP-1" autocomplete="off">'
+    + '<label class="sgm-l" for="pt-'+id+'" style="margin-top:10px">Catatan <em>opsional</em></label>'
+    + '<textarea id="pt-'+id+'" class="sgp-in" rows="2" placeholder="Tulis catatan singkat"></textarea>'
+    + '<div class="sgp-acts" style="margin-top:12px"><button type="button" class="sgp-b pri" onclick="_saveMarker(\''+id+'\','+latlng.lat+','+latlng.lng+',\''+type+'\')">'+_sgpIcon('check')+' Simpan titik</button></div>'
     + '</div>'
     )
     .openOn(_map);
-
   setTimeout(function(){ var el=document.getElementById('pn-'+id); if(el) el.focus(); }, 100);
 }
 
@@ -11907,8 +11928,8 @@ function _markerPopupHTML(m) {
     + '<div class="sgp-h"><span class="sgp-ico">'+_sgpIcon('pin')+'</span><div class="sgp-hd"><div class="sgp-t">'+_e(m.name)+'</div><div class="sgp-s">'+_e(label)+'</div></div></div>'
     + '<div class="sgp-rows">'
     +   _sgpRow('DD', dd, dd)
-    +   _sgpRow('DMS', _ddToDMS(m.lat,true)+' &nbsp;'+_ddToDMS(m.lng,false), _ddToDMS(m.lat,true)+' '+_ddToDMS(m.lng,false))
-    +   _sgpRow('UTM', _sgpUtmTxt(m.lat,m.lng), _sgpUtmTxt(m.lat,m.lng))
+    +   _sgpRow('DMS', _ddToDMS(m.lat,true)+'<br>'+_ddToDMS(m.lng,false), _ddToDMS(m.lat,true)+' '+_ddToDMS(m.lng,false))
+    +   _sgpRow('UTM', (function(u){return u.e.toFixed(3)+' E<br>'+u.n.toFixed(3)+' N <span class="sgp-z">· '+u.zone+u.hemi+'</span>';})(_sgpUtm(m.lat,m.lng)), _sgpUtmTxt(m.lat,m.lng))
     + '</div>'
     + (m.note?'<div class="sgp-note">'+_e(m.note)+'</div>':'')
     + '<div class="sgp-acts two">'
@@ -11934,29 +11955,28 @@ function _showMarkerShapePicker(id) {
   if (!m || !_layers[id]) return;
   var current = m.shape || _ptType(m.type).shape || 'pin';
   var color = _ptColor(m.type);
-
+  var G = {
+    pin:'<path d="M12 21s6.5-5.6 6.5-11a6.5 6.5 0 1 0-13 0c0 5.4 6.5 11 6.5 11z"/><circle cx="12" cy="10" r="2.3" fill="#fff" stroke="none"/>',
+    circle:'<circle cx="12" cy="12" r="7.5"/>',
+    square:'<rect x="5" y="5" width="14" height="14" rx="2"/>',
+    triangle:'<path d="M12 4.5l8 14H4z"/>',
+    diamond:'<path d="M12 3.5l8.5 8.5-8.5 8.5L3.5 12z"/>',
+    star:'<path d="M12 3.5l2.6 5.5 6 .8-4.4 4.2 1.1 6-5.3-2.9-5.3 2.9 1.1-6L3.4 9.8l6-.8z"/>',
+    cross:'<path d="M9.5 4h5v5.5H20v5h-5.5V20h-5v-5.5H4v-5h5.5z"/>',
+    flag:'<path d="M6 21V4M6 5h12l-2.5 4 2.5 4H6" />'
+  };
+  var NM = {pin:'Pin',circle:'Lingkaran',square:'Kotak',triangle:'Segitiga',diamond:'Wajik',star:'Bintang',cross:'Silang',flag:'Bendera'};
   var cells = MARKER_SHAPE_OPTIONS.map(function(opt) {
-    var active = (opt.value === current);
-    var ico = opt.label.split(' ')[0];
-    var nm  = opt.label.split(' ').slice(1).join(' ');
-    return '<div onclick="event.stopPropagation();_setMarkerShape(\''+id+'\',\''+opt.value+'\')" '
-      + 'style="cursor:pointer;text-align:center;padding:7px 2px;border-radius:4px;font-family:var(--ui);font-size:8.5px;'
-      + 'border:1.5px solid '+(active ? color : 'rgba(255,255,255,0.15)')+';'
-      + 'background:'+(active ? 'rgba(255,255,255,0.08)' : 'transparent')+';'
-      + 'color:'+(active ? color : '#cfd8dc')+'">'
-      + '<div style="font-size:15px;margin-bottom:2px">'+ico+'</div>'
-      + '<div>'+nm+'</div></div>';
+    var on = (opt.value === current);
+    return '<button type="button" class="sgp-pk'+(on?' on':'')+'" onclick="event.stopPropagation();_setMarkerShape(\''+id+'\',\''+opt.value+'\')">'
+      + '<svg viewBox="0 0 24 24" fill="'+(opt.value==='flag'?'none':'currentColor')+'" stroke="currentColor" stroke-width="'+(opt.value==='flag'?'2':'1')+'" stroke-linejoin="round" stroke-linecap="round">'+(G[opt.value]||'')+'</svg>'
+      + '<span>'+(NM[opt.value]||opt.label)+'</span></button>';
   }).join('');
-
-  var html = '<div style="font-family:var(--ui);font-size:12px;min-width:230px">'
-    + '<div style="font-weight:700;font-size:12px;color:#d4f0e8;margin-bottom:2px">'+_e(m.name)+'</div>'
-    + '<div style="color:'+color+';font-size:9px;text-transform:uppercase;letter-spacing:1px;margin-bottom:9px">Pilih Bentuk Titik</div>'
-    + '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin-bottom:9px">'+cells+'</div>'
-    + '<button onclick="event.stopPropagation();_markerPopupRestore(\''+id+'\')" '
-    + 'style="width:100%;padding:5px 0;background:none;border:1px solid rgba(255,255,255,0.2);border-radius:3px;color:#8bb8b0;cursor:pointer;font-family:var(--ui);font-size:10px">← Kembali</button>'
+  var html = '<div class="sgp" style="--c:'+color+'">'
+    + '<div class="sgp-h"><span class="sgp-ico">'+_sgpIcon('shape')+'</span><div class="sgp-hd"><div class="sgp-t">Bentuk titik</div><div class="sgp-s">'+_e(m.name)+'</div></div></div>'
+    + '<div class="sgp-grid4">'+cells+'</div>'
+    + '<div class="sgp-acts" style="margin-top:12px"><button type="button" class="sgp-b" onclick="event.stopPropagation();_markerPopupRestore(\''+id+'\')">← Kembali</button></div>'
     + '</div>';
-
-  /* Tunda swap konten sampai event klik selesai, lalu pastikan popup tetap terbuka */
   setTimeout(function() {
     if (!_layers[id]) return;
     _layers[id].setPopupContent(html);
@@ -11973,30 +11993,18 @@ function _showMarkerColorPicker(id) {
   if (!m || !_layers[id]) return;
   var current = _ptColor(m.type);
   var label = _ptType(m.type).label;
-
-  var palette = ['var(--sg,#1a7f3c)','#2ecc71','#e74c3c','#f5a623','#4488ff','#9b59b6',
-                  '#f04e7c','#10b981','#3b82f6','#a855f7','#ef4444','#f59e0b',
-                  '#06b6d4','#64748b','#ffffff','#111827'];
+  var palette = ['#1a7f3c','#2ecc71','#10b981','#06b6d4','#3b82f6','#6366f1','#9b59b6','#ec4899',
+                 '#ef4444','#f97316','#f5a623','#eab308','#64748b','#111827','#ffffff'];
   var cells = palette.map(function(c) {
-    var active = (c.toLowerCase() === current.toLowerCase());
-    return '<div onclick="event.stopPropagation();_setMarkerTypeColor(\''+id+'\',\''+c+'\')" '
-      + 'title="'+c+'" style="cursor:pointer;width:100%;padding-top:100%;position:relative;border-radius:6px;'
-      + 'background:'+c+';border:2px solid '+(active ? '#fff' : 'rgba(255,255,255,0.15)')+';'
-      + 'box-shadow:'+(active ? '0 0 0 2px '+current : 'none')+'"></div>';
+    var on = (c.toLowerCase() === String(current).toLowerCase());
+    return '<button type="button" class="sgp-sq'+(on?' on':'')+'" title="'+c+'" style="background:'+c+'" onclick="event.stopPropagation();_setMarkerTypeColor(\''+id+'\',\''+c+'\')">'+(on?'<svg viewBox="0 0 24 24" fill="none" stroke="'+(c==='#ffffff'?'#111':'#fff')+'" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>':'')+'</button>';
   }).join('');
-
-  var html = '<div style="font-family:var(--ui);font-size:12px;min-width:230px">'
-    + '<div style="font-weight:700;font-size:12px;color:#d4f0e8;margin-bottom:2px">'+_e(m.name)+'</div>'
-    + '<div style="color:'+current+';font-size:9px;text-transform:uppercase;letter-spacing:1px;margin-bottom:9px">Warna untuk semua "'+_e(label)+'"</div>'
-    + '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:9px">'+cells+'</div>'
-    + '<div style="display:flex;align-items:center;gap:8px;margin-bottom:9px">'
-    + '<input type="color" value="'+current+'" onclick="event.stopPropagation()" onchange="event.stopPropagation();_setMarkerTypeColor(\''+id+'\',this.value)" style="width:32px;height:26px;border:none;border-radius:4px;cursor:pointer;background:none">'
-    + '<span style="font-size:9.5px;color:#8bb8b0">Warna kustom lainnya</span>'
-    + '</div>'
-    + '<button onclick="event.stopPropagation();_markerPopupRestore(\''+id+'\')" '
-    + 'style="width:100%;padding:5px 0;background:none;border:1px solid rgba(255,255,255,0.2);border-radius:3px;color:#8bb8b0;cursor:pointer;font-family:var(--ui);font-size:10px">← Kembali</button>'
+  cells += '<label class="sgp-sq sgp-sq-c" title="Warna kustom"><input type="color" value="'+(/^#[0-9a-f]{6}$/i.test(current)?current:'#1a7f3c')+'" onclick="event.stopPropagation()" onchange="event.stopPropagation();_setMarkerTypeColor(\''+id+'\',this.value)">'+_sgpIcon('palette')+'</label>';
+  var html = '<div class="sgp" style="--c:'+current+'">'
+    + '<div class="sgp-h"><span class="sgp-ico">'+_sgpIcon('palette')+'</span><div class="sgp-hd"><div class="sgp-t">Warna titik</div><div class="sgp-s">Semua '+_e(label)+'</div></div></div>'
+    + '<div class="sgp-grid4 sq">'+cells+'</div>'
+    + '<div class="sgp-acts" style="margin-top:12px"><button type="button" class="sgp-b" onclick="event.stopPropagation();_markerPopupRestore(\''+id+'\')">← Kembali</button></div>'
     + '</div>';
-
   setTimeout(function() {
     if (!_layers[id]) return;
     _layers[id].setPopupContent(html);
@@ -34374,7 +34382,7 @@ onmessage = function (e) {
   function setState(st, txt, tip){
     var b=$('sg-as'), t=$('sg-as-txt'); if(!b) return;
     b.setAttribute('data-st', st);
-    var label = txt || ({off:'Autosave mati',ready:'Autosave aktif',dirty:'Perubahan…',saving:'Menyimpan…',held:'Autosave ditahan',error:'Autosave gagal',clean:'Tersimpan'})[st] || 'Autosave';
+    var label = txt || ({off:'Autosave mati',ready:'Autosave aktif',dirty:'Belum tersimpan',saving:'Menyimpan',held:'Autosave ditahan',error:'Autosave gagal',clean:'Tersimpan'})[st] || 'Autosave';
     if(t) t.textContent = label;
     b.title = (tip || label) + (window._sgFile ? ' · file: ' + window._sgFile.name : '') + ' — klik untuk ' + (enabled?'mematikan':'menyalakan') + ' autosave (disimpan di browser ini)';
   }
