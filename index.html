@@ -12116,7 +12116,7 @@ function _sgpCopy(btn,txt){
   try{ if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(txt).then(ok,fb); return; } }catch(e){}
   fb();
 }
-function _sgpRow(k,v,copyTxt){ return '<div class="sgp-r"><span class="sgp-k">'+k+'</span><span class="sgp-v">'+v+'</span>'+(copyTxt?'<button type="button" class="sgp-cp" title="Salin" onclick="event.stopPropagation();_sgpCopy(this,\''+String(copyTxt).replace(/\\/g,'\\\\').replace(/'/g,"\\'")+'\')">'+_sgpIcon('copy')+'</button>':'')+'</div>'; }
+function _sgpRow(k,v,copyTxt){ var a=String(copyTxt==null?'':copyTxt).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'); return '<div class="sgp-r"><span class="sgp-k">'+k+'</span><span class="sgp-v">'+v+'</span>'+(copyTxt?'<button type="button" class="sgp-cp" title="Salin" data-copy="'+a+'" onclick="event.stopPropagation();_sgpCopy(this,this.getAttribute(\'data-copy\'))">'+_sgpIcon('copy')+'</button>':'')+'</div>'; }
 function _sgpBtn(cls,icon,label,onclick,title){ return '<button type="button" class="sgp-b '+cls+'"'+(title?' title="'+title+'"':'')+' onclick="'+onclick+'">'+_sgpIcon(icon)+'<span>'+label+'</span></button>'; }
 function _sgpSwitch(on,onchange){ return '<label class="sgp-sw"><input type="checkbox"'+(on?' checked':'')+' onchange="'+onchange+'"><span></span></label>'; }
 
