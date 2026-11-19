@@ -131,3 +131,5 @@ Tinggi ribbon sama di semua tab (66 px), label satu baris, tab selalu tampil pen
 - Ikon ribbon diberi chip berwarna; titik di ribbon memakai ikon pin.
 - Popup tambah titik, picker warna, dan picker bentuk didesain ulang agar konsisten (kartu rapi, grid warna dengan tanda centang, bentuk dengan ikon vektor). Status autosave: "Belum tersimpan" (tanpa titik-titik).
 - Ribbon versi Inggris: label dipersingkat, ribbon otomatis memadat jika tidak muat dan memberi fade di tepi bila masih bisa digulir. Bar atas HP: satu baris ringkas (ikon saja + tombol Generate).
+- Klik kanan di peta kini membuka menu khusus: di area kosong (salin koordinat DD/UTM, tambah titik per jenis, pusatkan, zoom, Google Maps), di titik (edit, bentuk, warna, salin, zoom, hapus), di garis/poligon (edit properti, edit titik sudut, profil elevasi, zoom, hapus). Esc / klik di luar menutup menu.
+- Tombol salin koordinat di popup diperbaiki (fallback bila Clipboard API ditolak); teks koordinat bisa diblok dan diklik untuk menyalin.
