@@ -122,5 +122,10 @@ Bar koordinat (mode tambah titik) kini punya format **UTM (Easting / Northing)**
 - Font antarmuka diganti ke **Inter** (variabel, tertanam di `index.html`, jadi tetap tampil offline; lisensi SIL OFL 1.1). Ukuran teks kecil dinaikkan ±1px. Teks di dalam peta/Layout/ekspor tetap Arial agar hasil cetak tidak berubah.
 - Form tambah titik dirapikan: kartu dengan kolom Nama, pilihan format koordinat (DD/DMS/DMM/UTM) berbentuk tombol segmen, kolom koordinat bersusun, pratinjau, dan tombol "Tambahkan Titik" selebar form.
 
-## Bar atas & ribbon responsif
-Label ribbon boleh 2 baris, tab/pencarian/tombol menyesuaikan lebar jendela (≤1400 / 1240 / 1180 px), roda mouse menggeser ribbon yang lebih lebar dari layar, dan item Riwayat Citra digabung jadi satu dropdown di Peta dasar.
+## Bar atas & ribbon: ukuran tetap
+Tinggi ribbon sama di semua tab (66 px), label satu baris, tab selalu tampil penuh; bila layar sempit, ribbon digeser dengan roda mouse. Tombol Simpan sebagai / teks Autosave / teks Generate Peta berubah jadi ikon saat jendela sempit. Item Riwayat Citra digabung jadi satu dropdown di Peta dasar.
+
+## Popup & form edit baru
+- Popup titik/garis/poligon: kartu bersih (ikon berwarna, koordinat DD/DMS/UTM dengan tombol salin, tombol Edit/Hapus jelas), terbaca di mode terang & gelap.
+- Tombol **Edit** membuka form modal: titik (nama, jenis, koordinat + UTM langsung, catatan) dan objek (nama, warna garis/isi, tebal, transparansi, label).
+- Ikon ribbon diberi chip berwarna; titik di ribbon memakai ikon pin.

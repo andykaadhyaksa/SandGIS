@@ -1820,18 +1820,26 @@ input,select,textarea,td,th,.finput{font-variant-numeric:tabular-nums}
 button{font-weight:600}
 b,strong,th{font-weight:700}
 h1,h2,h3,h4{font-weight:700;letter-spacing:-.01em}
-/* ── Ribbon & bar atas: jangan terpotong/tumpang tindih ── */
-#rg-ribbon .rg-panel:not([data-t=petadasar]):not([data-t=setting]) .sg-item .rg-lb{white-space:normal;max-width:86px;overflow:visible;text-overflow:clip;line-height:1.2;word-break:normal;overflow-wrap:anywhere}
-#rg-ribbon .rg-panel:not([data-t=petadasar]) .sg-item{max-width:100px}
-.rg-panel{scrollbar-width:thin}
-#rg-tabs{min-width:0}
-.rg-tab{padding:0 10px;font-size:12.5px;font-weight:550}
-@media (max-width:1400px){#sg-save-as{font-size:0!important;gap:0!important;padding-left:8px!important;padding-right:8px!important}}
-@media (max-width:1240px){.rg-tab{padding:0 8px;font-size:12px}#rg-search{flex:0 1 150px;min-width:96px}#sg-gen span{font-size:12px}}
-@media (max-width:1180px){#sg-gen span{display:none}#sg-gen{padding:0 10px!important;min-width:0}#rg-search{flex:0 1 96px;min-width:72px}#rg-search input{padding-right:8px}.rg-tab{padding:0 7px}#sg-as{padding:0 6px!important}}
-#rg-ribbon .rg-panel .sg-item,#rg-ribbon .rg-panel .sg-item:hover{padding:3px 4px;min-width:50px}
-#rg-ribbon .rg-panel[data-t=petadasar] .sg-item,#rg-ribbon .rg-panel[data-t=petadasar] .sg-item:hover{padding:4px 6px;min-width:0}
-#rg-ribbon .rg-panel .rg-g{padding:0 3px}
+/* ── Bar atas & ribbon: ukuran TETAP di semua menu, tidak terpotong ── */
+@media (min-width:701px){
+  #rg-tabs{flex:0 0 auto!important;overflow:visible!important}
+  .rg-tab{padding:0 10px!important;font-size:12.5px!important;font-weight:550;white-space:nowrap}
+  #rg-collapse{position:static!important}
+  #rg-search{flex:1 1 150px!important;max-width:230px;min-width:70px!important;margin:0 8px 0 auto!important}
+  #rg-ribbon .rg-panel{height:66px!important;min-height:66px!important;max-height:66px!important;overflow-x:auto!important;overflow-y:hidden!important;scrollbar-width:none!important;padding:3px 6px!important;align-items:stretch}
+  #rg-ribbon .rg-panel::-webkit-scrollbar{display:none}
+  #rg-ribbon .rg-panel .rg-g{padding:0 4px!important}
+  #rg-ribbon .rg-panel .sg-item,#rg-ribbon .rg-panel .sg-item:hover,#rg-ribbon .rg-panel[data-t] .sg-item,#rg-ribbon .rg-panel[data-t] .sg-item:hover{padding:3px 8px!important;min-width:52px!important;max-width:none!important;gap:2px!important;font-size:12px!important;line-height:1.2!important}
+  #rg-ribbon .rg-panel .sg-item .rg-lb,#rg-ribbon .rg-panel[data-t] .sg-item .rg-lb{white-space:nowrap!important;max-width:none!important;overflow:visible!important;text-overflow:clip!important;word-break:normal!important;line-height:1.2}
+  #rg-ribbon .rg-panel .sg-item .rg-bm-cur{display:none!important}
+  #rg-ribbon .rg-panel .sg-ico{height:20px!important}
+  #rg-ribbon .rg-panel .sg-ico svg{width:20px!important;height:20px!important}
+  #rg-ribbon .rg-panel .sg-dot{width:15px!important;height:15px!important;margin:2px 0!important}
+}
+@media (max-width:1700px) and (min-width:701px){#sg-save-as{font-size:0!important;gap:0!important;padding-left:8px!important;padding-right:8px!important}}
+@media (max-width:1500px) and (min-width:701px){#sg-as{padding:0 7px!important}#sg-as-txt{display:none!important}}
+@media (max-width:1300px) and (min-width:701px){.rg-tab{padding:0 8px!important;font-size:12px!important}}
+@media (max-width:1180px) and (min-width:701px){#sg-gen span{display:none}#sg-gen{padding:0 10px!important;min-width:0}#rg-search{flex-basis:96px!important}.rg-tab{padding:0 7px!important}}
 /* ── Form penambahan titik ── */
 #sg-mbar #peta-mode-bar{padding:11px 14px!important;gap:8px;align-items:center;font:600 12.5px/1.3 var(--ui)!important;background:var(--sg3)!important;border-top:1px solid var(--brd)}
 #sg-mbar #peta-mode-txt{white-space:normal!important;overflow:visible!important;text-overflow:clip!important;line-height:1.35}
@@ -1868,6 +1876,180 @@ html[data-theme="dark"] #sg-mbar .pc-add,html[data-theme="dark"] .pc-seg button.
   },{passive:false});
 })();
 </script>
+<style id="rustgis-popup-css">
+/* ── Popup objek/titik ── */
+.leaflet-popup-content-wrapper{border-radius:14px!important;padding:0!important;box-shadow:0 10px 32px rgba(8,30,18,.32),0 2px 6px rgba(8,30,18,.16)!important;border:1px solid var(--brd)!important}
+.leaflet-popup-content{margin:0!important;width:auto!important;min-width:268px}
+.leaflet-popup-close-button{top:9px!important;right:9px!important;width:24px!important;height:24px!important;line-height:22px!important;font:400 20px/22px var(--ui)!important;border-radius:7px;text-align:center;padding:0!important}
+.leaflet-popup-close-button:hover{background:var(--sg3)}
+.sgp{--c:var(--sg);padding:14px 14px 14px;font:450 13px/1.4 var(--ui);color:var(--txt);max-width:340px}
+.sgp-i{width:17px;height:17px;flex:none}
+.sgp-h{display:flex;align-items:center;gap:11px;padding-right:22px;margin-bottom:12px}
+.sgp-ico{width:38px;height:38px;border-radius:11px;display:grid;place-items:center;flex:none;color:var(--c);background:color-mix(in srgb,var(--c) 15%,transparent);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--c) 28%,transparent)}
+.sgp-ico .sgp-i{width:21px;height:21px}
+.sgp-hd{min-width:0}
+.sgp-t{font:700 15px/1.25 var(--ui);color:var(--txt);overflow-wrap:anywhere}
+.sgp-s{margin-top:2px;font:650 10.5px/1 var(--ui);letter-spacing:.07em;text-transform:uppercase;color:var(--c)}
+.sgp-rows{background:var(--card2);border:1px solid var(--brd2);border-radius:10px;padding:3px 10px;margin-bottom:10px}
+.sgp-r{display:flex;align-items:center;gap:8px;padding:6px 0;min-height:30px}
+.sgp-r+.sgp-r{border-top:1px solid var(--brd2)}
+.sgp-k{flex:0 0 40px;font:650 10.5px var(--ui);letter-spacing:.05em;text-transform:uppercase;color:var(--mute)}
+.sgp-v{flex:1;min-width:0;font:550 12.5px/1.3 var(--ui);color:var(--txt);font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.sgp-cp{flex:none;width:26px;height:26px;border:0;border-radius:7px;background:transparent;color:var(--mute);cursor:pointer;display:grid;place-items:center;padding:0}
+.sgp-cp:hover{background:var(--sg3);color:var(--sg)}
+.sgp-cp.ok{color:var(--sg)}
+.sgp-cp .sgp-i{width:15px;height:15px}
+.sgp-note{padding:8px 10px;margin-bottom:10px;border-radius:9px;background:var(--sg3);color:var(--txt2);font:500 12px/1.45 var(--ui)}
+.sgp-acts{display:grid;gap:7px;margin-top:7px;grid-template-columns:1fr}
+.sgp-acts.two{grid-template-columns:1fr 1fr}
+.sgp-acts.three{grid-template-columns:repeat(3,1fr)}
+.sgp-b{display:inline-flex;align-items:center;justify-content:center;gap:6px;height:34px;padding:0 10px;border-radius:9px;border:1px solid var(--brd);background:var(--card);color:var(--txt);font:650 12px var(--ui);cursor:pointer;white-space:nowrap;transition:background .12s,border-color .12s,filter .12s}
+.sgp-b:hover{border-color:var(--sg);background:var(--sg3)}
+.sgp-b.pri{background:var(--sg);border-color:var(--sg);color:#fff}
+.sgp-b.pri:hover{filter:brightness(1.08);background:var(--sg)}
+.sgp-b.dng{color:var(--red);border-color:color-mix(in srgb,var(--red) 40%,transparent);background:color-mix(in srgb,var(--red) 7%,transparent)}
+.sgp-b.dng:hover{background:color-mix(in srgb,var(--red) 15%,transparent);border-color:var(--red)}
+.sgp-b.ghost{background:transparent}
+.sgp-b.sm{height:28px;font-size:11.5px;padding:0 9px}
+html[data-theme="dark"] .sgp-b.pri{color:#07210f}
+.sgp-lbl{margin-top:12px;padding-top:11px;border-top:1px solid var(--brd2)}
+.sgp-lbl-h{display:flex;align-items:center;justify-content:space-between;gap:10px;font:600 12px var(--ui);color:var(--txt2)}
+.sgp-lbl-h span{display:inline-flex;align-items:center;gap:7px}
+.sgp-lbl-b{display:flex;align-items:flex-end;gap:10px;margin-top:9px;flex-wrap:wrap}
+.sgp-f{display:flex;flex-direction:column;gap:4px;font:650 10.5px var(--ui);letter-spacing:.04em;text-transform:uppercase;color:var(--mute)}
+.sgp-f input[type=color]{width:38px;height:28px;padding:2px;border:1px solid var(--brd);border-radius:7px;background:var(--inp);cursor:pointer}
+.sgp-num{display:flex;align-items:center;height:28px;border:1px solid var(--brd);border-radius:7px;background:var(--inp);padding:0 7px 0 2px}
+.sgp-num input{width:42px;height:26px;border:0;background:transparent;color:var(--txt);font:600 12.5px var(--ui);text-align:center;outline:none;font-variant-numeric:tabular-nums}
+.sgp-num i{font:500 11px var(--ui);font-style:normal;color:var(--mute);text-transform:none}
+.sgp-hint{margin-top:8px;font:500 11px/1.4 var(--ui);color:var(--mute)}
+.sgp-sw{position:relative;display:inline-block;width:36px;height:20px;flex:none;cursor:pointer}
+.sgp-sw input{position:absolute;opacity:0;inset:0;width:100%;height:100%;margin:0;cursor:pointer}
+.sgp-sw span{position:absolute;inset:0;border-radius:20px;background:var(--brd);transition:background .15s}
+.sgp-sw span::after{content:'';position:absolute;left:2px;top:2px;width:16px;height:16px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.35);transition:transform .15s}
+.sgp-sw input:checked+span{background:var(--sg)}
+.sgp-sw input:checked+span::after{transform:translateX(16px)}
+/* ── Modal edit ── */
+.sgm-ov{position:fixed;inset:0;z-index:99999;background:rgba(6,20,12,.55);display:flex;align-items:center;justify-content:center;padding:14px;backdrop-filter:blur(2px)}
+.sgm{width:420px;max-width:100%;max-height:94vh;overflow:auto;background:var(--card);color:var(--txt);border:1px solid var(--brd);border-radius:16px;box-shadow:0 18px 50px rgba(0,0,0,.4);font:450 13px/1.4 var(--ui)}
+.sgm-h{display:flex;align-items:center;gap:12px;padding:16px 18px 12px}
+.sgm-h .sgp-ico{width:40px;height:40px}
+.sgm-h b{font:700 16px var(--ui);display:block}
+.sgm-h small{display:block;margin-top:2px;font:650 10.5px var(--ui);letter-spacing:.07em;text-transform:uppercase;color:var(--c,var(--sg))}
+.sgm-x{margin-left:auto;width:30px;height:30px;border:0;border-radius:8px;background:transparent;color:var(--mute);cursor:pointer;display:grid;place-items:center}
+.sgm-x:hover{background:var(--sg3);color:var(--txt)}
+.sgm-b{padding:4px 18px 6px;display:grid;gap:13px}
+.sgm-l{display:block;margin-bottom:6px;font:700 10.5px var(--ui);letter-spacing:.07em;text-transform:uppercase;color:var(--txt2)}
+.sgm-l em{font:500 11px var(--ui);font-style:normal;letter-spacing:0;text-transform:none;color:var(--mute);margin-left:5px}
+.sgm input[type=text],.sgm input[type=number],.sgm select,.sgm textarea{width:100%;height:38px;padding:0 11px;border:1px solid var(--brd);border-radius:9px;background:var(--inp);color:var(--txt);font:500 13.5px var(--ui);outline:none;font-variant-numeric:tabular-nums}
+.sgm textarea{height:68px;padding:9px 11px;resize:vertical;line-height:1.4}
+.sgm input:focus,.sgm select:focus,.sgm textarea:focus{border-color:var(--sg);box-shadow:0 0 0 3px var(--sg3)}
+.sgm-g2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.sgm-utm{margin-top:8px;padding:7px 10px;border-radius:9px;background:var(--card2);border:1px solid var(--brd2);font:550 12px var(--ui);color:var(--txt2);font-variant-numeric:tabular-nums}
+.sgm-rng{display:flex;align-items:center;gap:10px}
+.sgm-rng input[type=range]{flex:1;accent-color:var(--sg)}
+.sgm-rng output{flex:0 0 46px;text-align:right;font:650 12.5px var(--ui);font-variant-numeric:tabular-nums}
+.sgm-clr{display:flex;align-items:center;gap:10px}
+.sgm-clr input[type=color]{width:48px;height:38px;padding:3px;border:1px solid var(--brd);border-radius:9px;background:var(--inp);cursor:pointer}
+.sgm-row{display:flex;align-items:center;justify-content:space-between;font:600 12.5px var(--ui);color:var(--txt2)}
+.sgm-f{display:flex;gap:9px;justify-content:flex-end;padding:14px 18px 16px}
+.sgm-f .sgp-b{height:38px;padding:0 18px;font-size:13px}
+</style>
+<script id="rustgis-popup-edit">
+(function(){
+  function $(id){return document.getElementById(id);}
+  function close(){var o=$('sgm-ov'); if(o) o.remove(); document.removeEventListener('keydown',esc,true);}
+  function esc(e){ if(e.key==='Escape'){e.stopPropagation(); close();} }
+  function open(color,icon,title,sub,body,onSave,saveLabel){
+    close();
+    var ov=document.createElement('div'); ov.className='sgm-ov'; ov.id='sgm-ov';
+    ov.innerHTML='<div class="sgm" role="dialog" aria-modal="true" style="--c:'+color+'"><div class="sgm-h"><span class="sgp-ico">'+_sgpIcon(icon)+'</span><div><b>'+title+'</b><small>'+sub+'</small></div><button type="button" class="sgm-x" aria-label="Tutup">'+_sgpIcon('x')+'</button></div><div class="sgm-b">'+body+'</div><div class="sgm-f"><button type="button" class="sgp-b" data-a="x">Batal</button><button type="button" class="sgp-b pri" data-a="ok">'+(saveLabel||'Simpan')+'</button></div></div>';
+    document.body.appendChild(ov);
+    ov.addEventListener('mousedown',function(e){ if(e.target===ov) close(); });
+    ov.querySelector('.sgm-x').onclick=close; ov.querySelector('[data-a=x]').onclick=close;
+    ov.querySelector('[data-a=ok]').onclick=function(){ if(onSave()!==false) close(); };
+    ov.addEventListener('keydown',function(e){ if(e.key==='Enter'&&e.target.tagName!=='TEXTAREA'){e.preventDefault(); ov.querySelector('[data-a=ok]').click();} });
+    document.addEventListener('keydown',esc,true);
+    var f=ov.querySelector('input[type=text]'); if(f) setTimeout(function(){f.focus();f.select();},30);
+    return ov;
+  }
+  function num(v){ v=String(v).trim().replace(',','.'); return v===''?NaN:parseFloat(v); }
+
+  /* ── Edit titik ── */
+  window.sgpEditMarker=function(id){
+    var m=_markers.find(function(x){return x.id===id;}); if(!m) return;
+    try{_map.closePopup();}catch(e){}
+    var types=_ptAllTypes().filter(function(t){return t!=='sungai';}), cur=_ptColor(m.type);
+    var opts=types.map(function(t){return '<option value="'+_e(t)+'"'+(t===m.type?' selected':'')+'>'+_e(_ptType(t).label)+'</option>';}).join('');
+    var body='<div><label class="sgm-l" for="sgm-nm">Nama titik</label><input id="sgm-nm" type="text" maxlength="80" value="'+_e(m.name)+'" autocomplete="off"></div>'
+      +'<div><label class="sgm-l" for="sgm-ty">Jenis titik</label><select id="sgm-ty">'+opts+'</select></div>'
+      +'<div><span class="sgm-l">Koordinat <em>desimal (DD)</em></span><div class="sgm-g2"><input id="sgm-la" type="text" inputmode="decimal" value="'+m.lat.toFixed(6)+'" aria-label="Lintang"><input id="sgm-lo" type="text" inputmode="decimal" value="'+m.lng.toFixed(6)+'" aria-label="Bujur"></div><div class="sgm-utm" id="sgm-utm"></div></div>'
+      +'<div><label class="sgm-l" for="sgm-no">Catatan <em>opsional</em></label><textarea id="sgm-no" maxlength="300">'+_e(m.note||'')+'</textarea></div>';
+    var ov=open(cur,'pin','Edit Titik',_e(_ptType(m.type).label),body,function(){
+      var la=num($('sgm-la').value), lo=num($('sgm-lo').value);
+      if(!isFinite(la)||!isFinite(lo)||Math.abs(la)>90||Math.abs(lo)>180){ if(typeof toast==='function') toast('⚠ Koordinat tidak valid','err'); return false; }
+      var nm=$('sgm-nm').value.trim()||m.name;
+      m.name=nm; m.type=$('sgm-ty').value; m.note=$('sgm-no').value.trim();
+      var moved=(Math.abs(la-m.lat)>1e-9||Math.abs(lo-m.lng)>1e-9);
+      m.lat=Math.round(la*1e7)/1e7; m.lng=Math.round(lo*1e7)/1e7;
+      var lay=_layers[id];
+      if(lay){ if(moved) lay.setLatLng([m.lat,m.lng]); lay.setIcon(_icon(m.type,m)); lay.setPopupContent(_markerPopupHTML(m)); }
+      try{_markerBuildLabel(m);}catch(e){}
+      try{_renderList();_renderTable();}catch(e){}
+      _persist(); if(typeof toast==='function') toast('✓ Titik "'+m.name+'" diperbarui','ok');
+    });
+    var upd=function(){ var la=num($('sgm-la').value),lo=num($('sgm-lo').value),u=$('sgm-utm'); u.textContent=(isFinite(la)&&isFinite(lo)&&Math.abs(la)<=90&&Math.abs(lo)<=180)?('UTM  '+_sgpUtmTxt(la,lo)):'UTM  —'; };
+    ['sgm-la','sgm-lo'].forEach(function(i){ $(i).addEventListener('input',upd); }); upd();
+  };
+
+  /* ── Edit objek (garis / poligon) ── */
+  window.sgpEditShape=function(kind,id){
+    var item=(kind==='line'?_lines:_polygons).find(function(x){return x.id===id;}); if(!item) return;
+    try{_map.closePopup();}catch(e){}
+    var isPoly=kind==='polygon', oc=isPoly?(item.outlineColor||item.color||'#9b59b6'):(item.color||'#4488ff');
+    var w=isPoly?(item.outlineWeight!=null?item.outlineWeight:2.5):(item.weight!=null?item.weight:3);
+    var fo=item.fillOpacity!=null?item.fillOpacity:22, lo=item.opacity!=null?item.opacity:100;
+    var fc=item.fillColor||item.color||oc;
+    var body='<div><label class="sgm-l" for="sgm-nm">Nama objek</label><input id="sgm-nm" type="text" maxlength="80" value="'+_e(item.name||'')+'" autocomplete="off"></div>'
+      +'<div class="sgm-g2"><div><span class="sgm-l">Warna '+(isPoly?'garis tepi':'garis')+'</span><div class="sgm-clr"><input id="sgm-oc" type="color" value="'+oc+'"></div></div>'
+      +(isPoly?'<div><span class="sgm-l">Warna isi</span><div class="sgm-clr"><input id="sgm-fc" type="color" value="'+fc+'"></div></div>':'<div></div>')+'</div>'
+      +'<div><span class="sgm-l">Tebal garis</span><div class="sgm-rng"><input id="sgm-w" type="range" min="0.5" max="12" step="0.5" value="'+w+'"><output id="sgm-wo">'+w+' px</output></div></div>'
+      +(isPoly?'<div><span class="sgm-l">Transparansi isi</span><div class="sgm-rng"><input id="sgm-fo" type="range" min="0" max="100" step="1" value="'+fo+'"><output id="sgm-foo">'+fo+'%</output></div></div>'
+              :'<div><span class="sgm-l">Opasitas garis</span><div class="sgm-rng"><input id="sgm-lo" type="range" min="10" max="100" step="5" value="'+lo+'"><output id="sgm-loo">'+lo+'%</output></div></div>')
+      +'<div class="sgm-row"><span style="display:inline-flex;align-items:center;gap:7px">'+_sgpIcon('tag')+'Tampilkan nama di peta</span>'+_sgpSwitch(item.showLabel===true,'')+'</div>';
+    var ov=open(oc,isPoly?'poly':'line','Edit '+(isPoly?'Poligon':'Garis'),isPoly?'Poligon':'Garis',body,function(){
+      var nm=$('sgm-nm').value.trim()||item.name;
+      var changedName=(nm!==item.name); item.name=nm;
+      var col=$('sgm-oc').value, wv=parseFloat($('sgm-w').value);
+      if(isPoly){
+        if(col!==oc) petaChangeShapeColor('polygon',id,col);
+        var fcv=$('sgm-fc').value; if(fcv!==fc) petaChangeShapeFillColor(id,fcv);
+        petaChangeShapeOutlineWeight(id,wv); petaChangeShapeFillOpacity(id,parseInt($('sgm-fo').value,10));
+      } else {
+        if(col!==oc) petaChangeShapeColor('line',id,col);
+        petaChangeLineWeight(id,wv); petaChangeLineOpacity(id,parseInt($('sgm-lo').value,10));
+      }
+      var sw=document.querySelector('#sgm-ov .sgp-sw input'), want=sw&&sw.checked;
+      if(want!==(item.showLabel===true)) shapeToggleLabel(id,want); 
+      try{ if(item.showLabel&&typeof _shapeBuildLabel==='function') _shapeBuildLabel(item); }catch(e){}
+      try{ var pop=isPoly?_polygonBuildPopupHtml(item):_lineBuildPopupHtml(item); var ly=isPoly?item.layer:(item.layer&&item.layer._mainPolyline); if(ly&&ly.setPopupContent) ly.setPopupContent(pop); }catch(e){}
+      try{ if(typeof _layerOrderSync==='function') _layerOrderSync(); if(typeof genRenderLegend==='function') genRenderLegend(true); }catch(e){}
+      try{ petaRenderShapesList(); }catch(e){}
+      _persist(); if(typeof toast==='function') toast('✓ "'+item.name+'" diperbarui','ok');
+    });
+    var bind=function(inp,out,suf){ var a=$(inp),b=$(out); if(a&&b) a.addEventListener('input',function(){b.textContent=a.value+suf;}); };
+    bind('sgm-w','sgm-wo',' px'); bind('sgm-fo','sgm-foo','%'); bind('sgm-lo','sgm-loo','%');
+  };
+})();
+</script>
+<style id="rustgis-ribbon-icons">
+@media (min-width:701px){
+#rg-ribbon .rg-panel .sg-ico{width:34px!important;height:26px!important;border-radius:9px;background:color-mix(in srgb,var(--sg) 12%,transparent);color:var(--sg);transition:background .14s,transform .14s}
+#rg-ribbon .rg-panel .sg-ico svg{width:18px!important;height:18px!important;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+#rg-ribbon .rg-panel .sg-item:hover .sg-ico{background:color-mix(in srgb,var(--sg) 22%,transparent);transform:translateY(-1px)}
+#rg-ribbon .rg-panel .sg-item:active .sg-ico{transform:scale(.94)}
+#rg-ribbon .rg-panel .sg-dot{width:20px!important;height:22px!important;margin:2px 0!important;border-radius:0!important;-webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 22s7-6.2 7-12a7 7 0 1 0-14 0c0 5.8 7 12 7 12z'/%3E%3Ccircle cx='12' cy='10' r='2.6' fill='%23000' fill-opacity='.0'/%3E%3C/svg%3E") center/contain no-repeat;mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill-rule='evenodd' d='M12 22s7-6.2 7-12a7 7 0 1 0-14 0c0 5.8 7 12 7 12zm0-15a3 3 0 1 1 0 6 3 3 0 0 1 0-6z'/%3E%3C/svg%3E") center/contain no-repeat;filter:drop-shadow(0 1px 1px rgba(0,0,0,.25))}
+}
+</style>
 </head>
 <body>
 <style id="sg-splash-css">
@@ -4529,7 +4711,18 @@ function _buildLineLayer(points, opts) {
 }
 function _lineBuildPopupHtml(item) {
   var lenTxt = _fmtDistance(_totalLengthKm(item.points)*1000);
-  return '<div style="font-family:var(--ui);font-size:12px"><div style="font-weight:700;color:'+item.color+';font-size:13px;margin-bottom:4px">'+_e(item.name)+'</div><div style="color:#8bb8b0;font-size:10.5px;margin-bottom:4px">'+item.points.length+' titik · Garis</div><div style="color:#d4f0e8;font-size:11px;font-weight:700;margin-bottom:10px">Panjang: '+lenTxt+'</div><div style="display:flex;gap:6px"><button onclick="_map.closePopup();elevOpenModal(\''+item.id+'\')" title="Cek profil elevasi sepanjang garis (butuh layer TIF/DEMNAS atau DXF kontur aktif)" style="flex:1;padding:5px 10px;background:rgba(96,174,240,0.1);border:1px solid rgba(96,174,240,0.3);border-radius:3px;color:#60aef0;cursor:pointer;font-family:var(--ui);font-size:10px;font-weight:700;white-space:nowrap">📈 PROFIL ELEVASI</button><button onclick="_map.closePopup();petaQuickEditVertices(\'line\',\''+item.id+'\')" style="padding:5px 10px;background:rgba(167,139,250,0.1);border:1px solid rgba(167,139,250,0.3);border-radius:3px;color:#a78bfa;cursor:pointer;font-family:var(--ui);font-size:10px;font-weight:700">✏️ EDIT TITIK</button><button onclick="petaDeleteShape(\'line\',\''+item.id+'\')" style="padding:5px 14px;background:rgba(255,68,68,0.08);border:1px solid rgba(255,68,68,0.25);border-radius:3px;color:#ff4444;cursor:pointer;font-family:var(--ui);font-size:10px;font-weight:700">✕ HAPUS</button></div></div>';
+  return '<div class="sgp" style="--c:'+item.color+'">'
+    + '<div class="sgp-h"><span class="sgp-ico">'+_sgpIcon('line')+'</span><div class="sgp-hd"><div class="sgp-t">'+_e(item.name)+'</div><div class="sgp-s">Garis</div></div></div>'
+    + '<div class="sgp-rows">'+_sgpRow('Panjang','<b>'+lenTxt+'</b>')+_sgpRow('Titik',item.points.length+' titik')+'</div>'
+    + '<div class="sgp-acts two">'
+    +   _sgpBtn('pri','edit','Edit','sgpEditShape(\'line\',\''+item.id+'\')')
+    +   _sgpBtn('dng','trash','Hapus','petaDeleteShape(\'line\',\''+item.id+'\')')
+    + '</div>'
+    + '<div class="sgp-acts two">'
+    +   _sgpBtn('','nodes','Edit titik','_map.closePopup();petaQuickEditVertices(\'line\',\''+item.id+'\')','Geser / tambah / hapus titik garis')
+    +   _sgpBtn('','chart','Profil elevasi','_map.closePopup();elevOpenModal(\''+item.id+'\')','Profil elevasi sepanjang garis (butuh layer TIF/DEMNAS atau DXF kontur aktif)')
+    + '</div>'
+    + '</div>';
 }
 /* Bangun ulang seluruh layer garis dari data tersimpan — dipakai saat properti yg butuh
    perubahan struktur (mis. gaya panah) diubah, bukan sekadar setStyle(). */
@@ -4558,8 +4751,18 @@ function _polygonLeafletStyle(item) {
 }
 function _polygonBuildPopupHtml(item) {
   var areaTxt = _fmtArea(item.areaM2 || 0);
-  var outlineColor = item.outlineColor || item.color || '#9b59b6';
-  return '<div style="font-family:var(--ui);font-size:12px"><div style="font-weight:700;color:'+outlineColor+';font-size:13px;margin-bottom:4px">'+_e(item.name)+'</div><div style="color:#8bb8b0;font-size:10.5px;margin-bottom:4px">'+item.points.length+' titik · Poligon</div><div style="color:#d4f0e8;font-size:11px;font-weight:700;margin-bottom:10px">Luas: '+areaTxt+'</div><div style="display:flex;gap:6px"><button onclick="_map.closePopup();petaQuickEditVertices(\'polygon\',\''+item.id+'\')" style="flex:1;padding:5px 10px;background:rgba(167,139,250,0.1);border:1px solid rgba(167,139,250,0.3);border-radius:3px;color:#a78bfa;cursor:pointer;font-family:var(--ui);font-size:10px;font-weight:700">✏️ EDIT TITIK</button><button onclick="petaDeleteShape(\'polygon\',\''+item.id+'\')" style="padding:5px 14px;background:rgba(255,68,68,0.08);border:1px solid rgba(255,68,68,0.25);border-radius:3px;color:#ff4444;cursor:pointer;font-family:var(--ui);font-size:10px;font-weight:700">✕ HAPUS</button></div></div>';
+  var c = item.outlineColor || item.color || '#9b59b6';
+  return '<div class="sgp" style="--c:'+c+'">'
+    + '<div class="sgp-h"><span class="sgp-ico">'+_sgpIcon('poly')+'</span><div class="sgp-hd"><div class="sgp-t">'+_e(item.name)+'</div><div class="sgp-s">Poligon</div></div></div>'
+    + '<div class="sgp-rows">'+_sgpRow('Luas','<b>'+areaTxt+'</b>')+_sgpRow('Titik',item.points.length+' titik')+'</div>'
+    + '<div class="sgp-acts two">'
+    +   _sgpBtn('pri','edit','Edit','sgpEditShape(\'polygon\',\''+item.id+'\')')
+    +   _sgpBtn('dng','trash','Hapus','petaDeleteShape(\'polygon\',\''+item.id+'\')')
+    + '</div>'
+    + '<div class="sgp-acts">'
+    +   _sgpBtn('','nodes','Edit titik','_map.closePopup();petaQuickEditVertices(\'polygon\',\''+item.id+'\')','Geser / tambah / hapus titik poligon')
+    + '</div>'
+    + '</div>';
 }
 
 /* Bangun layer Leaflet utk satu poligon, lengkap dgn popup info + snap-klik saat menggambar baru. */
@@ -11640,29 +11843,13 @@ function markerSetLabelStyle(id, prop, val) {
 
 function _markerLabelStyleHtml(m) {
   var on = m.showLabel !== false, sz = m.labelSize||11, col = m.labelColor||'#ffffff', id = m.id;
-  return '<div style="border-top:1px solid rgba(255,255,255,.08);margin-top:8px;padding-top:8px">'
-    +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:'+(on?'8':'0')+'px">'
-      +'<span style="font-family:var(--ui);font-size:10.5px;color:#8bb8b0">🏷 Label nama di peta</span>'
-      +'<label style="display:flex;align-items:center;gap:5px;cursor:pointer">'
-        +'<input type="checkbox"'+(on?' checked':'')+' onchange="markerToggleLabel(\''+id+'\',this.checked)" style="accent-color:var(--sg,#1a7f3c);cursor:pointer">'
-        +'<span style="font-family:var(--ui);font-size:9.5px;color:#8bb8b0">'+(on?'Tampil':'Off')+'</span>'
-      +'</label>'
-    +'</div>'
-    +(on
-      ? '<div style="display:flex;gap:8px;align-items:center">'
-          +'<div style="display:flex;gap:5px;align-items:center">'
-            +'<span style="font-family:var(--ui);font-size:9.5px;color:#8bb8b0">Ukuran</span>'
-            +'<input type="number" value="'+sz+'" min="7" max="28" step="1" style="width:44px;padding:3px 5px;background:#060f17;border:1px solid rgba(26,176,166,.25);border-radius:4px;color:#d4f0e8;font-size:9.5px;outline:none" oninput="markerSetLabelStyle(\''+id+'\',\'size\',parseInt(this.value)||11)">'
-            +'<span style="font-family:var(--ui);font-size:9.5px;color:#8bb8b0">px</span>'
-          +'</div>'
-          +'<div style="display:flex;gap:5px;align-items:center">'
-            +'<span style="font-family:var(--ui);font-size:9.5px;color:#8bb8b0">Warna</span>'
-            +'<input type="color" value="'+col+'" oninput="markerSetLabelStyle(\''+id+'\',\'color\',this.value)" style="width:28px;height:22px;border:1px solid rgba(26,176,166,.25);border-radius:3px;cursor:pointer;padding:1px">'
-          +'</div>'
-          +'<button onclick="markerResetLabelPos(\''+id+'\')" title="Kembalikan label ke posisi titik" style="margin-left:auto;background:none;border:1px solid rgba(255,255,255,.15);border-radius:4px;color:#8bb8b0;cursor:pointer;font-size:8.5px;padding:4px 7px;white-space:nowrap">⟲ Tengah</button>'
-        +'</div>'
-        +'<div style="font-family:var(--ui);font-size:9px;color:#8bb8b0;margin-top:5px;font-style:italic">💡 Seret langsung teks label di peta untuk memindah posisinya</div>'
-      : '')
+  return '<div class="sgp-lbl">'
+    +'<div class="sgp-lbl-h"><span>'+_sgpIcon('tag')+'Label nama di peta</span>'+_sgpSwitch(on,'markerToggleLabel(\''+id+'\',this.checked)')+'</div>'
+    +(on ? '<div class="sgp-lbl-b">'
+        +'<label class="sgp-f">Ukuran<span class="sgp-num"><input type="number" value="'+sz+'" min="7" max="28" step="1" oninput="markerSetLabelStyle(\''+id+'\',\'size\',parseInt(this.value)||11)"><i>px</i></span></label>'
+        +'<label class="sgp-f">Warna<input type="color" value="'+col+'" oninput="markerSetLabelStyle(\''+id+'\',\'color\',this.value)"></label>'
+        +'<button type="button" class="sgp-b ghost sm" title="Kembalikan label ke posisi titik" onclick="markerResetLabelPos(\''+id+'\')"><span>⟲ Tengah</span></button>'
+      +'</div><div class="sgp-hint">Seret teks label di peta untuk memindahnya.</div>' : '')
     +'</div>';
 }
 
@@ -11671,28 +11858,67 @@ function _markerRebuildAllLabels(){
   _markers.forEach(function(m){ if (m.showLabel !== false) _markerBuildLabel(m); });
 }
 
+/* ═══ Helper popup/form modern (ikon, UTM, salin) ═══ */
+var _SGP_I = {
+  pin:'<path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.4"/>',
+  line:'<circle cx="5.5" cy="18.5" r="1.8"/><circle cx="18.5" cy="5.5" r="1.8"/><path d="M7 17L17 7"/>',
+  poly:'<path d="M12 3.5l8 5.8-3 9.7H7L4 9.3z"/>',
+  edit:'<path d="M4 20l1-4.2L15.5 5.3a1.6 1.6 0 0 1 2.3 0l.9.9a1.6 1.6 0 0 1 0 2.3L8.2 19 4 20z"/><path d="M13.8 6.8l3.4 3.4"/>',
+  nodes:'<path d="M5 17l5-9 5 6 4-8"/><circle cx="5" cy="17" r="1.8"/><circle cx="10" cy="8" r="1.8"/><circle cx="15" cy="14" r="1.8"/><circle cx="19" cy="6" r="1.8"/>',
+  shape:'<rect x="3.5" y="3.5" width="7.5" height="7.5" rx="1.5"/><circle cx="16.5" cy="7.5" r="4"/><path d="M7 14.5l3.5 6h-7z"/><rect x="13" y="14" width="7.5" height="7" rx="1.5"/>',
+  palette:'<path d="M12 3a9 9 0 0 0 0 18c1.4 0 2-.9 2-1.8 0-.5-.2-.9-.5-1.3-.3-.4-.5-.8-.5-1.3 0-1 .8-1.8 1.8-1.8H17a4 4 0 0 0 4-4c0-4.4-4-7.8-9-7.8z"/><circle cx="7.5" cy="11" r="1.1"/><circle cx="10" cy="7" r="1.1"/><circle cx="14.5" cy="7" r="1.1"/>',
+  trash:'<path d="M4 7h16"/><path d="M9 7V4.5h6V7"/><path d="M6.5 7l1 13h9l1-13"/><path d="M10 11v5M14 11v5"/>',
+  elev:'<path d="M3 19l6-9 4 5 3-4 5 8z"/><path d="M12 4v4M10 6l2-2 2 2"/>',
+  chart:'<path d="M4 4v16h16"/><path d="M7 15l4-5 3 3 5-7"/>',
+  copy:'<rect x="8.5" y="8.5" width="11" height="11" rx="2"/><path d="M15.5 8.5V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v7.5a2 2 0 0 0 2 2h2.5"/>',
+  check:'<path d="M5 12.5l4.5 4.5L19 7.5"/>',
+  tag:'<path d="M3.5 12.2V4.5a1 1 0 0 1 1-1h7.7l8.3 8.3a1.4 1.4 0 0 1 0 2L14 20.3a1.4 1.4 0 0 1-2 0z"/><circle cx="8" cy="8" r="1.3"/>',
+  x:'<path d="M6 6l12 12M18 6L6 18"/>'
+};
+function _sgpIcon(n){ return '<svg class="sgp-i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+(_SGP_I[n]||'')+'</svg>'; }
+function _sgpUtm(lat,lng){
+  var a=6378137,f=1/298.257223563,k0=0.9996,e2=f*(2-f),ep2=e2/(1-e2),R=Math.PI/180;
+  var zone=Math.floor((lng+180)/6)+1; if(zone<1)zone=1; if(zone>60)zone=60;
+  var lon0=((zone-1)*6-180+3)*R,phi=lat*R,lam=lng*R-lon0;
+  var sp=Math.sin(phi),cp=Math.cos(phi),tp=Math.tan(phi);
+  var N=a/Math.sqrt(1-e2*sp*sp),T=tp*tp,C=ep2*cp*cp,A=cp*lam;
+  var e4=e2*e2,e6=e4*e2;
+  var M=a*((1-e2/4-3*e4/64-5*e6/256)*phi-(3*e2/8+3*e4/32+45*e6/1024)*Math.sin(2*phi)+(15*e4/256+45*e6/1024)*Math.sin(4*phi)-(35*e6/3072)*Math.sin(6*phi));
+  var E=k0*N*(A+(1-T+C)*Math.pow(A,3)/6+(5-18*T+T*T+72*C-58*ep2)*Math.pow(A,5)/120)+500000;
+  var Nn=k0*(M+N*tp*(A*A/2+(5-T+9*C+4*C*C)*Math.pow(A,4)/24+(61-58*T+T*T+600*C-330*ep2)*Math.pow(A,6)/720));
+  if(lat<0) Nn+=10000000;
+  return {zone:zone,hemi:lat<0?'S':'N',e:E,n:Nn};
+}
+function _sgpUtmTxt(lat,lng){ var u=_sgpUtm(lat,lng); return u.zone+u.hemi+'  '+u.e.toFixed(3)+' E  '+u.n.toFixed(3)+' N'; }
+function _sgpCopy(btn,txt){
+  var ok=function(){ var o=btn.getAttribute('data-o')||btn.innerHTML; btn.setAttribute('data-o',o); btn.innerHTML=_sgpIcon('check'); btn.classList.add('ok'); setTimeout(function(){btn.innerHTML=o;btn.classList.remove('ok');},1100); };
+  try{ if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(txt).then(ok,function(){}); return; } }catch(e){}
+  try{ var t=document.createElement('textarea'); t.value=txt; t.style.cssText='position:fixed;opacity:0'; document.body.appendChild(t); t.select(); document.execCommand('copy'); t.remove(); ok(); }catch(e){}
+}
+function _sgpRow(k,v,copyTxt){ return '<div class="sgp-r"><span class="sgp-k">'+k+'</span><span class="sgp-v">'+v+'</span>'+(copyTxt?'<button type="button" class="sgp-cp" title="Salin" onclick="event.stopPropagation();_sgpCopy(this,\''+String(copyTxt).replace(/\\/g,'\\\\').replace(/'/g,"\\'")+'\')">'+_sgpIcon('copy')+'</button>':'')+'</div>'; }
+function _sgpBtn(cls,icon,label,onclick,title){ return '<button type="button" class="sgp-b '+cls+'"'+(title?' title="'+title+'"':'')+' onclick="'+onclick+'">'+_sgpIcon(icon)+'<span>'+label+'</span></button>'; }
+function _sgpSwitch(on,onchange){ return '<label class="sgp-sw"><input type="checkbox"'+(on?' checked':'')+' onchange="'+onchange+'"><span></span></label>'; }
+
 function _markerPopupHTML(m) {
   var color = _ptColor(m.type);
   var label = _ptType(m.type).label;
-  var dmsLat = _ddToDMS(m.lat, true);
-  var dmsLng = _ddToDMS(m.lng, false);
-  return '<div style="font-family:var(--ui);font-size:12px;min-width:220px">'
-    + '<div style="font-weight:700;font-size:13px;color:#d4f0e8;margin-bottom:2px">'+_e(m.name)+'</div>'
-    + '<div style="color:'+color+';font-size:9.5px;text-transform:uppercase;letter-spacing:1.2px;margin-bottom:10px">'+label+'</div>'
-    + '<div style="display:flex;justify-content:space-between;margin-bottom:3px;font-size:11px"><span style="color:#8bb8b0">DD</span><span style="color:#d4f0e8">'+m.lat.toFixed(6)+', '+m.lng.toFixed(6)+'</span></div>'
-    + '<div style="display:flex;justify-content:space-between;margin-bottom:3px;font-size:10px"><span style="color:#8bb8b0">DMS-Lat</span><span style="color:#a0c8b8">'+dmsLat+'</span></div>'
-    + '<div style="display:flex;justify-content:space-between;margin-bottom:'+(m.note?'8':'2')+'px;font-size:10px"><span style="color:#8bb8b0">DMS-Lng</span><span style="color:#a0c8b8">'+dmsLng+'</span></div>'
-    + (m.note?'<div style="padding:6px 8px;background:rgba(26,176,166,0.05);border-radius:3px;color:#8bb8b0;font-size:10.5px;line-height:1.5;margin-bottom:8px">'+_e(m.note)+'</div>':'')
-    + '<div style="display:flex;gap:6px;margin-top:8px">'
-    + '<button onclick="_markerCheckDxfElevation(\''+m.id+'\')" title="Cek elevasi Z dari layer TIF/DEMNAS atau DXF aktif di lokasi titik ini" style="flex:1;padding:5px 0;background:rgba(167,139,250,0.08);border:1px solid rgba(167,139,250,0.3);border-radius:3px;color:#a78bfa;cursor:pointer;font-family:var(--ui);font-size:10px;font-weight:700">📐 CEK ELEVASI Z</button>'
+  var dd = m.lat.toFixed(6)+', '+m.lng.toFixed(6);
+  return '<div class="sgp" style="--c:'+color+'">'
+    + '<div class="sgp-h"><span class="sgp-ico">'+_sgpIcon('pin')+'</span><div class="sgp-hd"><div class="sgp-t">'+_e(m.name)+'</div><div class="sgp-s">'+_e(label)+'</div></div></div>'
+    + '<div class="sgp-rows">'
+    +   _sgpRow('DD', dd, dd)
+    +   _sgpRow('DMS', _ddToDMS(m.lat,true)+' &nbsp;'+_ddToDMS(m.lng,false), _ddToDMS(m.lat,true)+' '+_ddToDMS(m.lng,false))
+    +   _sgpRow('UTM', _sgpUtmTxt(m.lat,m.lng), _sgpUtmTxt(m.lat,m.lng))
     + '</div>'
-    + '<div style="display:flex;gap:6px;margin-top:6px">'
-    + '<button onclick="_editMarker(\''+m.id+'\')" style="flex:1;padding:5px 0;background:rgba(26,176,166,0.08);border:1px solid rgba(26,176,166,0.25);border-radius:3px;color:var(--sg,#1a7f3c);cursor:pointer;font-family:var(--ui);font-size:10px;font-weight:700">✎ EDIT</button>'
-    + '<button onclick="event.stopPropagation();_showMarkerShapePicker(\''+m.id+'\')" title="Ganti bentuk titik ini" style="flex:1;padding:5px 0;background:rgba(255,255,255,0.05);border:1px solid var(--brd);border-radius:3px;color:#cfd8dc;cursor:pointer;font-family:var(--ui);font-size:10px;font-weight:700">⬡ BENTUK</button>'
-    + '<button onclick="_delMarker(\''+m.id+'\')" style="flex:1;padding:5px 0;background:rgba(255,68,68,0.08);border:1px solid rgba(255,68,68,0.25);border-radius:3px;color:#ff4444;cursor:pointer;font-family:var(--ui);font-size:10px;font-weight:700">✕ HAPUS</button>'
+    + (m.note?'<div class="sgp-note">'+_e(m.note)+'</div>':'')
+    + '<div class="sgp-acts two">'
+    +   _sgpBtn('pri','edit','Edit','_editMarker(\''+m.id+'\')')
+    +   _sgpBtn('dng','trash','Hapus','_delMarker(\''+m.id+'\')')
     + '</div>'
-    + '<div style="margin-top:6px">'
-    + '<button onclick="event.stopPropagation();_showMarkerColorPicker(\''+m.id+'\')" title="Ganti warna semua titik jenis \''+_e(label)+'\'" style="width:100%;padding:5px 0;background:rgba(255,255,255,0.05);border:1px solid var(--brd);border-radius:3px;color:#cfd8dc;cursor:pointer;font-family:var(--ui);font-size:10px;font-weight:700">🎨 WARNA</button>'
+    + '<div class="sgp-acts three">'
+    +   _sgpBtn('','shape','Bentuk','event.stopPropagation();_showMarkerShapePicker(\''+m.id+'\')','Ganti bentuk titik ini')
+    +   _sgpBtn('','palette','Warna','event.stopPropagation();_showMarkerColorPicker(\''+m.id+'\')','Ganti warna semua titik jenis '+_e(label))
+    +   _sgpBtn('','elev','Elevasi Z','_markerCheckDxfElevation(\''+m.id+'\')','Cek elevasi Z dari layer TIF/DEMNAS atau DXF aktif')
     + '</div>'
     + _markerLabelStyleHtml(m)
     + '</div>';
@@ -11912,13 +12138,7 @@ function _markerCheckDxfElevation(id) {
 
 /* ─── Edit / hapus ───────────────────────────────────────────── */
 function _editMarker(id) {
-  var m=_markers.find(function(x){return x.id===id;}); if(!m) return;
-  var n=prompt('Nama titik:',m.name); if(n===null) return;
-  var t=prompt('Catatan:',m.note);
-  m.name=n.trim()||m.name; m.note=(t||'').trim();
-  if(_layers[id]){_layers[id].setIcon(_icon(m.type, m));_layers[id].setPopupContent(_markerPopupHTML(m));_layers[id].closePopup();}
-  _markerBuildLabel(m);
-  _renderList(); _renderTable(); _persist();
+  if (typeof sgpEditMarker === 'function') { sgpEditMarker(id); return; }
 }
 
 function _delMarker(id) {
@@ -13345,37 +13565,15 @@ function _shapeLabelStyleHtml(item) {
   var on=item.showLabel===true, sz=item.labelSize||11, col=item.labelColor||'#ffffff', id=item.id;
   var isLine = !!(_lines && _lines.find(function(x){return x.id===id;}));
   var leader = item.showLeader===true;
-  return '<div style="border-top:1px solid var(--brd2);margin-top:8px;padding-top:8px">'
-    +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:'+(on?'8':'0')+'px">'
-      +'<span style="font-family:var(--ui);font-size:10px;color:var(--mute)">🏷 Label nama di peta</span>'
-      +'<label style="display:flex;align-items:center;gap:5px;cursor:pointer">'
-        +'<input type="checkbox"'+(on?' checked':'')+' onchange="shapeToggleLabel(\''+id+'\',this.checked)" style="accent-color:#38bdf8;cursor:pointer">'
-        +'<span style="font-family:var(--ui);font-size:9.5px;color:var(--mute)">'+(on?'Tampil':'Off')+'</span>'
-      +'</label>'
-    +'</div>'
-    +(on
-      ? '<div style="display:flex;gap:8px;align-items:center">'
-          +'<div style="display:flex;gap:5px;align-items:center">'
-            +'<span style="font-family:var(--ui);font-size:9.5px;color:var(--mute)">Ukuran</span>'
-            +'<input type="number" value="'+sz+'" min="7" max="28" step="1" style="width:44px;padding:3px 5px;background:var(--inp);border:1px solid var(--brd2);border-radius:4px;color:var(--txt);font-size:9.5px;outline:none" oninput="shapeSetLabelStyle(\''+id+'\',\'size\',parseInt(this.value)||11)">'
-            +'<span style="font-family:var(--ui);font-size:9.5px;color:var(--mute)">px</span>'
-          +'</div>'
-          +'<div style="display:flex;gap:5px;align-items:center">'
-            +'<span style="font-family:var(--ui);font-size:9.5px;color:var(--mute)">Warna</span>'
-            +'<input type="color" value="'+col+'" oninput="shapeSetLabelStyle(\''+id+'\',\'color\',this.value)" style="width:28px;height:22px;border:1px solid var(--brd2);border-radius:3px;cursor:pointer;padding:1px">'
-          +'</div>'
-          +'<button onclick="shapeResetLabelPos(\''+id+'\')" title="Kembalikan label ke tengah objek" style="margin-left:auto;background:none;border:1px solid var(--brd2);border-radius:4px;color:var(--mute);cursor:pointer;font-size:8.5px;padding:4px 7px;white-space:nowrap">⟲ Tengah</button>'
-        +'</div>'
-        +(isLine
-          ? '<div style="display:flex;align-items:center;gap:5px;margin-top:6px">'
-              +'<label style="display:flex;align-items:center;gap:5px;cursor:pointer">'
-                +'<input type="checkbox"'+(leader?' checked':'')+' onchange="shapeToggleLeader(\''+id+'\',this.checked)" style="accent-color:#38bdf8;cursor:pointer">'
-                +'<span style="font-family:var(--ui);font-size:9.5px;color:var(--mute)">Garis titik ke label</span>'
-              +'</label>'
-            +'</div>'
-          : '')
-        +'<div style="font-family:var(--ui);font-size:9px;color:var(--mute);margin-top:5px;font-style:italic">💡 Seret langsung teks label di peta untuk memindah posisinya</div>'
-      : '')
+  return '<div class="sgp-lbl">'
+    +'<div class="sgp-lbl-h"><span>'+_sgpIcon('tag')+'Label nama di peta</span>'+_sgpSwitch(on,'shapeToggleLabel(\''+id+'\',this.checked)')+'</div>'
+    +(on ? '<div class="sgp-lbl-b">'
+        +'<label class="sgp-f">Ukuran<span class="sgp-num"><input type="number" value="'+sz+'" min="7" max="28" step="1" oninput="shapeSetLabelStyle(\''+id+'\',\'size\',parseInt(this.value)||11)"><i>px</i></span></label>'
+        +'<label class="sgp-f">Warna<input type="color" value="'+col+'" oninput="shapeSetLabelStyle(\''+id+'\',\'color\',this.value)"></label>'
+        +'<button type="button" class="sgp-b ghost sm" title="Kembalikan label ke tengah objek" onclick="shapeResetLabelPos(\''+id+'\')"><span>⟲ Tengah</span></button>'
+      +'</div>'
+      +(isLine ? '<div class="sgp-lbl-h" style="margin-top:8px"><span>Garis titik ke label</span>'+_sgpSwitch(leader,'shapeToggleLeader(\''+id+'\',this.checked)')+'</div>' : '')
+      +'<div class="sgp-hint">Seret teks label di peta untuk memindahnya.</div>' : '')
     +'</div>';
 }
 
