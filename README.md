@@ -111,3 +111,6 @@ Arah aliran dari topografi **bergantung pada skala**: lereng lokal di dalam tapa
 - Citra baru lain: Esri Clarity, Esri Firefly.
 - **Citra Google tidak punya parameter tanggal** pada tile-nya, jadi selalu versi terbaru. Saat peta dasar Google aktif, kontrol waktu menawarkan pindah ke sumber berarsip di atas.
 - Waktu terpilih ikut tersimpan di file proyek dan terbawa ke Generate Peta.
+
+## SHP titik → Titik SandGIS
+Layer SHP bertipe titik kini punya tombol **📍 Jadikan Titik** di daftar layer: titik dikonversi jadi Titik SandGIS (jenis baru atau yang sudah ada, nama dari kolom atribut), sehingga terbaca di Layout, legenda, dan tabel titik.

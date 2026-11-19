@@ -6014,6 +6014,7 @@ function shpParseAndRender(buffers, baseName, callback) {
       layersAdded++;
 
       toast('✓ ' + layerName + ' — ' + feats.length.toLocaleString() + ' fitur', 'ok');
+      if (geomType === 'Point') setTimeout(function(){ toast('📍 Layer titik: tekan "Jadikan Titik" di daftar layer agar terbaca sebagai titik & muncul di Layout', 'warn'); }, 600);
     });
 
     if (layersAdded > 0) {
@@ -10773,6 +10774,7 @@ function shpUpdateLayerList() {
       '</span>' +
       '<button onclick="shpOpenAttr(\''+l.id+'\')" title="Lihat tabel atribut" ' +
         'style="background:none;border:none;color:#3a9efd;cursor:pointer;font-size:12px;padding:0 2px 0 4px">⊞</button>' +
+      (l.geomType==='Point'&&l.sourceType!=='dxf'?'<button onclick="shpToTitik(\''+l.id+'\')" title="Jadikan Titik SandGIS (agar terbaca di Layout)" style="background:var(--sg,#1a7f3c);border:none;color:#fff;cursor:pointer;font-size:10px;font-weight:700;border-radius:4px;padding:2px 6px;margin:0 2px">📍 Jadikan Titik</button>':'') +
       '<button onclick="GE.toggleLayer(\''+l.id+'\')" title="Edit geometri (geser/tambah/hapus titik, hapus fitur)" ' +
         'style="background:none;border:none;color:#f59e0b;cursor:pointer;font-size:12px;padding:0 2px">✏️</button>' +
       '<button onclick="petaToggleFillPanel(\'shp-fill-'+l.id+'\')" title="Gaya garis &amp; isi area" ' +
@@ -31428,6 +31430,56 @@ button:focus-visible,.sg-item:focus-visible,.sg-lbl:focus-visible{outline:2px so
     render(); return true;}
   var iv=setInterval(function(){if(init()) clearInterval(iv);},600);
 })();
+</script>
+
+<script id="rustgis-shp-titik">
+/* Ubah layer SHP bertipe titik menjadi Titik SandGIS (marker) → ikut Layout, legenda, tabel titik, simpan proyek */
+function shpToTitik(layerId){
+  var l=(_shpLayers||[]).find(function(x){return x.id===layerId;}); if(!l){return;}
+  var pts=[]; (l.features||[]).forEach(function(f,i){
+    var g=f&&f.geometry; if(!g) return; var cs=g.type==='Point'?[g.coordinates]:g.type==='MultiPoint'?g.coordinates:[];
+    cs.forEach(function(c){ if(c&&isFinite(c[0])&&isFinite(c[1])&&Math.abs(c[1])<=90&&Math.abs(c[0])<=180) pts.push({lat:c[1],lng:c[0],p:f.properties||{},i:i}); });});
+  if(!pts.length){toast('Layer ini tidak berisi geometri titik yang valid','err'); return;}
+  var fields=shpGetAttributeFields(l),best='';
+  [/^(nama|name)$/i,/(nama|name)/i,/^(titik|kode|code|id|label|stasiun|lokasi|ket)/i].some(function(re){var f=fields.filter(function(k){return re.test(k);})[0]; if(f){best=f;return true;}});
+  var old=document.getElementById('shp2t-modal'); if(old) old.remove();
+  var m=document.createElement('div'); m.id='shp2t-modal';
+  m.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:99999;display:flex;align-items:center;justify-content:center;padding:12px';
+  var types=_ptAllTypes().filter(function(t){return t!=='sungai';});
+  var S='width:100%;padding:7px 8px;background:var(--inp,#fff);border:1px solid var(--brd,#ccc);border-radius:5px;color:var(--txt,#222);font:13px Arial,sans-serif;box-sizing:border-box';
+  m.innerHTML='<div style="background:var(--card,#fff);color:var(--txt,#222);border:1px solid var(--brd,#ccc);border-radius:10px;padding:16px;width:360px;max-width:100%;max-height:92vh;overflow:auto;font:13px Arial,sans-serif">'+
+   '<div style="font-weight:700;font-size:14px;margin-bottom:4px">📍 Jadikan Titik</div>'+
+   '<div style="color:var(--mute,#667);font-size:12px;margin-bottom:10px">'+_e(l.name)+' — '+pts.length+' titik akan dibuat sebagai Titik SandGIS (muncul di Layout &amp; legenda).</div>'+
+   '<label style="font-size:12px;font-weight:600">Jenis titik</label>'+
+   '<select id="s2t-type" style="'+S+';margin:3px 0 6px"><option value="__new">＋ Jenis baru (sendiri)</option>'+types.map(function(t){return '<option value="'+_e(t)+'">'+_e(PETA_PT_TYPES[t].label)+'</option>';}).join('')+'</select>'+
+   '<div id="s2t-new" style="display:flex;gap:6px;margin-bottom:8px"><input id="s2t-nm" value="'+_e(l.name.replace(/^\s*\d+[\.\)]\s*/,'').slice(0,28))+'" style="'+S+'" placeholder="Nama jenis (muncul di legenda)"><input id="s2t-col" type="color" value="'+(/^#[0-9a-f]{6}$/i.test(l.color||'')?l.color:'#e84393')+'" style="width:42px;height:34px;padding:0;border:1px solid var(--brd,#ccc);border-radius:5px"></div>'+
+   '<label style="font-size:12px;font-weight:600">Kolom nama titik</label>'+
+   '<select id="s2t-f" style="'+S+';margin:3px 0 8px"><option value="">(otomatis: nomor urut)</option>'+fields.map(function(k){return '<option value="'+_e(k)+'"'+(k===best?' selected':'')+'>'+_e(k)+'</option>';}).join('')+'</select>'+
+   '<label style="display:flex;gap:6px;align-items:center;font-size:12px;margin-bottom:12px"><input id="s2t-hide" type="checkbox" checked> Sembunyikan layer SHP asli (hindari ganda)</label>'+
+   '<div style="display:flex;gap:8px;justify-content:flex-end"><button id="s2t-x" style="padding:7px 14px;border:1px solid var(--brd,#ccc);background:transparent;color:inherit;border-radius:6px;cursor:pointer">Batal</button><button id="s2t-ok" style="padding:7px 14px;border:0;background:var(--sg,#1a7f3c);color:#fff;border-radius:6px;cursor:pointer;font-weight:700">Buat '+pts.length+' Titik</button></div></div>';
+  document.body.appendChild(m);
+  var sel=m.querySelector('#s2t-type'),nw=m.querySelector('#s2t-new');
+  sel.onchange=function(){nw.style.display=sel.value==='__new'?'flex':'none';};
+  m.onclick=function(e){if(e.target===m) m.remove();}; m.querySelector('#s2t-x').onclick=function(){m.remove();};
+  m.querySelector('#s2t-ok').onclick=function(){
+    var type=sel.value;
+    if(type==='__new'){
+      var nm=(m.querySelector('#s2t-nm').value||'').trim()||l.name, col=m.querySelector('#s2t-col').value;
+      type='custom_'+nm.toLowerCase().replace(/[^a-z0-9]/g,'_').slice(0,20);
+      if(!PETA_PT_TYPES[type]) PETA_PT_TYPES[type]={label:nm,short:nm,color:col,useUbmName:false,isCustom:true,shape:'pin'};
+    }
+    var fld=m.querySelector('#s2t-f').value, n=0, lbl=_ptType(type).label;
+    pts.forEach(function(p,k){
+      var nmv=fld&&p.p[fld]!=null&&String(p.p[fld]).trim()!==''?String(p.p[fld]).trim():(lbl+' '+(k+1));
+      var note=Object.keys(p.p).filter(function(a){return a!==fld&&p.p[a]!=null&&String(p.p[a]).trim()!=='';}).slice(0,6).map(function(a){return a+': '+p.p[a];}).join(' · ');
+      var mk={id:'mk_'+(_uid++),type:type,name:nmv,lat:Math.round(p.lat*1e7)/1e7,lng:Math.round(p.lng*1e7)/1e7,note:note.slice(0,300)};
+      _markers.push(mk); try{ if(_map) _addLeafletMarker(mk);}catch(e){} n++;});
+    if(m.querySelector('#s2t-hide').checked&&_map&&l.layer&&_map.hasLayer(l.layer)) shpToggleLayer(layerId);
+    try{_renderList();_renderTable();_persist();}catch(e){}
+    try{ if(_map){var b=L.latLngBounds(pts.map(function(p){return [p.lat,p.lng];})); if(b.isValid()) _map.fitBounds(b,{padding:[40,40],maxZoom:17});} }catch(e){}
+    try{shpUpdateLayerList();}catch(e){}
+    m.remove(); toast('✅ '+n+' titik "'+lbl+'" dibuat — kini terbaca di Layout','ok');};
+}
 </script>
 
 <style id="rustgis-lang-css">
