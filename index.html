@@ -2274,6 +2274,14 @@ textarea.sgp-in{height:62px;padding:8px 11px;resize:vertical;line-height:1.4}
   document.addEventListener('click',function(e){ var v=e.target.closest&&e.target.closest('.sgp-r .sgp-v'); if(!v) return; if(String(window.getSelection())) return; var b=v.parentNode.querySelector('.sgp-cp'); if(b) b.click(); },true);
 })();
 </script>
+<style id="rustgis-shp-popup-css">
+.sgp-attr{max-height:236px;overflow:auto;padding:2px 10px}
+.sgp-ar{align-items:flex-start}
+.sgp-ar .sgp-k{flex:0 0 92px;text-transform:none;letter-spacing:0;font:600 11.5px/1.4 var(--ui);overflow-wrap:anywhere}
+.sgp-ar .sgp-v{font:500 12.5px/1.4 var(--ui);cursor:text}
+.sgp-attr::-webkit-scrollbar{width:6px}.sgp-attr::-webkit-scrollbar-thumb{background:var(--brd);border-radius:6px}
+.sgp-s{overflow-wrap:anywhere;text-transform:none;letter-spacing:.02em;font-size:11px}
+</style>
 </head>
 <body>
 <style id="sg-splash-css">
@@ -6639,18 +6647,7 @@ function _shpBuildLeafletLayer(geojson, opts, layerName) {
       var outline = _shpResolveOutline(opts, feature);
       var p = feature.properties || {};
       var nama = p.NAMOBJ || p.namobj || p.NAMA || p.nama || p.NAME || p.name || '(tanpa nama)';
-      var fcode = p.FCODE || p.fcode || '';
-      var rows = Object.keys(p).slice(0, 6).map(function(k) {
-        return '<tr><td style="color:var(--txt2);padding:2px 10px 2px 0;font-size:10px;font-weight:600;white-space:nowrap;vertical-align:top">'+k+'</td><td style="font-size:10.5px;color:var(--txt);font-weight:500">'+p[k]+'</td></tr>';
-      }).join('');
-      layer.bindPopup(
-        '<div style="font-family:var(--ui);min-width:170px">' +
-        '<div style="font-weight:700;font-size:13px;color:'+outline.color+';margin-bottom:6px">'+_e(nama)+'</div>' +
-        (fcode ? '<div style="font-size:10px;color:var(--txt2);margin-bottom:6px">FCODE: '+fcode+'</div>' : '') +
-        '<table style="border-collapse:collapse;width:100%">'+rows+'</table>' +
-        '<div style="font-size:9px;color:var(--txt2);margin-top:6px;border-top:1px solid var(--brd2);padding-top:5px">Sumber: '+_e(layerName)+'</div>' +
-        '</div>'
-      );
+      layer.bindPopup(_shpPopupHtml(p, outline.color, layerName, feature.geometry && feature.geometry.type, p.NAMOBJ||p.namobj||p.NAMA||p.nama||p.NAME||p.name ? null : null), {minWidth:260, maxWidth:360, maxHeight:340});
       // Snap ke fitur SHP ini saat sedang menggambar garis/poligon/ukur — popup dicegah, bukan ditutup setelah kelihatan
       layer.on('popupopen', function(){
         if (window.GE && GE.active && GE.layerId === opts.id) { layer.closePopup(); return; } // mode Edit Geometri: klik = pilih fitur, bukan popup
@@ -6706,7 +6703,45 @@ function _shpBuildLeafletLayer(geojson, opts, layerName) {
     }
   }).addTo(leafletLayer);
 
+  /* Area klik garis diperlebar (±8 px) supaya tidak perlu presisi sampai piksel */
+  if (featCount <= 4000) {
+    try {
+      leafletLayer.eachLayer(function(gj){
+        if (!gj.eachLayer) return;
+        var bufs = [];
+        gj.eachLayer(function(l){
+          if (!(l instanceof L.Polyline) || (L.Polygon && l instanceof L.Polygon) || l._isHitBuf) return;
+          var h = L.polyline(l.getLatLngs(), { pane: paneNameShp, renderer: rendererShp, weight: 18, opacity: 0, interactive: true, bubblingMouseEvents: false, lineCap: 'round', lineJoin: 'round' });
+          h._isHitBuf = true; h.setStyle = function(){ return this; };
+          ['click','dblclick','contextmenu'].forEach(function(t){
+            h.on(t, function(e){ l.fire(t, { latlng: e.latlng, layer: l, containerPoint: e.containerPoint, layerPoint: e.layerPoint, originalEvent: e.originalEvent }); });
+          });
+          ['mouseover','mouseout'].forEach(function(t){ h.on(t, function(e){ l.fire(t, { latlng: e.latlng, originalEvent: e.originalEvent }); }); });
+          bufs.push(h);
+        });
+        bufs.forEach(function(h){ h.addTo(leafletLayer); });
+      });
+    } catch (e) { console.warn('[SHP] hit-buffer gagal', e); }
+  }
+
   return leafletLayer;
+}
+
+/* Popup atribut fitur SHP — kartu rapi bergaya popup titik */
+function _shpPopupHtml(p, color, layerName, gtype, nameOverride) {
+  p = p || {};
+  var nm = nameOverride || p.NAMOBJ || p.namobj || p.NAMA || p.nama || p.NAME || p.name || p.Name || p.REMARK || p.remark || '';
+  var ico = (gtype==='Polygon'||gtype==='MultiPolygon') ? 'poly' : (/Line/.test(gtype||'') ? 'line' : 'pin');
+  var kind = ico==='poly' ? 'Poligon' : ico==='line' ? 'Garis' : 'Titik';
+  var keys = Object.keys(p).filter(function(k){ return k.charAt(0)!=='_'; });
+  var rows = keys.map(function(k){
+    var v = p[k]; v = (v===null||v===undefined||v==='') ? '—' : String(v);
+    return '<div class="sgp-r sgp-ar"><span class="sgp-k">'+_e(k)+'</span><span class="sgp-v">'+_e(v)+'</span></div>';
+  }).join('');
+  return '<div class="sgp" style="--c:'+_e(color||'#1a7f3c')+'">'
+    + '<div class="sgp-h"><span class="sgp-ico">'+_sgpIcon(ico)+'</span><div class="sgp-hd"><div class="sgp-t">'+_e(nm||'(tanpa nama)')+'</div><div class="sgp-s">'+kind+' · '+_e(layerName||'')+'</div></div></div>'
+    + (rows ? '<div class="sgp-rows sgp-attr">'+rows+'</div>' : '<div class="sgp-note">Tidak ada atribut.</div>')
+    + '</div>';
 }
 
 /* Cari titik vertex fitur SHP yang paling dekat dengan posisi klik — supaya garis/poligon baru
@@ -26193,11 +26228,7 @@ function _attrApplyCell(layerId, fid, col, val) {
         if (val === undefined) delete fl.feature.properties[col]; else fl.feature.properties[col] = val;
         if (fl.getPopup && fl.getPopup()) {
           var props = fl.feature.properties;
-          var rows = Object.keys(props).filter(function(k){ return k.charAt(0) !== '_'; }).map(function(k){
-            return '<tr><td style="padding:2px 6px 2px 0;color:var(--mute,#64748b);font-weight:600;font-size:9px">'+k+'</td>'
-                 + '<td style="padding:2px 0;color:var(--txt,#e2e8f0);font-size:9px">'+props[k]+'</td></tr>';
-          }).join('');
-          fl.getPopup().setContent('<table style="border-collapse:collapse;font-family:var(--ui)">'+rows+'</table>');
+          fl.getPopup().setContent(_shpPopupHtml(props, (fl.options&&fl.options.color)||'#1a7f3c', lObj.name||'', fl.feature.geometry&&fl.feature.geometry.type));
         }
       }
     });
