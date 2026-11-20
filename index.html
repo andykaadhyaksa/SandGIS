@@ -2309,6 +2309,43 @@ textarea.sgp-in{height:62px;padding:8px 11px;resize:vertical;line-height:1.4}
   patch(); document.addEventListener('DOMContentLoaded',patch);
 })();
 </script>
+<script id="rustgis-line-pick">
+/* Pemilih garis: klik di dekat (±14 px) garis gambar manual selalu membuka garis itu,
+   meski ada layer lain (poligon SHP berisi, dll.) yang menutupinya. */
+(function(){
+  var TOL=14, bound=null, down=null;
+  function find(ev){
+    var m=window._map, ll=m.mouseEventToLatLng(ev), p=m.mouseEventToContainerPoint(ev), best=null, bd=TOL;
+    (window._lines||[]).forEach(function(it){
+      var ly=it.layer; if(!ly||!m.hasLayer(ly)||!it.points||it.points.length<2) return;
+      var pts=it.points.map(function(q){ return m.latLngToContainerPoint(L.latLng(q[0],q[1])); });
+      for(var i=0;i<pts.length-1;i++){ var d=L.LineUtil.pointToSegmentDistance(p,pts[i],pts[i+1]); if(d<bd){ bd=d; best=it; } }
+    });
+    return best?{it:best,ll:ll}:null;
+  }
+  function onClick(ev){
+    try{
+      if(ev.button!==0) return;
+      if(typeof _mode!=='undefined'&&_mode) return;
+      if(typeof _sgtPhase!=='undefined'&&_sgtPhase) return;
+      if(window.GE&&GE.active) return;
+      if(down&&(Math.abs(ev.clientX-down[0])>5||Math.abs(ev.clientY-down[1])>5)) return;
+      if(ev.target.closest&&ev.target.closest('.leaflet-marker-icon,.leaflet-popup,.leaflet-control,.sgcm')) return;
+      var h=find(ev); if(!h) return;
+      var pl=h.it.layer._mainPolyline; if(!pl||!pl.getPopup||!pl.getPopup()) return;
+      ev.stopPropagation(); ev.stopImmediatePropagation();
+      pl.openPopup(h.ll);
+    }catch(er){ console.warn('[line-pick]',er); }
+  }
+  function bind(){
+    var m=window._map; if(!m||!window.L){ return setTimeout(bind,400); }
+    var c=m.getContainer(); if(bound===c) return; bound=c;
+    c.addEventListener('mousedown',function(e){ down=[e.clientX,e.clientY]; },true);
+    c.addEventListener('click',onClick,true);
+  }
+  bind(); setInterval(bind,2000);
+})();
+</script>
 </head>
 <body>
 <style id="sg-splash-css">

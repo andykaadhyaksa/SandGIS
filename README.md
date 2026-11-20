@@ -136,3 +136,4 @@ Tinggi ribbon sama di semua tab (66 px), label satu baris, tab selalu tampil pen
 - Popup atribut layer SHP didesain ulang (kartu rapi, daftar atribut bisa digulir). Area klik garis SHP diperlebar ±8 px agar mudah diklik.
 - Poligon dengan isi transparan (0%) tidak lagi menelan klik — hanya garis tepinya yang bisa diklik, sehingga garis/titik di bawahnya mudah dipilih. Area klik garis digambar diperlebar (±13 px).
 - Klik kanan tab Peta/Layout → Duplikat (salinan persis semua data: titik, garis, poligon, SHP, TIF, DXF, peta dasar, tampilan), Ubah nama, Hapus. Salinan berdiri sendiri; mengubah salah satu tidak memengaruhi yang lain.
+- Pemilih garis: klik dalam ±14 px dari garis gambar manual selalu membuka popup garis tersebut, walau tertutup poligon/layer lain.
