@@ -2210,6 +2210,15 @@ textarea.sgp-in{height:62px;padding:8px 11px;resize:vertical;line-height:1.4}
     [['line',_lines],['polygon',_polygons]].forEach(function(g){ if(res) return; g[1].forEach(function(it){ if(!res&&owns(it.layer,p)) res={kind:g[0],item:it}; }); });
     return res;
   }
+  function findShpFeature(el){
+    var p=el.closest&&el.closest('path.leaflet-interactive'); if(!p||!window._shpLayers) return null;
+    var res=null;
+    function walk(l,lo,d){ if(res||!l||d>5) return;
+      if(l._path===p){ var t=l._isHitBuf?l._src:l; if(t&&t.feature){ res={feat:t.feature,layer:t,lo:lo}; return; } }
+      if(l.eachLayer) l.eachLayer(function(s){ walk(s,lo,d+1); }); }
+    _shpLayers.forEach(function(lo){ walk(lo.layer,lo,0); });
+    return res;
+  }
   function coordItems(ll){
     var dd=ll.lat.toFixed(6)+', '+ll.lng.toFixed(6), utm=_sgpUtmTxt(ll.lat,ll.lng);
     return [
@@ -2227,7 +2236,7 @@ textarea.sgp-in{height:62px;padding:8px 11px;resize:vertical;line-height:1.4}
     if(e.target.closest('.leaflet-control,.leaflet-popup,.sgcm')) return;
     e.preventDefault(); e.stopPropagation();
     var ll=_map.mouseEventToLatLng(e), x=e.clientX, y=e.clientY, it=[];
-    var mk=findMarker(e.target), sh=mk?null:findShape(e.target);
+    var mk=findMarker(e.target), sh=mk?null:findShape(e.target), sf=(mk||sh)?null:findShpFeature(e.target);
     if(!mk&&!sh&&e.target.closest('.leaflet-marker-icon')){ hide(); return; }   /* titik vertex editor: biarkan handler aslinya (hapus titik) */
     if(mk){
       it.push({h:mk.name,s:_ptType(mk.type).label});
@@ -2239,6 +2248,13 @@ textarea.sgp-in{height:62px;padding:8px 11px;resize:vertical;line-height:1.4}
       it.push({i:'pin',t:'Zoom ke titik',fn:function(){_map.setView([mk.lat,mk.lng],Math.max(_map.getZoom(),17));}});
       it.push({sep:1});
       it.push({i:'trash',t:'Hapus titik',dng:1,fn:function(){_delMarker(mk.id);}});
+    } else if(sf){
+      var pr=sf.feat.properties||{}, nm2=pr.NAMOBJ||pr.namobj||pr.NAMA||pr.nama||pr.NAME||pr.name||pr.REMARK||'(tanpa nama)';
+      it.push({h:nm2,s:'SHP · '+(sf.lo.name||'')});
+      it.push({i:'nodes',t:'Lihat koordinat & boundary…',fn:function(){ sgCoordOpen([sf.feat],sf.lo.name); }});
+      it.push({sep:1});
+      coordItems(ll).forEach(function(x){it.push(x);});
+      it.push({i:'pin',t:'Zoom ke fitur',fn:function(){ try{ _map.fitBounds(sf.layer.getBounds(),{padding:[60,60]}); }catch(er){ try{_map.setView(sf.layer.getLatLng(),18);}catch(e2){} } }});
     } else if(sh){
       var n=sh.item.name||(sh.kind==='line'?'Garis':'Poligon');
       it.push({h:n,s:sh.kind==='line'?'Garis':'Poligon'});
@@ -2344,6 +2360,191 @@ textarea.sgp-in{height:62px;padding:8px 11px;resize:vertical;line-height:1.4}
     c.addEventListener('click',onClick,true);
   }
   bind(); setInterval(bind,2000);
+})();
+</script>
+<style id="rustgis-coord-css">
+.sgc{width:760px;max-width:100%}
+.sgc .sgm-h{padding-bottom:10px}
+.sgc-sum{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:2px 18px 10px}
+.sgc-k{padding:8px 10px;border-radius:10px;background:var(--card2);border:1px solid var(--brd2);min-width:0}
+.sgc-k small{display:block;font:700 10px var(--ui);letter-spacing:.07em;text-transform:uppercase;color:var(--mute)}
+.sgc-k b{display:block;margin-top:3px;font:650 12.5px/1.35 var(--ui);color:var(--txt);font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.sgc-k.wide{grid-column:span 2}
+.sgc-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:0 18px 10px}
+.sgc-seg{display:inline-flex;padding:3px;border-radius:10px;background:var(--card2);border:1px solid var(--brd2)}
+.sgc-seg button{border:0;background:transparent;color:var(--txt2);font:650 12px var(--ui);padding:5px 14px;border-radius:7px;cursor:pointer}
+.sgc-seg button.on{background:var(--sg);color:#fff}
+html[data-theme="dark"] .sgc-seg button.on{color:#07210f}
+.sgc-bar select{height:32px;border:1px solid var(--brd);border-radius:8px;background:var(--inp);color:var(--txt);font:550 12.5px var(--ui);padding:0 8px;max-width:260px}
+.sgc-tw{margin:0 18px;border:1px solid var(--brd2);border-radius:10px;max-height:300px;overflow:auto}
+.sgc-tw table{width:100%;border-collapse:collapse;font:500 12.5px var(--ui);font-variant-numeric:tabular-nums}
+.sgc-tw th{position:sticky;top:0;background:var(--card2);color:var(--mute);font:700 10.5px var(--ui);letter-spacing:.06em;text-transform:uppercase;text-align:left;padding:7px 10px;border-bottom:1px solid var(--brd2);white-space:nowrap}
+.sgc-tw td{padding:5px 10px;border-bottom:1px solid var(--brd2);white-space:nowrap;color:var(--txt);-webkit-user-select:text;user-select:text}
+.sgc-tw tr:last-child td{border-bottom:0}
+.sgc-tw td:first-child,.sgc-tw th:first-child{color:var(--mute);width:44px}
+.sgc-note{padding:8px 18px 0;font:500 11.5px/1.45 var(--ui);color:var(--mute)}
+.sgc-f{display:flex;gap:8px;flex-wrap:wrap;padding:12px 18px 16px;justify-content:flex-end}
+.sgc-f .sgp-b{height:36px;padding:0 14px}
+@media (max-width:640px){.sgc-sum{grid-template-columns:1fr 1fr}.sgc-k.wide{grid-column:span 2}}
+</style>
+<script id="rustgis-coord">
+/* Lihat koordinat / boundary fitur SHP (titik, garis, poligon) */
+(function(){
+  var FEAT={}, seq=0;
+  function esc(s){ return (typeof _e==='function')?_e(s):String(s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+  function toastS(m,t){ if(typeof toast==='function') toast(m,t||'ok'); }
+  window.sgFeatKey=function(f){ if(!f) return 0; if(!f.__ck){ f.__ck=++seq; } FEAT[f.__ck]=f; return f.__ck; };
+
+  /* ── geometri → bagian {ring:[[lat,lng]..], closed, hole} ── */
+  function parts(g){
+    var out=[]; if(!g||!g.coordinates) return out;
+    function ring(cs,closed,hole,label){
+      var a=cs.map(function(c){return [c[1],c[0]];});
+      if(closed&&a.length>1&&a[0][0]===a[a.length-1][0]&&a[0][1]===a[a.length-1][1]) a=a.slice(0,-1);
+      out.push({pts:a,closed:closed,hole:hole,label:label});
+    }
+    var t=g.type, c=g.coordinates;
+    if(t==='Point') out.push({pts:[[c[1],c[0]]],closed:false,label:'Titik'});
+    else if(t==='MultiPoint') c.forEach(function(p,i){ out.push({pts:[[p[1],p[0]]],closed:false,label:'Titik '+(i+1)}); });
+    else if(t==='LineString') ring(c,false,false,'Garis');
+    else if(t==='MultiLineString') c.forEach(function(l,i){ ring(l,false,false,'Garis '+(i+1)); });
+    else if(t==='Polygon') c.forEach(function(r,i){ ring(r,true,i>0,i===0?'Ring luar':'Lubang '+i); });
+    else if(t==='MultiPolygon') c.forEach(function(poly,pi){ poly.forEach(function(r,i){ ring(r,true,i>0,'Poligon '+(pi+1)+(i===0?' · luar':' · lubang '+i)); }); });
+    else if(t==='GeometryCollection') (g.geometries||[]).forEach(function(s){ parts(s).forEach(function(p){out.push(p);}); });
+    return out;
+  }
+  function dist(a,b){ return L.latLng(a[0],a[1]).distanceTo(L.latLng(b[0],b[1])); }
+  function stats(ps){
+    var n=0,minLa=90,maxLa=-90,minLo=180,maxLo=-180,len=0,area=0,sx=0,sy=0,hasPoly=false,hasLine=false;
+    ps.forEach(function(p){
+      p.pts.forEach(function(q){ n++; sx+=q[0]; sy+=q[1]; if(q[0]<minLa)minLa=q[0]; if(q[0]>maxLa)maxLa=q[0]; if(q[1]<minLo)minLo=q[1]; if(q[1]>maxLo)maxLo=q[1]; });
+      if(p.closed){ hasPoly=true; var a=(typeof _polygonAreaM2==='function')?_polygonAreaM2(p.pts):0; area+=p.hole?-a:a;
+        for(var i=0;i<p.pts.length;i++) len+=dist(p.pts[i],p.pts[(i+1)%p.pts.length]); }
+      else if(p.pts.length>1){ hasLine=true; for(var j=0;j<p.pts.length-1;j++) len+=dist(p.pts[j],p.pts[j+1]); }
+    });
+    return {n:n,minLa:minLa,maxLa:maxLa,minLo:minLo,maxLo:maxLo,len:len,area:area,cLa:n?sx/n:0,cLo:n?sy/n:0,hasPoly:hasPoly,hasLine:hasLine};
+  }
+  function bboxCenter(s){ return [(s.minLa+s.maxLa)/2,(s.minLo+s.maxLo)/2]; }
+
+  /* ── format ── */
+  var fmtNum=function(v,d){ return Number(v).toFixed(d); };
+  function dd(v){ return fmtNum(v,7); }
+  function dms(v,isLat){ return (typeof _ddToDMS==='function')?_ddToDMS(v,isLat):dd(v); }
+  function utm(lat,lng,zone){ return _sgpUtm(lat,lng,zone); }
+  function fmtLen(m){ return m>=1000?(m/1000).toFixed(3).replace('.',',')+' km':m.toFixed(2).replace('.',',')+' m'; }
+  function fmtArea(m2){ var a=Math.abs(m2); return a.toLocaleString('id-ID',{maximumFractionDigits:0})+' m² ('+(a/10000).toLocaleString('id-ID',{maximumFractionDigits:4})+' ha)'; }
+
+  /* ── modal ── */
+  function name(f,i){ var p=(f&&f.properties)||{}; return p.NAMOBJ||p.namobj||p.NAMA||p.nama||p.NAME||p.name||p.Name||p.REMARK||p.remark||('Fitur '+(i+1)); }
+  function open(feats,title){
+    feats=(feats||[]).filter(function(f){return f&&f.geometry;});
+    if(!feats.length){ toastS('Tidak ada fitur bergeometri','warn'); return; }
+    var old=document.getElementById('sgm-ov'); if(old) old.remove();
+    var state={fmt:'dd',sel:feats.length>1?-1:0};
+    var ov=document.createElement('div'); ov.className='sgm-ov'; ov.id='sgm-ov';
+    ov.innerHTML='<div class="sgm sgc" role="dialog" aria-modal="true" style="--c:var(--sg)"><div class="sgm-h"><span class="sgp-ico">'+_sgpIcon('nodes')+'</span><div><b id="sgc-t"></b><small id="sgc-s"></small></div><button type="button" class="sgm-x" aria-label="Tutup">'+_sgpIcon('x')+'</button></div>'
+      +'<div class="sgc-sum" id="sgc-sum"></div>'
+      +'<div class="sgc-bar"><div class="sgc-seg" id="sgc-seg"><button type="button" data-f="dd" class="on">Desimal (DD)</button><button type="button" data-f="dms">DMS</button><button type="button" data-f="utm">UTM</button></div><select id="sgc-sel" aria-label="Fitur"></select></div>'
+      +'<div class="sgc-tw"><table><thead id="sgc-th"></thead><tbody id="sgc-tb"></tbody></table></div>'
+      +'<div class="sgc-note" id="sgc-note"></div>'
+      +'<div class="sgc-f"><button type="button" class="sgp-b" data-a="tsv">'+_sgpIcon('copy')+' Salin tabel</button><button type="button" class="sgp-b" data-a="wkt">WKT</button><button type="button" class="sgp-b" data-a="gj">GeoJSON</button><button type="button" class="sgp-b pri" data-a="csv">Unduh CSV</button></div></div>';
+    document.body.appendChild(ov);
+    function close(){ ov.remove(); document.removeEventListener('keydown',onKey,true); }
+    function onKey(e){ if(e.key==='Escape'){ e.stopPropagation(); close(); } }
+    document.addEventListener('keydown',onKey,true);
+    ov.addEventListener('mousedown',function(e){ if(e.target===ov) close(); });
+    ov.querySelector('.sgm-x').onclick=close;
+
+    var sel=ov.querySelector('#sgc-sel');
+    if(feats.length>1){ sel.innerHTML='<option value="-1">Semua ('+feats.length+' fitur)</option>'+feats.map(function(f,i){return '<option value="'+i+'">'+(i+1)+'. '+esc(name(f,i))+'</option>';}).join(''); sel.value='-1'; }
+    else sel.style.display='none';
+    sel.onchange=function(){ state.sel=+sel.value; render(); };
+    ov.querySelector('#sgc-seg').onclick=function(e){ var b=e.target.closest('button'); if(!b) return; state.fmt=b.getAttribute('data-f'); [].forEach.call(this.children,function(x){x.classList.toggle('on',x===b);}); render(); };
+
+    function current(){ return state.sel<0?feats:[feats[state.sel]]; }
+    function rows(){   /* [{f,fi,part,idx,la,lo}] */
+      var out=[]; current().forEach(function(f){ var fi=feats.indexOf(f); parts(f.geometry).forEach(function(p,pi){ p.pts.forEach(function(q,k){ out.push({f:f,fi:fi,pi:pi,part:p,k:k,la:q[0],lo:q[1]}); }); }); }); return out;
+    }
+    function render(){
+      var cur=current(), allParts=[]; cur.forEach(function(f){ parts(f.geometry).forEach(function(p){allParts.push(p);}); });
+      var s=stats(allParts), c=bboxCenter(s), zone=Math.floor((c[1]+180)/6)+1, uc=utm(c[0],c[1],zone), uw=utm(s.minLa,s.minLo,zone), ue=utm(s.maxLa,s.maxLo,zone);
+      var gt=(cur.length===1)?cur[0].geometry.type:'Beberapa fitur';
+      ov.querySelector('#sgc-t').textContent=(cur.length===1?name(cur[0],feats.indexOf(cur[0])):(title||'Koordinat fitur'));
+      ov.querySelector('#sgc-s').textContent=gt+' · '+s.n+' titik'+(title&&cur.length===1?' · '+title:'');
+      var sum='';
+      sum+='<div class="sgc-k"><small>Jumlah titik</small><b>'+s.n+'</b></div>';
+      sum+='<div class="sgc-k"><small>'+(s.hasPoly?'Luas':'Panjang')+'</small><b>'+(s.hasPoly?fmtArea(s.area):(s.hasLine?fmtLen(s.len):'—'))+'</b></div>';
+      sum+='<div class="sgc-k"><small>'+(s.hasPoly?'Keliling':'Bagian')+'</small><b>'+(s.hasPoly?fmtLen(s.len):allParts.length)+'</b></div>';
+      sum+='<div class="sgc-k"><small>UTM zona</small><b>'+zone+(c[0]<0?'S':'N')+'</b></div>';
+      sum+='<div class="sgc-k wide"><small>Titik tengah (bbox)</small><b>'+dd(c[0])+', '+dd(c[1])+'<br>'+uc.e.toFixed(3)+' E · '+uc.n.toFixed(3)+' N</b></div>';
+      sum+='<div class="sgc-k wide"><small>Bounding box (Barat–Timur / Selatan–Utara)</small><b>'+dd(s.minLo)+' – '+dd(s.maxLo)+'<br>'+dd(s.minLa)+' – '+dd(s.maxLa)+'</b></div>';
+      sum+='<div class="sgc-k wide"><small>Bounding box UTM (E min – max)</small><b>'+uw.e.toFixed(3)+' – '+ue.e.toFixed(3)+'</b></div>';
+      sum+='<div class="sgc-k wide"><small>Bounding box UTM (N min – max)</small><b>'+uw.n.toFixed(3)+' – '+ue.n.toFixed(3)+'</b></div>';
+      ov.querySelector('#sgc-sum').innerHTML=sum;
+      var multiF=cur.length>1, multiP=allParts.length>1;
+      var heads=['No']; if(multiF) heads.push('Fitur'); if(multiP) heads.push('Bagian');
+      if(state.fmt==='dd') heads.push('Lintang (Y)','Bujur (X)'); else if(state.fmt==='dms') heads.push('Lintang','Bujur'); else heads.push('Easting (m)','Northing (m)','Zona');
+      ov.querySelector('#sgc-th').innerHTML='<tr>'+heads.map(function(h){return '<th>'+h+'</th>';}).join('')+'</tr>';
+      var rs=rows(), LIM=4000, html='', n=0;
+      rs.slice(0,LIM).forEach(function(r){
+        n++; var cells=['<td>'+n+'</td>']; if(multiF) cells.push('<td>'+esc(name(r.f,r.fi))+'</td>'); if(multiP) cells.push('<td>'+esc(r.part.label)+'</td>');
+        if(state.fmt==='dd'){ cells.push('<td>'+dd(r.la)+'</td><td>'+dd(r.lo)+'</td>'); }
+        else if(state.fmt==='dms'){ cells.push('<td>'+esc(dms(r.la,true))+'</td><td>'+esc(dms(r.lo,false))+'</td>'); }
+        else { var u=utm(r.la,r.lo,zone); cells.push('<td>'+u.e.toFixed(3)+'</td><td>'+u.n.toFixed(3)+'</td><td>'+zone+u.hemi+'</td>'); }
+        html+='<tr>'+cells.join('')+'</tr>';
+      });
+      ov.querySelector('#sgc-tb').innerHTML=html;
+      ov.querySelector('#sgc-note').textContent=(rs.length>LIM?('Tampilan dibatasi '+LIM+' dari '+rs.length+' titik — Salin/Unduh tetap memuat semuanya. '):'')+(s.hasPoly?'Titik penutup poligon (sama dengan titik pertama) tidak ditampilkan. ':'')+'Sistem koordinat: WGS 84'+(state.fmt==='utm'?(' / UTM zona '+zone+(c[0]<0?'S':'N')):'')+'.';
+    }
+    function tableRows(){   /* array of arrays (header+data) untuk salin/CSV */
+      var cur=current(), allParts=[]; cur.forEach(function(f){ parts(f.geometry).forEach(function(p){allParts.push(p);}); });
+      var s=stats(allParts), c=bboxCenter(s), zone=Math.floor((c[1]+180)/6)+1;
+      var multiF=cur.length>1, multiP=allParts.length>1;
+      var head=['No']; if(multiF) head.push('Fitur'); if(multiP) head.push('Bagian');
+      if(state.fmt==='dd') head.push('Lintang','Bujur'); else if(state.fmt==='dms') head.push('Lintang_DMS','Bujur_DMS'); else head.push('Easting','Northing','Zona');
+      var out=[head], n=0;
+      rows().forEach(function(r){ n++; var a=[n]; if(multiF) a.push(name(r.f,r.fi)); if(multiP) a.push(r.part.label);
+        if(state.fmt==='dd') a.push(dd(r.la),dd(r.lo)); else if(state.fmt==='dms') a.push(dms(r.la,true),dms(r.lo,false)); else { var u=utm(r.la,r.lo,zone); a.push(u.e.toFixed(3),u.n.toFixed(3),zone+u.hemi); }
+        out.push(a); });
+      return out;
+    }
+    function wkt(){
+      return current().map(function(f){
+        var g=f.geometry, t=g.type, c=g.coordinates, P=function(p){return p[0]+' '+p[1];}, R=function(r){return '('+r.map(P).join(', ')+')';};
+        if(t==='Point') return 'POINT ('+P(c)+')'; if(t==='MultiPoint') return 'MULTIPOINT ('+c.map(function(p){return '('+P(p)+')';}).join(', ')+')';
+        if(t==='LineString') return 'LINESTRING '+R(c); if(t==='MultiLineString') return 'MULTILINESTRING ('+c.map(R).join(', ')+')';
+        if(t==='Polygon') return 'POLYGON ('+c.map(R).join(', ')+')'; if(t==='MultiPolygon') return 'MULTIPOLYGON ('+c.map(function(p){return '('+p.map(R).join(', ')+')';}).join(', ')+')';
+        return ''; }).filter(Boolean).join('\n');
+    }
+    function copy(txt,msg){
+      var done=function(){ toastS('✓ '+msg); };
+      var fb=function(){ try{ var t=document.createElement('textarea'); t.value=txt; t.setAttribute('readonly',''); t.style.cssText='position:fixed;opacity:0;left:-999px'; document.body.appendChild(t); t.select(); document.execCommand('copy'); t.remove(); done(); }catch(e){} };
+      try{ if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(txt).then(done,fb); return; } }catch(e){} fb();
+    }
+    function download(txt,fn,type){ var a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([txt],{type:type})); a.download=fn; a.click(); setTimeout(function(){URL.revokeObjectURL(a.href);},2000); }
+    function csvEsc(v){ v=String(v); return /[",\n;]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v; }
+    var base=function(){ return (current().length===1?name(current()[0],feats.indexOf(current()[0])):(title||'fitur')).replace(/[^\w\-]+/g,'_').slice(0,40)||'fitur'; };
+    ov.querySelector('.sgc-f').onclick=function(e){ var b=e.target.closest('[data-a]'); if(!b) return; var a=b.getAttribute('data-a');
+      if(a==='tsv') copy(tableRows().map(function(r){return r.join('\t');}).join('\n'),'Tabel koordinat disalin (tempel ke Excel)');
+      else if(a==='csv') download('﻿'+tableRows().map(function(r){return r.map(csvEsc).join(',');}).join('\r\n'),'koordinat_'+base()+'.csv','text/csv;charset=utf-8');
+      else if(a==='wkt') copy(wkt(),'WKT disalin');
+      else if(a==='gj') copy(JSON.stringify({type:'FeatureCollection',features:current().map(function(f){return {type:'Feature',properties:f.properties||{},geometry:f.geometry};})}),'GeoJSON disalin'); };
+    render();
+  }
+  window.sgCoordOpen=open;
+  window.sgCoordFeat=function(k){ var f=FEAT[k]; if(f){ try{_map.closePopup();}catch(e){} open([f]); } };
+
+  /* tombol di toolbar tabel atribut */
+  window.sgCoordFromTable=function(){
+    try{
+      var feats=_attrFeatures.filter(function(f){ return _attrSel[f._fid]&&f.geometry; });
+      var scope='terpilih';
+      if(!feats.length){ feats=(_attrFiltered||_attrFeatures).filter(function(f){return f.geometry;}); scope='semua'; }
+      if(feats.length>200){ if(!confirm(feats.length+' fitur akan dimuat (bisa lambat). Lanjutkan? Tip: pilih baris tertentu dulu.')) return; }
+      var lo=_shpLayers.find(function(l){return l.id===_attrLayerId;});
+      open(feats,lo?lo.name:'');
+    }catch(e){ console.warn(e); toastS('Gagal membuka koordinat','err'); }
+  };
 })();
 </script>
 </head>
@@ -6711,7 +6912,7 @@ function _shpBuildLeafletLayer(geojson, opts, layerName) {
       var outline = _shpResolveOutline(opts, feature);
       var p = feature.properties || {};
       var nama = p.NAMOBJ || p.namobj || p.NAMA || p.nama || p.NAME || p.name || '(tanpa nama)';
-      layer.bindPopup(_shpPopupHtml(p, outline.color, layerName, feature.geometry && feature.geometry.type, p.NAMOBJ||p.namobj||p.NAMA||p.nama||p.NAME||p.name ? null : null), {minWidth:260, maxWidth:360, maxHeight:340});
+      layer.bindPopup(_shpPopupHtml(p, outline.color, layerName, feature.geometry && feature.geometry.type, null, feature), {minWidth:260, maxWidth:360, maxHeight:340});
       // Snap ke fitur SHP ini saat sedang menggambar garis/poligon/ukur — popup dicegah, bukan ditutup setelah kelihatan
       layer.on('popupopen', function(){
         if (window.GE && GE.active && GE.layerId === opts.id) { layer.closePopup(); return; } // mode Edit Geometri: klik = pilih fitur, bukan popup
@@ -6776,7 +6977,7 @@ function _shpBuildLeafletLayer(geojson, opts, layerName) {
         gj.eachLayer(function(l){
           if (!(l instanceof L.Polyline) || (L.Polygon && l instanceof L.Polygon) || l._isHitBuf) return;
           var h = L.polyline(l.getLatLngs(), { pane: paneNameShp, renderer: rendererShp, weight: 24, opacity: 0, interactive: true, bubblingMouseEvents: false, lineCap: 'round', lineJoin: 'round' });
-          h._isHitBuf = true; h.setStyle = function(){ return this; };
+          h._isHitBuf = true; h._src = l; h.setStyle = function(){ return this; };
           ['click','dblclick','contextmenu'].forEach(function(t){
             h.on(t, function(e){ l.fire(t, { latlng: e.latlng, layer: l, containerPoint: e.containerPoint, layerPoint: e.layerPoint, originalEvent: e.originalEvent }); });
           });
@@ -6792,7 +6993,7 @@ function _shpBuildLeafletLayer(geojson, opts, layerName) {
 }
 
 /* Popup atribut fitur SHP — kartu rapi bergaya popup titik */
-function _shpPopupHtml(p, color, layerName, gtype, nameOverride) {
+function _shpPopupHtml(p, color, layerName, gtype, nameOverride, feature) {
   p = p || {};
   var nm = nameOverride || p.NAMOBJ || p.namobj || p.NAMA || p.nama || p.NAME || p.name || p.Name || p.REMARK || p.remark || '';
   var ico = (gtype==='Polygon'||gtype==='MultiPolygon') ? 'poly' : (/Line/.test(gtype||'') ? 'line' : 'pin');
@@ -6805,6 +7006,7 @@ function _shpPopupHtml(p, color, layerName, gtype, nameOverride) {
   return '<div class="sgp" style="--c:'+_e(color||'#1a7f3c')+'">'
     + '<div class="sgp-h"><span class="sgp-ico">'+_sgpIcon(ico)+'</span><div class="sgp-hd"><div class="sgp-t">'+_e(nm||'(tanpa nama)')+'</div><div class="sgp-s">'+kind+' · '+_e(layerName||'')+'</div></div></div>'
     + (rows ? '<div class="sgp-rows sgp-attr">'+rows+'</div>' : '<div class="sgp-note">Tidak ada atribut.</div>')
+    + (feature && feature.geometry && typeof sgFeatKey==='function' ? '<div class="sgp-acts"><button type="button" class="sgp-b pri" onclick="event.stopPropagation();sgCoordFeat('+sgFeatKey(feature)+')">'+_sgpIcon('nodes')+' Lihat koordinat &amp; boundary</button></div>' : '')
     + '</div>';
 }
 
@@ -12195,9 +12397,9 @@ var _SGP_I = {
   x:'<path d="M6 6l12 12M18 6L6 18"/>'
 };
 function _sgpIcon(n){ return '<svg class="sgp-i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+(_SGP_I[n]||'')+'</svg>'; }
-function _sgpUtm(lat,lng){
+function _sgpUtm(lat,lng,zoneOv){
   var a=6378137,f=1/298.257223563,k0=0.9996,e2=f*(2-f),ep2=e2/(1-e2),R=Math.PI/180;
-  var zone=Math.floor((lng+180)/6)+1; if(zone<1)zone=1; if(zone>60)zone=60;
+  var zone=zoneOv||(Math.floor((lng+180)/6)+1); if(zone<1)zone=1; if(zone>60)zone=60;
   var lon0=((zone-1)*6-180+3)*R,phi=lat*R,lam=lng*R-lon0;
   var sp=Math.sin(phi),cp=Math.cos(phi),tp=Math.tan(phi);
   var N=a/Math.sqrt(1-e2*sp*sp),T=tp*tp,C=ep2*cp*cp,A=cp*lam;
@@ -25612,6 +25814,7 @@ window.addEventListener('load', function() {
     <div class="sa-tools">
       <button class="sa-btn" id="sa-b-selattr" onclick="shpAttrSelByAttrToggle()" title="Pilih fitur berdasarkan nilai atribut"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" ><path d="M3 5h18l-7 8v6l-4 2v-8z"/></svg>Pilih Menurut Atribut</button>
       <button class="sa-btn sa-ico" id="sa-b-zoom" onclick="shpAttrZoomSel()" title="Zoom ke terpilih"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" ><circle cx="11" cy="11" r="6.5"/><path d="M16 16l5 5"/></svg></button>
+      <button class="sa-btn sa-ico" id="sa-b-coord" onclick="sgCoordFromTable()" title="Lihat koordinat &amp; boundary fitur terpilih (atau semua)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="17" r="2"/><circle cx="12" cy="6" r="2"/><circle cx="18" cy="15" r="2"/><path d="M7.4 15.5l3.4-7M13.8 7.2l3 6.4M8 17.5l8-1.5"/></svg></button>
       <button class="sa-btn sa-ico" id="sa-b-all" onclick="shpAttrSelectAll()" title="Pilih semua"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" ><rect x="4" y="4" width="16" height="16" rx="1.5"/><path d="M8 12l3 3 5-6"/></svg></button>
       <button class="sa-btn sa-ico" id="sa-b-inv" onclick="shpAttrInvert()" title="Balik pilihan"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" ><path d="M7 8h11l-3-3M17 16H6l3 3"/></svg></button>
       <button class="sa-btn sa-ico" id="sa-b-clear" onclick="shpAttrSelectNone()" title="Bersihkan pilihan"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" ><rect x="4" y="4" width="16" height="16" rx="1.5" stroke-dasharray="3 2.5"/><path d="M9 9l6 6M15 9l-6 6"/></svg></button>
@@ -26292,7 +26495,7 @@ function _attrApplyCell(layerId, fid, col, val) {
         if (val === undefined) delete fl.feature.properties[col]; else fl.feature.properties[col] = val;
         if (fl.getPopup && fl.getPopup()) {
           var props = fl.feature.properties;
-          fl.getPopup().setContent(_shpPopupHtml(props, (fl.options&&fl.options.color)||'#1a7f3c', lObj.name||'', fl.feature.geometry&&fl.feature.geometry.type));
+          fl.getPopup().setContent(_shpPopupHtml(props, (fl.options&&fl.options.color)||'#1a7f3c', lObj.name||'', fl.feature.geometry&&fl.feature.geometry.type, null, fl.feature));
         }
       }
     });
@@ -32066,7 +32269,7 @@ html[lang=en] #rg-ribbon .rg-panel .sg-item .rg-lb{max-width:none;overflow:visib
 (function(){
   var D={"Hilir":"Downstream","Hulu & hilir siap — isi opsi lalu klik Hitung":"Upstream & downstream ready — set options then click Calculate","HULU ✎":"UPSTREAM ✎","HILIR ✎":"DOWNSTREAM ✎","(Esc = batal)":"(Esc = cancel)","Pemilihan titik dihentikan — klik kotak HULU atau HILIR di bawah, atau Mulai Ulang":"Point picking stopped — click the UPSTREAM or DOWNSTREAM box below, or Restart","Dijeda — panel segmentasi tersembunyi":"Paused — segmentation panel is hidden","Klik untuk memilih ulang titik Hulu":"Click to re-pick the Upstream point","Klik untuk memilih ulang titik Hilir":"Click to re-pick the Downstream point","Jarak dari Hulu":"Distance from Upstream","Jarak dari Hilir":"Distance from Downstream","Segmen":"Segment","Offset (m)":"Offset (m)","Titik Tengah (Lat, Lng)":"Midpoint (Lat, Lng)","Elevasi (m)":"Elevation (m)","Panjang total:":"Total length:","Segmen:":"Segments:","Per segmen:":"Per segment:","Download Excel Segmentasi":"Download Segmentation Excel","Excel segmentasi berhasil didownload":"Segmentation Excel downloaded successfully","Gagal membuat Excel":"Failed to create Excel","Library Excel belum termuat — periksa koneksi internet lalu muat ulang halaman":"Excel library not loaded — check your internet connection and reload the page","Belum ada data segmentasi":"No segmentation data yet","⚠ Klik lebih dekat ke alur sungai":"⚠ Click closer to the river channel","⚠ Klik lebih dekat ke alur sungai yang sama dengan hulu":"⚠ Click closer to the same river channel as upstream","⚠ Titik hilir harus berada pada layer sungai yang sama dengan hulu":"⚠ The downstream point must be on the same river layer as upstream","⚠ Tidak ada layer sungai (garis/polygon) yang tampil — upload atau aktifkan SHP sungai dulu":"⚠ No visible river layer (line/polygon) — upload or enable a river SHP first","Pilih titik hulu dulu":"Pick the upstream point first","Selesaikan pemilihan titik dulu (atau tekan Esc)":"Finish picking points first (or press Esc)","Pilih Menurut Atribut":"Select by Attribute","Hanya yang terpilih":"Selected only","Saring baris…":"Filter rows…","Bersihkan pilihan":"Clear selection","Balik pilihan":"Invert selection","Zoom ke terpilih":"Zoom to selected","Tutup tabel":"Close table","Pilihan baru":"New selection","Tambahkan ke pilihan":"Add to selection","Hapus dari pilihan":"Remove from selection","Nilai…":"Value…","mengandung":"contains","diawali":"starts with","kosong (Null)":"is empty (Null)","tidak kosong":"is not empty","Seret untuk ubah tinggi":"Drag to resize","Simpan":"Save","Buka":"Open","Kembali":"Back","Generate Peta":"Generate Map","Proyek":"Project","Analisis":"Analysis","Tampilan":"View","Peta dasar":"Basemap","Setting":"Settings","Bahasa":"Language","Simpan Project…":"Save Project…","Buka Project…":"Open Project…","Berkas":"File","Foto Drone (PNG+PGW)":"Drone Photo (PNG+PGW)","Unggah data":"Upload data","Konversi Format File":"Convert File Format","Konversi":"Convert","Upload Titik (Excel/CSV)…":"Upload Points (Excel/CSV)…","Titik":"Points","Titik Sampling":"Sampling Point","Titik Inlet":"Inlet Point","Titik Outlet":"Outlet Point","Titik Outfall":"Outfall Point","Titik Pantau Hulu":"Upstream Monitoring Point","Titik Pantau Hilir":"Downstream Monitoring Point","Input Manual…":"Manual Input…","Garis":"Line","Poligon":"Polygon","Persegi":"Rectangle","Lingkaran":"Circle","Ukur Jarak":"Measure Distance","Ukur Luas":"Measure Area","Keliling":"Perimeter","Gambar":"Draw","Hapus Semua":"Delete All","Reset Total Garis & Poligon":"Reset All Lines & Polygons","Kelola":"Manage","Segmentasi Sungai…":"River Segmentation…","Sungai":"River","Hillshade + Kontur":"Hillshade + Contours","Label Luas KMZ":"KMZ Area Labels","Peta 3D":"3D Map","Input DMS":"DMS Input","Peta":"Map","Panel samping":"Side panel","Populer":"Popular","Jalan":"Roads","Citra":"Imagery","Medan":"Terrain","Citra & Medan":"Imagery & Terrain","Satelit Esri":"Esri Satellite","Satelit Esri + Label":"Esri Satellite + Labels","Topografi Esri":"Esri Topographic","Topografi (OpenTopoMap)":"Topographic (OpenTopoMap)","Laut & Oseanografi Esri":"Esri Ocean","Laut + Label Esri":"Esri Ocean + Labels","Carto (Tanpa Label)":"Carto (No Labels)","Batas & Tempat Esri":"Esri Boundaries & Places","Bersihkan Peta Dasar":"Clear Basemap","Bersihkan Overlay":"Clear Overlay","Saat Ini":"Current","Tidak ada":"None","Memuat daftar peta dasar…":"Loading basemap list…","Titik Kustom":"Custom Point","Nama Tipe Titik *":"Point Type Name *","Warna Titik":"Point Color","Bentuk Titik":"Point Shape","Batal":"Cancel","Klik Peta untuk Letakkan →":"Click Map to Place →","Upload Titik dari Excel/CSV":"Upload Points from Excel/CSV","Upload file":"Upload file","berisi daftar titik. Kolom nama & koordinat akan":"containing a list of points. Name & coordinate columns will be","dideteksi otomatis":"detected automatically","maupun":"or","akan otomatis dikenali.":"will be recognized automatically.","Drag & drop file Excel/CSV di sini":"Drag & drop an Excel/CSV file here","atau klik untuk pilih file":"or click to choose a file","Import sebagai jenis titik:":"Import as point type:","Pilih semua":"Select all","Nama":"Name","Pilih File Lain":"Choose Another File","Import Titik Terpilih":"Import Selected Points","Peramban":"Browser","Sumber Data":"Data Sources","Urutan gambar":"Drawing order","Proyek SandGIS":"SandGIS Project","Belum ada layer. Tambahkan titik atau gambar di tab Edit, atau unggah data di tab Data.":"No layers yet. Add points or drawings in the Edit tab, or upload data in the Data tab.","Pilih format di tab Data pada ribbon. Panel unggahan akan muncul di sini.":"Choose a format in the Data tab of the ribbon. The upload panel will appear here.","Segmentasi Sungai":"River Segmentation","Klik titik":"Click a point","Hulu":"Upstream","di sungai pada peta":"on the river on the map","HULU":"UPSTREAM","HILIR":"DOWNSTREAM","Referensi / arah penomoran segmen":"Reference / segment numbering direction","Hulu → Hilir":"Upstream → Downstream","Hilir → Hulu":"Downstream → Upstream","Per Panjang (m)":"By Length (m)","Per Jumlah":"By Count","meter/segmen":"meters/segment","Lebar garis (m)":"Line width (m)","Hitung Segmentasi":"Calculate Segmentation","Mulai Ulang":"Restart","Titik di Segmen":"Points in Segment","Download CSV Segmentasi":"Download Segmentation CSV","Cari Lokasi":"Search Location","Tools Pemetaan":"Mapping Tools","Tambah Titik":"Add Points","Gambar di Peta":"Draw on Map","Analisis Sungai":"River Analysis","Lainnya":"More","Legenda Layer SHP":"SHP Layer Legend","— upload SHP untuk melihat legenda —":"— upload SHP to see the legend —","— belum ada titik —":"— no points yet —","Garis & Poligon":"Lines & Polygons","Garis SHP":"Line SHP","Poligon SHP":"Polygon SHP","— belum ada garis/poligon —":"— no lines/polygons yet —","Urutan Tampilan Layer":"Layer Display Order","Atur layer mana yang menutup layer lain. Paling atas = paling depan.":"Set which layer covers another. Top = frontmost.","— belum ada layer SHP/garis/poligon —":"— no SHP/line/polygon layers yet —","Drag & drop file SHP di sini":"Drag & drop SHP files here","Pilih banyak set .shp+.dbf+.prj sekaligus, atau .zip berisi banyak SHP":"Select multiple .shp+.dbf+.prj sets at once, or a .zip containing many SHPs","Geometri campuran otomatis dipisah per tipe":"Mixed geometries are automatically split by type","Tampilkan di Peta":"Show on Map","Layer Aktif":"Active Layers","Hapus Semua Layer SHP":"Delete All SHP Layers","Upload DXF":"Upload DXF","Unggah file CAD":"Upload a CAD file","atau":"or","— pilih zona UTM di bawah kalau file kamu memakai koordinat UTM (meter).":"— choose the UTM zone below if your file uses UTM coordinates (meters).","geografis (Lon/Lat, WGS84)":"geographic (Lon/Lat, WGS84)","Sistem koordinat file DXF":"DXF file coordinate system","Geografis / Lon,Lat (WGS84)":"Geographic / Lon,Lat (WGS84)","UTM Zona Indonesia — Belahan Selatan (S)":"UTM Indonesia Zone — Southern Hemisphere (S)","UTM Zona Indonesia — Belahan Utara (N)":"UTM Indonesia Zone — Northern Hemisphere (N)","Zona UTM (Indonesia: 46–54)":"UTM Zone (Indonesia: 46–54)","Drag & drop file .dxf di sini":"Drag & drop a .dxf file here","Format: AutoCAD DXF (garis, polyline, poligon)":"Format: AutoCAD DXF (lines, polylines, polygons)","Belum dipilih":"Not selected","Layer DXF Aktif":"Active DXF Layers","Hapus Semua Layer DXF":"Delete All DXF Layers","Upload TIF (DEMNAS)":"Upload TIF (DEMNAS)","Unggah file":"Upload file","Catatan: layer TIF tidak ikut tersimpan di file project (.riverload) karena ukurannya besar — perlu diunggah ulang tiap sesi.":"Note: TIF layers are not saved in the project file (.riverload) because they are large — they must be re-uploaded every session.","Memeriksa server lokal...":"Checking local server...","Server lokal belum aktif atau":"The local server is not running, or","lalu pastikan terminal menampilkan":"then make sure the terminal shows",". Jika belum, jalankan":". If not, run","sekali untuk install rasterio.":"once to install rasterio.","Drag & drop file .tif di sini":"Drag & drop a .tif file here","Layer Elevasi Aktif":"Active Elevation Layers","Prioritas Mozaik":"Mosaic Priority","Seret untuk mengatur urutan. Prioritas teratas = menang di area overlap. Klik \"Terapkan\" untuk render mozaik gabungan.":"Drag to reorder. Top priority wins in overlapping areas. Click \"Apply\" to render the combined mosaic.","Lebar blend tepi":"Edge blend width","Terapkan Mozaik":"Apply Mosaic","Hapus Semua Layer TIF":"Delete All TIF Layers","Upload Foto Drone (PNG+PGW)":"Upload Drone Photo (PNG+PGW)","foto drone orthomosaic":"drone orthomosaic photo","yang disimpan sebagai":"saved as","Pilih":"Select","3 file sekaligus":"3 files at once",": file":": the file","(foto warna), file":"(color photo), the file","(georeferensi), dan file":"(georeference), and the file","(proyeksi). Ketiganya biasanya satu folder bersama file .tif.":"(projection). All three are usually in the same folder as the .tif file.","Drag & drop file PNG + PGW (+ PRJ) di sini":"Drag & drop PNG + PGW (+ PRJ) files here","Pilih semua file sekaligus (PNG, PGW, PRJ)":"Select all files at once (PNG, PGW, PRJ)","Opsional (untuk CRS)":"Optional (for CRS)","Tampilkan Foto di Peta":"Show Photo on Map","(Google Earth, paket terkompresi) atau":"(Google Earth, compressed package) or","(XML terbuka)":"(open XML)","Drag & drop file KMZ atau KML di sini":"Drag & drop a KMZ or KML file here","Format: .kmz (Google Earth) atau .kml":"Format: .kmz (Google Earth) or .kml","Layer KMZ Aktif":"Active KMZ Layers","Hapus Semua Layer KMZ":"Delete All KMZ Layers","; layer dengan sistem koordinat lain sebaiknya direproject dulu di QGIS.":"; layers with other coordinate systems should be reprojected in QGIS first.","Drag & drop file .gpkg di sini":"Drag & drop a .gpkg file here","Format: .gpkg (GeoPackage / OGC)":"Format: .gpkg (GeoPackage / OGC)","Pilih Layer yang Dimuat":"Select Layers to Load","Layer GeoPackage Aktif":"Active GeoPackage Layers","Hapus Semua Layer GeoPackage":"Delete All GeoPackage Layers","Memeriksa server...":"Checking server...","Cek":"Check","Server belum aktif.":"Server is not running.","Jalankan":"Run","(ada di folder SandGIS) lalu klik":"(located in the SandGIS folder) then click","di atas.":"above.","Path File / Folder .gdb":".gdb File / Folder Path","Salin path lengkap folder .gdb dari Windows Explorer (klik kanan → Copy as path)":"Copy the full path of the .gdb folder from Windows Explorer (right-click → Copy as path)","Baca Daftar Layer":"Read Layer List","Pilih Layer":"Select Layers","Semua":"All","Hapus":"Delete","Simplifikasi Geometri":"Geometry Simplification","Tanpa simplifikasi":"No simplification","(akurat, berat)":"(accurate, heavy)","Ringan — 5m":"Light — 5m","(direkomendasikan)":"(recommended)","Sedang — 20m":"Medium — 20m","(lebih ringan)":"(lighter)","Agresif — 50m":"Aggressive — 50m","(sangat ringan, untuk preview)":"(very light, for preview)","Menyederhanakan titik geometri — bentuk tetap terjaga, ukuran file jauh lebih kecil. Cocok untuk SHP >50MB.":"Simplifies geometry vertices — shape is preserved, file size is much smaller. Suitable for SHP >50MB.","Download sebagai SHP (.zip)":"Download as SHP (.zip)","Selesai":"Done","Koordinat:":"Coordinates:","DD (Desimal)":"DD (Decimal)","DMM (° ′ desimal)":"DMM (° ′ decimal)","Tambahkan":"Add","Snap ke vertex SHP":"Snap to SHP vertex","Matikan untuk menggambar bebas di dalam/atas area SHP":"Turn off to draw freely inside/over SHP areas","Klik untuk toggle":"Click to toggle","Profil Elevasi":"Elevation Profile","Sumber Elevasi — centang untuk gabungkan (mozaik), urutan = prioritas":"Elevation Source — check to combine (mosaic), order = priority","Jumlah sampel":"Sample count","Hitung":"Calculate","Gerakkan kursor di atas grafik untuk melihat detail":"Move the cursor over the chart to see details","Pratinjau:":"Preview:","Pengaturan Kop Peta":"Map Header Settings","Ukuran Kertas (selalu landscape)":"Paper Size (always landscape)","Custom (atur manual)":"Custom (manual)","Saat dialog cetak terbuka, pilih skala":"When the print dialog opens, choose the scale","sama":"same","— semakin besar lembar pada skala yang sama, semakin luas area yang tercakup (ini wajar, bukan kesalahan hitung).":"— the larger the sheet at the same scale, the larger the area covered (this is normal, not a calculation error).","Skala Manual (1 : ...)":"Manual Scale (1 : ...)","Terapkan":"Apply","Logo Perusahaan":"Company Logo","Judul Peta":"Map Title","Subjudul Peta (opsional)":"Map Subtitle (optional)","Nama Perusahaan":"Company Name","Lokasi Perusahaan":"Company Location","Skala & Peta Situasi terisi otomatis dari titik dan layer SHP yang sudah dibuat.":"Scale & Situation Map are filled automatically from the points and SHP layers you created.","Edit Keterangan":"Edit Legend","Ganti nama yang tampil di legenda, atau sembunyikan baris tertentu — tanpa mengubah nama asli layer/garis/poligon.":"Change the names shown in the legend, or hide specific rows — without changing the original layer/line/polygon names.","Judul kategori area/poligon":"Area/polygon category title","Judul kategori titik":"Point category title","— belum ada titik, garis, poligon, atau SHP —":"— no points, lines, polygons, or SHP yet —","Dasar, Sumber Peta & Catatan":"Basis, Map Sources & Notes","Dasar (1 baris = 1 poin)":"Basis (1 line = 1 point)","Sumber Peta (1 baris = 1 poin)":"Map Sources (1 line = 1 point)","Catatan (1 baris = 1 poin)":"Notes (1 line = 1 point)","Layer SHP di Peta":"SHP Layers on Map","— belum ada layer SHP —":"— no SHP layers yet —","Symbology & Label Titik":"Point Symbology & Labels","Atur tampilan label nama & koordinat per titik. Drag label di peta untuk menggeser posisinya.":"Set the name & coordinate label display per point. Drag labels on the map to move them.","Nama titik":"Point name","Koordinat":"Coordinates","Garis callout":"Callout line","Ukuran font":"Font size","Kotak putih":"White box","Border kotak":"Box border","Format koord.":"Coord. format","Desimal (°)":"Decimal (°)","Reset Posisi Label":"Reset Label Positions","Cetak / Simpan PDF":"Print / Save PDF","Kualitas gambar":"Image quality","Tinggi (~225 DPI)":"High (~225 DPI)","Sangat Tinggi (~300 DPI)":"Very High (~300 DPI)","Maksimal (>500 DPI)":"Maximum (>500 DPI)","Unduh Gambar (PNG)":"Download Image (PNG)","PETA 3D — MODEL ELEVASI":"3D MAP — ELEVATION MODEL","Eksagerasi Vertikal":"Vertical Exaggeration","Skema Warna":"Color Scheme","Hillshade (Abu-abu)":"Hillshade (Gray)","Outline (garis)":"Outline (lines)","Blok Volume (extrude)":"Volume Blocks (extrude)","Kontur Bertingkat (Bench 3D)":"Stepped Contours (3D Bench)","Field Volume (m³)":"Volume Field (m³)","Tutup":"Close","Belum ada data DEM (TIF)":"No DEM data (TIF) yet","Upload TIF Sekarang":"Upload TIF Now","Drag = putar · Scroll = zoom · Klik-kanan drag = geser":"Drag = rotate · Scroll = zoom · Right-click drag = pan","Segmentasi Sungai — QUAL2Kw":"River Segmentation — QUAL2Kw","Layer Sungai (garis)":"River Layer (line)","Panjang Segmen":"Segment Length","meter":"meters","Arah Penomoran":"Numbering Direction","Dari titik awal garis (Hulu → Hilir jika garis digambar searah aliran)":"From the line start (Upstream → Downstream if the line is drawn in the flow direction)","Dari titik akhir garis (dibalik)":"From the line end (reversed)","Prefiks Nama Reach":"Reach Name Prefix","Proses Segmentasi":"Run Segmentation","Hasil —":"Result —","Titik SHP":"Points SHP","Hapus dari Peta":"Remove from Map","Panjang (m)":"Length (m)","Kumulatif Hulu (m)":"Cumulative from Upstream (m)","Titik Awal (Lat, Lng)":"Start Point (Lat, Lng)","Titik Akhir (Lat, Lng)":"End Point (Lat, Lng)","Tabel Atribut":"Attribute Table","Tabel":"Table","Label di Peta":"Labels on Map","Dimensi Persegi — atau klik peta manual":"Rectangle Dimensions — or click the map manually","Panjang (E–W)":"Length (E–W)","Lebar (N–S)":"Width (N–S)","Buat (Enter)":"Create (Enter)","Radius/Diameter Lingkaran — atau klik peta manual":"Circle Radius/Diameter — or click the map manually","Nilai":"Value","Konversi file spasial antar format — semua proses di browser":"Convert spatial files between formats — all processing happens in the browser","Klik atau drag & drop file di sini":"Click or drag & drop a file here","Pilih Format Output":"Choose Output Format","Simpan seluruh project (titik, garis, poligon, layer SHP/DXF/KMZ) ke file .sandgis":"Save the entire project (points, lines, polygons, SHP/DXF/KMZ layers) to a .sandgis file","Buka file project .sandgis":"Open a .sandgis project file","Urungkan (Ctrl+Z)":"Undo (Ctrl+Z)","Ulangi (Ctrl+Y)":"Redo (Ctrl+Y)","Ciutkan ribbon":"Collapse ribbon","Bentangkan ribbon":"Expand ribbon","Cari perintah":"Search commands","Perintah tidak ditemukan":"No commands found","Pakai ini kalau garis/poligon lama masih muncul di Generate Peta walau sudah dihapus":"Use this if old lines/polygons still appear in Generate Map even after being deleted","Hapus peta dasar dari peta":"Remove the basemap from the map","Hapus semua overlay":"Remove all overlays","Overlay label":"Label overlay","Overlay garis jalan (Esri Transportasi)":"Road line overlay (Esri Transportation)","Peta dasar lainnya":"Other basemaps","cth: Titik Kontrol, BM-01, IPA Intake…":"e.g. Control Point, BM-01, Intake WTP…","Tutup panel":"Close panel","Filter layer":"Filter layers","Nama sungai / kota...":"River / city name...","Download koordinat semua titik sebagai CSV (bisa dibuka di Excel)":"Download all point coordinates as CSV (opens in Excel)","Download semua Garis sebagai SHP":"Download all Lines as SHP","Download semua Poligon sebagai SHP":"Download all Polygons as SHP","Download koordinat semua Garis & Poligon sebagai CSV (bisa dibuka di Excel)":"Download all Line & Polygon coordinates as CSV (opens in Excel)","Download semua Garis & Poligon sebagai DXF (bisa dibuka di AutoCAD/QGIS/Civil 3D)":"Download all Lines & Polygons as DXF (opens in AutoCAD/QGIS/Civil 3D)","Cek ulang":"Re-check","Hitung hillshade dari mozaik — hasilkan pencahayaan konsisten tanpa batas antar layer":"Compute hillshade from the mosaic — consistent lighting with no seams between layers","Contoh: C:\\Data\\Peta\\kawasan.gdb":"Example: C:\\Data\\Maps\\area.gdb","Nama titik (opsional)…":"Point name (optional)…","Format koordinat input":"Input coordinate format","Lintang (desimal, koma) — negatif = Selatan":"Latitude (decimal, comma) — negative = South","Bujur (desimal, koma) — positif = Timur":"Longitude (decimal, comma) — positive = East","Cari layer, tempat, lintang/bujur…":"Search layer, place, lat/lng…","Cari layer, tempat, atau koordinat":"Search layer, place, or coordinate","Skala peta":"Map scale","Tampilkan/sembunyikan sidebar":"Show/hide sidebar","Geser untuk zoom in/out pratinjau":"Drag to zoom the preview in/out","Auto-fit ke layar":"Auto-fit to screen","Nama Direktur":"Director Name","Jabatan":"Position","Nama Tenaga Ahli":"Expert Name","Lebar (mm)":"Width (mm)","Tinggi (mm)":"Height (mm)","Contoh: 5000":"Example: 5000","Contoh: Peta Pemantauan Kualitas Air Sungai":"Example: River Water Quality Monitoring Map","Contoh: PT Nama Perusahaan":"Example: Company Name Ltd","Contoh: Kecamatan ..., Kabupaten ..., Provinsi ...":"Example: District ..., Regency ..., Province ...","Contoh: Area Infrastruktur":"Example: Infrastructure Area","Contoh: Titik Penaatan":"Example: Compliance Point","Contoh: R (menghasilkan R1, R2, R3…)":"Example: R (produces R1, R2, R3…)","Cari nilai…":"Search value…","mis. 100":"e.g. 100","mis. 50":"e.g. 50","Belum ada titik / layer SHP":"No points / SHP layers yet","Belum ada layer":"No layers yet","Ubah nama":"Rename","Klik utk ubah warna":"Click to change color","Tampilkan/Sembunyikan di peta":"Show/Hide on map","Naikkan (tampilkan di atas)":"Move up (show on top)","Turunkan (tampilkan di bawah)":"Move down (show below)","Lihat koordinat":"View coordinates","Gaya & properti tampilan":"Style & display properties","Edit titik — geser, tambah, atau hapus titik poligon/garis":"Edit vertices — move, add, or delete polygon/line vertices","Tampilkan/sembunyikan nama di peta":"Show/hide name on map","berkoordinat (mis. hasil digitasi AutoCAD/QGIS) untuk ditampilkan sebagai layer garis/poligon di peta. Koordinat DXF harus sudah dalam sistem":"with coordinates (e.g. digitized in AutoCAD/QGIS) to display as line/polygon layers on the map. DXF coordinates must already be in a","GeoTIFF — misalnya DEM dari BIG DEMNAS (tanhair.big.go.id) — untuk ditampilkan sebagai layer elevasi di peta. Proyeksi WGS84 (EPSG:4326) paling kompatibel; file besar mungkin butuh waktu lebih lama.":"GeoTIFF — e.g. DEM from BIG DEMNAS (tanhair.big.go.id) — to display as an elevation layer on the map. WGS84 (EPSG:4326) is most compatible; large files may take longer.","belum terinstall — file TIF besar akan diproses di browser (lebih lambat & bisa berat). Untuk file besar (>150MB, termasuk file ~1,4GB), jalankan":"is not installed — large TIF files will be processed in the browser (slower & may be heavy). For large files (>150MB, including ~1.4GB files), run","(XML terbuka) untuk ditampilkan sebagai layer di peta. Titik, garis, dan poligon dari Placemark KML akan dirender otomatis. Koordinat menggunakan":"(open XML) to display as a layer on the map. Points, lines, and polygons from KML Placemarks are rendered automatically. Coordinates use","(GeoPackage — SQLite berisi banyak layer geospasial) untuk ditampilkan sebagai layer di peta. Setiap tabel/layer di dalam GeoPackage akan dimuat terpisah. Koordinat sumber diasumsikan":"(GeoPackage — SQLite containing many geospatial layers) to display as layers on the map. Each table/layer in the GeoPackage is loaded separately. Source coordinates are assumed to be","Jika beberapa sumber dicentang & area-nya tumpang tindih, sumber dengan prioritas tertinggi (nomor 1) dipakai duluan; sumber di bawahnya jadi fallback untuk area yang tidak tercakup.":"If several sources are checked and their areas overlap, the highest-priority source (number 1) is used first; sources below it act as a fallback for uncovered areas.","Sudah terisi teks contoh secara otomatis — silakan edit sesuai proyek Anda. Satu baris = satu poin bernomor. Kosongkan semua baris untuk menyembunyikan bagian tersebut di kop peta.":"Example text is filled in automatically — edit it to fit your project. One line = one numbered point. Clear all lines to hide that section in the map header.","Mengunduh peta + kop persis seperti tampilan pratinjau saat ini — tanpa render ulang. Resolusi lebih tinggi = file lebih besar & proses lebih lama.":"Downloads the map + header exactly as in the current preview — no re-render. Higher resolution = larger file & longer processing.","Pilih layer garis sungai (dari SHP yang diupload atau garis manual), tentukan panjang tiap reach/segmen, lalu proses. Hasil berupa titik-titik batas segmen sepanjang alur beserta tabel jarak — siap dipakai sebagai dasar input reach pada QUAL2Kw.":"Choose a river line layer (from an uploaded SHP or a manual line), set the length of each reach/segment, then process. The result is segment boundary points along the channel plus a distance table — ready to use as the basis for reach input in QUAL2Kw.","Centang kolom yang ingin muncul sebagai label di peta. Setiap kolom bisa diatur ukuran, warna, dan ketebalannya secara terpisah.":"Check the columns you want to show as labels on the map. Each column can have its own size, color, and weight.","Upload file GeoTIFF (mis. DEMNAS) lewat tombol \"🏔️ Upload TIF\" terlebih dulu, lalu buka Peta 3D lagi.":"Upload a GeoTIFF file (e.g. DEMNAS) using the \"🏔️ Upload TIF\" button first, then open the 3D Map again.","(bukan \"Fit to page\") agar skala peta tetap akurat. Bandingkan dgn peta tim GIS kamu pakai ukuran kertas yang":"(not \"Fit to page\") so the map scale stays accurate. Compare with your GIS team's map only if it uses the same paper size","Contoh: Persetujuan Teknis Pemenuhan Baku Mutu Air Limbah ...":"Example: Technical Approval for Wastewater Quality Standard Compliance ...","dari header (mis. \"Keterangan\", \"Longitude\", \"Latitude\"), dan format koordinat":"from the header (e.g. \"Keterangan\", \"Longitude\", \"Latitude\"), and coordinate formats"}, P=[["^Dari hulu \\(m\\)$","From upstream (m)"],["^Sampai hulu \\(m\\)$","To upstream (m)"],["^Dari hilir \\(m\\)$","From downstream (m)"],["^Sampai hilir \\(m\\)$","To downstream (m)"],["^Detail Tiap Segmen — Referensi: Hulu → Hilir$","Segment Details — Reference: Upstream → Downstream"],["^Detail Tiap Segmen — Referensi: Hilir → Hulu$","Segment Details — Reference: Downstream → Upstream"],["^✓ (\\d+) segmen · (.+) m total$","✓ $1 segments · $2 m total"],["^(\\d+) dari (\\d+) terpilih$","$1 of $2 selected"],["^Peta dasar aktif: (.+)$","Active basemap: $1"],["^Peta dasar (.+)$","Basemap $1"],["^(\\d+) titik · (.+)$","$1 points · $2"],["^✓ \"(.+)\" disimpan \\((.+)\\) — atur warna/gaya di panel 📐 Garis & Poligon$","✓ \"$1\" saved ($2) — adjust color/style in the 📐 Lines & Polygons panel"],["^Peta belum terbuka — buka tab Pemetaan dulu$","Map is not open yet — open the Mapping tab first"],["^⚠ Belum ada hasil segmentasi$","⚠ No segmentation result yet"],["^⏳ Menghitung hillshade\\.\\.\\.$","⏳ Computing hillshade..."],["^Pilih minimal satu layer$","Select at least one layer"],["^🗑 Titik dihapus$","🗑 Point deleted"],["^📏 Total jarak: (.+)$","📏 Total distance: $1"],["^📋 Objek disalin — tekan Ctrl\\+V atau tombol Paste untuk menempel$","📋 Object copied — press Ctrl+V or the Paste button to paste"],["^＋ Titik baru ditambahkan$","＋ New point added"],["^✓ Objek dipindahkan$","✓ Object moved"],["^✅ Project berhasil disimpan$","✅ Project saved successfully"],["^✅ Gambar peta berhasil diunduh$","✅ Map image downloaded successfully"],["^✅ Data diekspor ke CSV$","✅ Data exported to CSV"],["^✏ Atribut disimpan$","✏ Attributes saved"],["^✓ Hillshade dihitung dari mozaik gabungan$","✓ Hillshade computed from the combined mosaic"],["^✓ Foto drone berhasil ditampilkan di peta$","✓ Drone photo displayed on the map"],["^✅ Tabel reach diekspor ke CSV$","✅ Reach table exported to CSV"],["^✅ Koordinat garis & poligon diekspor ke CSV$","✅ Line & polygon coordinates exported to CSV"],["^✓ Semua titik, alur, garis & poligon dihapus$","✓ All points, rivers, lines & polygons deleted"]].map(function(p){return [new RegExp(p[0]),p[1]];});
   D["Titik Pantau Hulu"]="Upstream Point"; D["Titik Pantau Hilir"]="Downstream Point"; D["Reset Total Garis & Poligon"]="Reset Shapes";
-  D["Riwayat"]="History"; D["Duplikat peta"]="Duplicate map"; D["Duplikat layout"]="Duplicate layout"; D["Ubah nama"]="Rename"; D["Hapus peta"]="Delete map"; D["Tutup layout"]="Close layout"; D["Koordinat"]="Coordinates"; D["Salin koordinat (DD)"]="Copy coordinates (DD)"; D["Salin koordinat (UTM)"]="Copy coordinates (UTM)"; D["Tambah titik di sini"]="Add point here"; D["Pusatkan peta di sini"]="Center map here"; D["Perbesar di sini"]="Zoom in here"; D["Perkecil"]="Zoom out"; D["Zoom ke semua titik"]="Zoom to all points"; D["Buka di Google Maps"]="Open in Google Maps"; D["Edit titik…"]="Edit point…"; D["Ubah bentuk"]="Change shape"; D["Ubah warna"]="Change color"; D["Zoom ke titik"]="Zoom to point"; D["Hapus titik"]="Delete point"; D["Edit properti…"]="Edit properties…"; D["Edit titik sudut"]="Edit vertices"; D["Profil elevasi"]="Elevation profile"; D["Zoom ke objek"]="Zoom to object"; D["Hapus objek"]="Delete object"; D["Garis"]="Line"; D["Poligon"]="Polygon"; D["Ukur Jarak"]="Distance"; D["Ukur Luas"]="Area"; D["Edit Geometri"]="Edit Shape"; D["Input Manual…"]="Manual"; D["Input Manual..."]="Manual"; D["Belum tersimpan"]="Unsaved changes"; D["Menyimpan"]="Saving"; D["Tersimpan"]="Saved";
+  D["Riwayat"]="History"; D["Lihat koordinat & boundary…"]="View coordinates & boundary…"; D["Zoom ke fitur"]="Zoom to feature"; D["Duplikat peta"]="Duplicate map"; D["Duplikat layout"]="Duplicate layout"; D["Ubah nama"]="Rename"; D["Hapus peta"]="Delete map"; D["Tutup layout"]="Close layout"; D["Koordinat"]="Coordinates"; D["Salin koordinat (DD)"]="Copy coordinates (DD)"; D["Salin koordinat (UTM)"]="Copy coordinates (UTM)"; D["Tambah titik di sini"]="Add point here"; D["Pusatkan peta di sini"]="Center map here"; D["Perbesar di sini"]="Zoom in here"; D["Perkecil"]="Zoom out"; D["Zoom ke semua titik"]="Zoom to all points"; D["Buka di Google Maps"]="Open in Google Maps"; D["Edit titik…"]="Edit point…"; D["Ubah bentuk"]="Change shape"; D["Ubah warna"]="Change color"; D["Zoom ke titik"]="Zoom to point"; D["Hapus titik"]="Delete point"; D["Edit properti…"]="Edit properties…"; D["Edit titik sudut"]="Edit vertices"; D["Profil elevasi"]="Elevation profile"; D["Zoom ke objek"]="Zoom to object"; D["Hapus objek"]="Delete object"; D["Garis"]="Line"; D["Poligon"]="Polygon"; D["Ukur Jarak"]="Distance"; D["Ukur Luas"]="Area"; D["Edit Geometri"]="Edit Shape"; D["Input Manual…"]="Manual"; D["Input Manual..."]="Manual"; D["Belum tersimpan"]="Unsaved changes"; D["Menyimpan"]="Saving"; D["Tersimpan"]="Saved";
   var lang='id'; try{lang=localStorage.getItem('sg_lang')==='en'?'en':'id';}catch(e){}
   var PRE=/^[^\p{L}\p{N}"'“(]+/u;
 
