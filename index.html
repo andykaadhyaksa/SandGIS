@@ -21283,6 +21283,17 @@ function genInit() {
       }
     }
     // Buang basemap default (genOsm) dulu — kita akan pasang yang sesuai
+    var _lb = (typeof window._sgLayoutBase === 'function') ? window._sgLayoutBase() : null;
+    if (_lb && _genBaseLayers[_lb]) activeName = _lb;
+    window._genCurBase = function(){
+      for (var k in _genBaseLayers) { if (_genBaseLayers.hasOwnProperty(k) && _genMap.hasLayer(_genBaseLayers[k])) return k; }
+      return null;
+    };
+    window._genSetBase = function(n){
+      if (!_genBaseLayers[n]) return false;
+      for (var k in _genBaseLayers) { if (_genBaseLayers.hasOwnProperty(k) && _genMap.hasLayer(_genBaseLayers[k])) _genMap.removeLayer(_genBaseLayers[k]); }
+      _genBaseLayers[n].addTo(_genMap); return true;
+    };
     if (_genMap.hasLayer(genOsm)) _genMap.removeLayer(genOsm);
     if (activeName && _genBaseLayers[activeName]) {
       _genBaseLayers[activeName].addTo(_genMap);
@@ -33853,6 +33864,21 @@ html[lang=en] #rg-ribbon .rg-panel .sg-item .rg-lb{max-width:none;overflow:visib
     try{ Object.assign(g,JSON.parse(JSON.stringify(o||{}))); }catch(e){}
   }
   function inLayout(){ return !!(tabs[at]&&tabs[at].k==='l'); }
+  /* ── status mandiri per Layout: basemap, simbologi, skala pratinjau ── */
+  function layoutSnap(l){
+    try{
+      var b=(typeof window._genCurBase==='function')?window._genCurBase():null; if(b) l.base=b;
+      if(typeof symState!=='undefined') l.sym=JSON.parse(JSON.stringify(symState));
+      l.uscale=(typeof _genUserScale!=='undefined')?_genUserScale:null;
+    }catch(e){}
+  }
+  function layoutRestore(l){
+    try{
+      if(l.sym&&typeof symState!=='undefined'){ Object.keys(symState).forEach(function(k){ delete symState[k]; }); Object.assign(symState,JSON.parse(JSON.stringify(l.sym))); }
+      if(typeof _genUserScale!=='undefined') _genUserScale=(l.uscale===undefined)?null:l.uscale;
+    }catch(e){}
+  }
+  window._sgLayoutBase=function(){ return (inLayout()&&tabs[at].ref.base)||null; };
 
   /* ── pasang / lepas layer Leaflet milik satu peta ── */
   function captureInfra(){ if(infra||!window._map) return; infra=new Set(); window._map.eachLayer(function(l){ infra.add(l); }); }
@@ -33915,7 +33941,7 @@ html[lang=en] #rg-ribbon .rg-panel .sg-item .rg-lb{max-width:none;overflow:visib
   /* ── aktivasi tab ── */
   function act(t,quiet){
     var cur=tabs[at];
-    if(cur&&cur.k==='l'){ cur.ref.gen=genClone(); snapLayoutView(cur.ref); }
+    if(cur&&cur.k==='l'){ cur.ref.gen=genClone(); snapLayoutView(cur.ref); layoutSnap(cur.ref); }
     if(cur&&cur.k==='m'&&window._map&&visible()) snapView(cur.ref);
     at=tabs.indexOf(t); if(at<0) at=0;
     if(t.k==='m'){
@@ -33926,8 +33952,9 @@ html[lang=en] #rg-ribbon .rg-panel .sg-item .rg-lb{max-width:none;overflow:visib
     } else {
       lastLayout=t.ref;
       loadMap(mapIdx(t.ref.src));
-      setGen(t.ref.gen);
+      setGen(t.ref.gen); layoutRestore(t.ref);
       if(typeof origGen==='function') origGen.call(window);
+      if(t.ref.uscale!=null&&typeof _genApplyPreviewScale==='function'){ try{ _genApplyPreviewScale(t.ref.uscale); }catch(e){} }
     }
     refreshUI(); render();
   }
@@ -33941,6 +33968,7 @@ html[lang=en] #rg-ribbon .rg-panel .sg-item .rg-lb{max-width:none;overflow:visib
     var base=(lastLayout&&lastLayout.gen)?lastLayout.gen:genClone();
     var cur=tabs[at]; if(cur&&cur.k==='l'){ cur.ref.gen=genClone(); base=cur.ref.gen; }
     var l={name:'Layout '+(lseq++), src:src, gen:JSON.parse(JSON.stringify(base))};
+    try{ var _cb=(typeof window._genCurBase==='function')?window._genCurBase():null; if(_cb) l.base=_cb; if(typeof symState!=='undefined') l.sym=JSON.parse(JSON.stringify(symState)); }catch(e){}
     layouts.push(l); var t={k:'l',ref:l}; tabs.push(t); act(t); toastS('✅ '+l.name+' dibuat'); return l;
   }
   function removeTab(t){
@@ -34059,7 +34087,7 @@ html[lang=en] #rg-ribbon .rg-panel .sg-item .rg-lb{max-width:none;overflow:visib
       if(!saving||busy||!st) return st;
       try{
         busy=true;
-        if(inLayout()){ tabs[at].ref.gen=genClone(); snapLayoutView(tabs[at].ref); }
+        if(inLayout()){ tabs[at].ref.gen=genClone(); snapLayoutView(tabs[at].ref); layoutSnap(tabs[at].ref); }
         var keep=active, list=[];
         maps.forEach(function(m,i){
           if(i===keep){ list.push({name:m.name,state:null}); return; }
@@ -34068,7 +34096,7 @@ html[lang=en] #rg-ribbon .rg-panel .sg-item .rg-lb{max-width:none;overflow:visib
         if(active!==keep) loadMap(keep);
         busy=false;
         st.maps=list; st.mapActive=keep;
-        st.layouts=layouts.map(function(l){ return {name:l.name,src:mapIdx(l.src),gen:l.gen,view:(l.view&&l.view.center)?{lat:l.view.center.lat,lng:l.view.center.lng,zoom:l.view.zoom}:null}; });
+        st.layouts=layouts.map(function(l){ return {name:l.name,src:mapIdx(l.src),gen:l.gen,view:(l.view&&l.view.center)?{lat:l.view.center.lat,lng:l.view.center.lng,zoom:l.view.zoom}:null,base:l.base||null,sym:l.sym||null,uscale:(l.uscale===undefined?null:l.uscale)}; });
         st.tabOrder=tabs.map(function(t){ return [t.k,(t.k==='m')?mapIdx(t.ref):layouts.indexOf(t.ref)]; });
         st.tabActive=at;
       }catch(e){ busy=false; console.warn('[MultiPeta] simpan',e); }
@@ -34118,7 +34146,7 @@ html[lang=en] #rg-ribbon .rg-panel .sg-item .rg-lb{max-width:none;overflow:visib
         mseq=maps.length+1;
         maps.forEach(function(m){ tabs.push({k:'m',ref:m}); });
         var ls=data.layouts||[];
-        ls.forEach(function(e){ layouts.push({name:e.name||('Layout '+lseq),src:maps[e.src]||maps[0],gen:e.gen||{},view:(e.view&&isFinite(e.view.lat)&&isFinite(e.view.lng)&&isFinite(e.view.zoom))?{center:L.latLng(e.view.lat,e.view.lng),zoom:e.view.zoom}:null}); lseq++; });
+        ls.forEach(function(e){ layouts.push({name:e.name||('Layout '+lseq),src:maps[e.src]||maps[0],gen:e.gen||{},view:(e.view&&isFinite(e.view.lat)&&isFinite(e.view.lng)&&isFinite(e.view.zoom))?{center:L.latLng(e.view.lat,e.view.lng),zoom:e.view.zoom}:null,base:e.base||null,sym:e.sym||null,uscale:(e.uscale===undefined?null:e.uscale)}); lseq++; });
         if(data.tabOrder&&data.tabOrder.length){
           var nt=[]; data.tabOrder.forEach(function(o){ var ref=(o[0]==='m')?maps[o[1]]:layouts[o[1]]; if(ref) nt.push({k:o[0],ref:ref}); });
           if(nt.length===maps.length+layouts.length) tabs=nt;
@@ -34164,8 +34192,8 @@ html[lang=en] #rg-ribbon .rg-panel .sg-item .rg-lb{max-width:none;overflow:visib
     if(nt){ at=-1; act(nt); toastS('✅ "'+m.name+'" dibuat — salinan persis dari "'+src.name+'"'); }
   }
   function dupLayout(t){
-    var cur=tabs[at]; if(cur&&cur.k==='l'){ cur.ref.gen=genClone(); snapLayoutView(cur.ref); }
-    var r=t.ref, l={name:uniqueName(r.name,true),src:r.src,gen:JSON.parse(JSON.stringify(r.gen||genClone())),view:r.view?{center:r.view.center,zoom:r.view.zoom}:null};
+    var cur=tabs[at]; if(cur&&cur.k==='l'){ cur.ref.gen=genClone(); snapLayoutView(cur.ref); layoutSnap(cur.ref); }
+    var r=t.ref, l={name:uniqueName(r.name,true),src:r.src,gen:JSON.parse(JSON.stringify(r.gen||genClone())),view:r.view?{center:r.view.center,zoom:r.view.zoom}:null,base:r.base||null,sym:r.sym?JSON.parse(JSON.stringify(r.sym)):null,uscale:(r.uscale===undefined?null:r.uscale)};
     layouts.push(l); var nt={k:'l',ref:l}; tabs.splice(tabs.indexOf(t)+1,0,nt); act(nt); toastS('✅ "'+l.name+'" dibuat');
   }
   function tabMenu(t,el,x,y){
@@ -34182,7 +34210,7 @@ html[lang=en] #rg-ribbon .rg-panel .sg-item .rg-lb{max-width:none;overflow:visib
     e.preventDefault(); e.stopPropagation(); tabMenu(t,el,e.clientX,e.clientY);
   },true);
 
-  window.sgMapTabs={addMap:addMap,addLayout:addLayout,duplicate:function(i){ var t=tabs[i==null?at:i]; if(t) (t.k==='m'?dupMap(t):dupLayout(t)); },list:function(){ return tabs.map(function(t,i){ return {kind:t.k,name:t.ref.name,active:i===at}; }); }};
+  window.sgMapTabs={go:function(i){ if(tabs[i]) act(tabs[i]); },addMap:addMap,addLayout:addLayout,duplicate:function(i){ var t=tabs[i==null?at:i]; if(t) (t.k==='m'?dupMap(t):dupLayout(t)); },list:function(){ return tabs.map(function(t,i){ return {kind:t.k,name:t.ref.name,active:i===at}; }); }};
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',place); else place();
 })();
 </script>

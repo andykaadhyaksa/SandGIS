@@ -138,3 +138,6 @@ Tinggi ribbon sama di semua tab (66 px), label satu baris, tab selalu tampil pen
 - Klik kanan tab Peta/Layout → Duplikat (salinan persis semua data: titik, garis, poligon, SHP, TIF, DXF, peta dasar, tampilan), Ubah nama, Hapus. Salinan berdiri sendiri; mengubah salah satu tidak memengaruhi yang lain.
 - Pemilih garis: klik dalam ±14 px dari garis gambar manual selalu membuka popup garis tersebut, walau tertutup poligon/layer lain.
 - Koordinat & boundary fitur SHP: tombol "Lihat koordinat & boundary" di popup fitur, ikon di toolbar tabel atribut (fitur terpilih/semua), dan klik kanan fitur. Menampilkan semua titik (DD/DMS/UTM), luas/keliling/panjang, titik tengah, bounding box; Salin tabel (Excel), Unduh CSV, WKT, GeoJSON.
+
+### Layout mandiri (v5-20261123b)
+Setiap tab Layout kini menyimpan sendiri basemap, posisi/zoom, simbologi titik, skala pratinjau & pengaturan Generate Peta. Pindah ke tab Peta/Layout lain atau menduplikat Layout tidak mengubahnya; tersimpan juga di file project.
