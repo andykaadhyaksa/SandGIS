@@ -141,3 +141,6 @@ Tinggi ribbon sama di semua tab (66 px), label satu baris, tab selalu tampil pen
 
 ### Layout mandiri (v5-20261123b)
 Setiap tab Layout kini menyimpan sendiri basemap, posisi/zoom, simbologi titik, skala pratinjau & pengaturan Generate Peta. Pindah ke tab Peta/Layout lain atau menduplikat Layout tidak mengubahnya; tersimpan juga di file project.
+
+### Opsi "Tanpa simbol" (v5-20261123c)
+Bentuk titik kini punya pilihan "∅ Tanpa simbol": di Layout/ekspor titik tidak digambar (label & koordinat tetap), di peta utama tampil lingkaran putus-putus tipis agar masih bisa diklik.
