@@ -144,3 +144,9 @@ Setiap tab Layout kini menyimpan sendiri basemap, posisi/zoom, simbologi titik, 
 
 ### Opsi "Tanpa simbol" (v5-20261123c)
 Bentuk titik kini punya pilihan "∅ Tanpa simbol": di Layout/ekspor titik tidak digambar (label & koordinat tetap), di peta utama tampil lingkaran putus-putus tipis agar masih bisa diklik.
+
+### Perbaikan Layout baru tidak menampilkan SHP (v5-20261124a)
+Layout baru kini memakai tampilan peta yang sedang dilihat saat tombol + ditekan (sebelumnya memakai posisi lama yang basi sehingga SHP/garis berada di luar bingkai).
+
+### Anti "Aw, Snap! Out of Memory" di Layout (v5-20261124b)
+Layer SHP/DXF berat (>1.500 fitur atau >25.000 vertex) di peta Layout kini digambar dengan Canvas (bukan ribuan node SVG), dan area-klik garis tidak lagi diduplikasi di Layout.

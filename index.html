@@ -6975,7 +6975,7 @@ function _shpBuildLeafletLayer(geojson, opts, layerName) {
   }).addTo(leafletLayer);
 
   /* Area klik garis diperlebar (±8 px) supaya tidak perlu presisi sampai piksel */
-  if (featCount <= 4000) {
+  if (featCount <= 4000 && !opts._forcePane) { /* tidak perlu di peta Layout (statis) */
     try {
       leafletLayer.eachLayer(function(gj){
         if (!gj.eachLayer) return;
@@ -21348,8 +21348,23 @@ function genInit() {
   function _genMakeRenderer(id, zIndex) {
     var pName = _layerPaneName(id);
     _ensureLayerPane(id, zIndex, _genMap);
-    // Buat SVG renderer yang terikat ke pane ini
-    var rend = L.svg({ pane: pName });
+    // Layer SHP/DXF berat -> Canvas (1 elemen) agar tidak membuat ribuan node SVG (penyebab "Aw, Snap! Out of Memory")
+    var _heavy = false;
+    try {
+      var _sl = (typeof _shpLayers !== 'undefined') ? _shpLayers.filter(function(x){ return x.id === id; })[0] : null;
+      if (_sl) {
+        var _fs = _sl.features || [];
+        if (_fs.length > 1500) _heavy = true;
+        else {
+          var _vc = 0;
+          (function walk(c){ if (_vc > 25000) return; if (typeof c[0] === 'number') { _vc++; return; } for (var q = 0; q < c.length && _vc <= 25000; q++) walk(c[q]); })(
+            _fs.map(function(f){ return (f.geometry && f.geometry.coordinates) || []; }));
+          if (_vc > 25000) _heavy = true;
+        }
+      }
+    } catch (eh) {}
+    // Buat renderer yang terikat ke pane ini
+    var rend = _heavy ? L.canvas({ pane: pName, padding: 0.3 }) : L.svg({ pane: pName });
     rend.addTo(_genMap);
     return { paneName: pName, renderer: rend };
   }
@@ -33979,6 +33994,13 @@ html[lang=en] #rg-ribbon .rg-panel .sg-item .rg-lb{max-width:none;overflow:visib
     var cur=tabs[at]; if(cur&&cur.k==='l'){ cur.ref.gen=genClone(); base=cur.ref.gen; }
     var l={name:'Layout '+(lseq++), src:src, gen:JSON.parse(JSON.stringify(base))};
     try{ var _cb=(typeof window._genCurBase==='function')?window._genCurBase():null; if(_cb) l.base=_cb; if(typeof symState!=='undefined') l.sym=JSON.parse(JSON.stringify(symState)); }catch(e){}
+    /* Layout baru memakai tampilan peta yang SEDANG dilihat (bukan view lama yang basi),
+       supaya objek SHP/garis yang terlihat di peta langsung tampil di Layout. */
+    try{
+      if(cur&&cur.k==='m'&&ready()&&visible()){ snapView(cur.ref); }
+      var _sv=(cur&&cur.k==='l')?cur.ref.view:(src&&src.view);
+      if(_sv&&_sv.center) l.view={center:_sv.center,zoom:_sv.zoom};
+    }catch(e){}
     layouts.push(l); var t={k:'l',ref:l}; tabs.push(t); act(t); toastS('✅ '+l.name+' dibuat'); return l;
   }
   function removeTab(t){
